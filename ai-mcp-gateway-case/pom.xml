@@ -16,6 +16,11 @@
             <groupId>cn.bugstack.ai</groupId>
             <artifactId>ai-mcp-gateway-domain</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>cn.bugstack.wrench</groupId>
+            <artifactId>xfg-wrench-starter-design-framework</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
