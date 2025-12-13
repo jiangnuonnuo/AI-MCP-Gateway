@@ -19,24 +19,12 @@ public class ThreadPoolConfig {
     @ConditionalOnMissingBean(ThreadPoolExecutor.class)
     public ThreadPoolExecutor threadPoolExecutor(ThreadPoolConfigProperties properties) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
         // 实例化策略
-        RejectedExecutionHandler handler;
-        switch (properties.getPolicy()){
-            case "AbortPolicy":
-                handler = new ThreadPoolExecutor.AbortPolicy();
-                break;
-            case "DiscardPolicy":
-                handler = new ThreadPoolExecutor.DiscardPolicy();
-                break;
-            case "DiscardOldestPolicy":
-                handler = new ThreadPoolExecutor.DiscardOldestPolicy();
-                break;
-            case "CallerRunsPolicy":
-                handler = new ThreadPoolExecutor.CallerRunsPolicy();
-                break;
-            default:
-                handler = new ThreadPoolExecutor.AbortPolicy();
-                break;
-        }
+        RejectedExecutionHandler handler = switch (properties.getPolicy()) {
+            case "DiscardPolicy" -> new ThreadPoolExecutor.DiscardPolicy();
+            case "DiscardOldestPolicy" -> new ThreadPoolExecutor.DiscardOldestPolicy();
+            case "CallerRunsPolicy" -> new ThreadPoolExecutor.CallerRunsPolicy();
+            default -> new ThreadPoolExecutor.AbortPolicy();
+        };
         // 创建线程池
         return new ThreadPoolExecutor(properties.getCorePoolSize(),
                 properties.getMaxPoolSize(),

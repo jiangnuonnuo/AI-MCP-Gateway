@@ -1,5 +1,7 @@
 server:
-  port: 8091
+  port: 8777
+  servlet:
+    context-path: /api-gateway
 
 # 线程池配置
 thread:
