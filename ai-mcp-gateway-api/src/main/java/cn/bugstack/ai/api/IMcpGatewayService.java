@@ -1,7 +1,11 @@
 package cn.bugstack.ai.api;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 /**
  * MCP 网关服务接口
@@ -16,6 +20,14 @@ public interface IMcpGatewayService {
      * @param gatewayId 网关ID
      * @return 流式响应
      */
-    Flux<ServerSentEvent<String>> establishSSEConnection(String gatewayId) throws Exception;
+    Flux<ServerSentEvent<String>> handleSseConnection(String gatewayId) throws Exception;
+
+    /**
+     * 处理 SSE 消息
+     * @param sessionId 会话ID
+     * @param messageBody 请求消息
+     * @return 响应结果
+     */
+    Mono<ResponseEntity<Object>> handleMessage(String gatewayId, String sessionId, String messageBody);
 
 }
