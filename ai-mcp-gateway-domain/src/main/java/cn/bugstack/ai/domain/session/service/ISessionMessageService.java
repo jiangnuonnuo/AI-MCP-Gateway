@@ -10,6 +10,6 @@ import cn.bugstack.ai.domain.session.model.valobj.McpSchemaVO;
  */
 public interface ISessionMessageService {
 
-    McpSchemaVO.JSONRPCResponse processHandlerMessage(McpSchemaVO.JSONRPCRequest message);
+    McpSchemaVO.JSONRPCResponse processHandlerMessage(McpSchemaVO.JSONRPCMessage message);
 
 }
