@@ -1,11 +1,7 @@
 package cn.bugstack.ai.types.enums;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
-@AllArgsConstructor
-@NoArgsConstructor
 @Getter
 public enum ResponseCode {
 
@@ -15,7 +11,12 @@ public enum ResponseCode {
     METHOD_NOT_FOUND("0003", "未找到方法"),
     ;
 
-    private String code;
-    private String info;
+    private final String code;
+    private final String info;
+
+    ResponseCode(String code, String info) {
+        this.code = code;
+        this.info = info;
+    }
 
 }
