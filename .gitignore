@@ -38,3 +38,5 @@ build/
 .DS_Store
 /data/
 /ai-mcp-gateway-app/data/
+/.idea/
+/.mvn/
