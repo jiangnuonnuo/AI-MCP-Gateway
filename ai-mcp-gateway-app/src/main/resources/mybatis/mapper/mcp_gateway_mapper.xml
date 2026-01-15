@@ -12,7 +12,8 @@
         <result column="update_time" property="updateTime"/>
     </resultMap>
 
-    <insert id="insert" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpGatewayPO" useGeneratedKeys="true" keyProperty="id">
+    <insert id="insert" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpGatewayPO" useGeneratedKeys="true"
+            keyProperty="id">
         INSERT INTO mcp_gateway (gateway_id, gateway_name, gateway_desc, status)
         VALUES (#{gatewayId}, #{gatewayName}, #{gatewayDesc}, #{status})
     </insert>
@@ -24,10 +25,10 @@
     <update id="updateById" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpGatewayPO">
         UPDATE mcp_gateway
         SET gateway_id = #{gatewayId},
-            gateway_name = #{gatewayName},
-            gateway_desc = #{gatewayDesc},
-            status = #{status},
-            update_time = NOW()
+        gateway_name = #{gatewayName},
+        gateway_desc = #{gatewayDesc},
+        status = #{status},
+        update_time = NOW()
         WHERE id = #{id}
     </update>
 
@@ -41,6 +42,13 @@
         SELECT id, gateway_id, gateway_name, gateway_desc, status, create_time, update_time
         FROM mcp_gateway
         ORDER BY id DESC
+    </select>
+
+    <select id="queryMcpGatewayByGatewayId" parameterType="java.lang.String"
+            resultMap="McpGatewayMap">
+        SELECT id, gateway_id, gateway_name, gateway_desc, status
+        FROM mcp_gateway
+        WHERE gateway_id = #{gatewayId}
     </select>
 
 </mapper>

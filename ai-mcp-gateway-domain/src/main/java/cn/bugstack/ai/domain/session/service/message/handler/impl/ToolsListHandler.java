@@ -18,7 +18,7 @@ import java.util.Map;
 public class ToolsListHandler implements IRequestHandler {
 
     @Override
-    public McpSchemaVO.JSONRPCResponse handle(McpSchemaVO.JSONRPCRequest message) {
+    public McpSchemaVO.JSONRPCResponse handle(String gatewayId, McpSchemaVO.JSONRPCRequest message) {
         return new McpSchemaVO.JSONRPCResponse("2.0", message.id(), Map.of(
                 "tools", new Object[]{
                         Map.of(

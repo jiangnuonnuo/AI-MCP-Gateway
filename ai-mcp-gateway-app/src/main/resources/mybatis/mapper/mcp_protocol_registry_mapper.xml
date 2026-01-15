@@ -9,6 +9,7 @@
         <result column="tool_name" property="toolName"/>
         <result column="tool_type" property="toolType"/>
         <result column="tool_description" property="toolDescription"/>
+        <result column="tool_version" property="toolVersion"/>
         <result column="http_url" property="httpUrl"/>
         <result column="http_method" property="httpMethod"/>
         <result column="http_headers" property="httpHeaders"/>
@@ -20,8 +21,8 @@
     </resultMap>
 
     <insert id="insert" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpProtocolRegistryPO" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO mcp_protocol_registry (gateway_id, tool_id, tool_name, tool_type, tool_description, http_url, http_method, http_headers, timeout, retry_times, status)
-        VALUES (#{gatewayId}, #{toolId}, #{toolName}, #{toolType}, #{toolDescription}, #{httpUrl}, #{httpMethod}, #{httpHeaders}, #{timeout}, #{retryTimes}, #{status})
+        INSERT INTO mcp_protocol_registry (gateway_id, tool_id, tool_name, tool_type, tool_description, tool_version, http_url, http_method, http_headers, timeout, retry_times, status)
+        VALUES (#{gatewayId}, #{toolId}, #{toolName}, #{toolType}, #{toolDescription}, #{toolVersion}, #{httpUrl}, #{httpMethod}, #{httpHeaders}, #{timeout}, #{retryTimes}, #{status})
     </insert>
 
     <delete id="deleteById" parameterType="java.lang.Long">
@@ -35,6 +36,7 @@
             tool_name = #{toolName},
             tool_type = #{toolType},
             tool_description = #{toolDescription},
+            tool_version = #{toolVersion},
             http_url = #{httpUrl},
             http_method = #{httpMethod},
             http_headers = #{httpHeaders},
@@ -46,15 +48,21 @@
     </update>
 
     <select id="queryById" parameterType="java.lang.Long" resultMap="McpProtocolRegistryMap">
-        SELECT id, gateway_id, tool_id, tool_name, tool_type, tool_description, http_url, http_method, http_headers, timeout, retry_times, status, create_time, update_time
+        SELECT id, gateway_id, tool_id, tool_name, tool_type, tool_description, tool_version, http_url, http_method, http_headers, timeout, retry_times, status, create_time, update_time
         FROM mcp_protocol_registry
         WHERE id = #{id}
     </select>
 
     <select id="queryAll" resultMap="McpProtocolRegistryMap">
-        SELECT id, gateway_id, tool_id, tool_name, tool_type, tool_description, http_url, http_method, http_headers, timeout, retry_times, status, create_time, update_time
+        SELECT id, gateway_id, tool_id, tool_name, tool_type, tool_description, tool_version, http_url, http_method, http_headers, timeout, retry_times, status, create_time, update_time
         FROM mcp_protocol_registry
         ORDER BY id DESC
+    </select>
+
+    <select id="queryMcpProtocolRegistryByGatewayId" parameterType="java.lang.String" resultMap="McpProtocolRegistryMap">
+        SELECT id, gateway_id, tool_id, tool_name, tool_type, tool_description, tool_version, http_url, http_method, http_headers, timeout, retry_times, status, create_time, update_time
+        FROM mcp_protocol_registry
+        WHERE gateway_id = #{gateway_id}
     </select>
 
 </mapper>
