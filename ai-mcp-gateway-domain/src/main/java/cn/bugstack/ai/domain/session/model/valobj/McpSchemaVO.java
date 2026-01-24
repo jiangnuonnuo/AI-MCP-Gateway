@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -298,5 +299,46 @@ public final class McpSchemaVO {
                                  @JsonProperty("name") String name,
                                  @JsonProperty("version") String version) {
     } // @formatter:on
+
+    @JsonInclude(JsonInclude.Include.NON_ABSENT)
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record ListToolsResult( // @formatter:off
+                                   @JsonProperty("tools") List<Tool> tools,
+                                   @JsonProperty("nextCursor") String nextCursor) {
+    }// @formatter:on
+
+    @JsonInclude(JsonInclude.Include.NON_ABSENT)
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record Tool( // @formatter:off
+                        @JsonProperty("name") String name,
+                        @JsonProperty("description") String description,
+                        @JsonProperty("inputSchema") JsonSchema inputSchema) {
+
+        public Tool(String name, String description, String schema) {
+            this(name, description, parseSchema(schema));
+        }
+
+    } // @formatter:on
+
+
+    @JsonInclude(JsonInclude.Include.NON_ABSENT)
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record JsonSchema( // @formatter:off
+                              @JsonProperty("type") String type,
+                              @JsonProperty("properties") Map<String, Object> properties,
+                              @JsonProperty("required") List<String> required,
+                              @JsonProperty("additionalProperties") Boolean additionalProperties,
+                              @JsonProperty("$defs") Map<String, Object> defs,
+                              @JsonProperty("definitions") Map<String, Object> definitions) {
+    } // @formatter:on
+
+    private static JsonSchema parseSchema(String schema) {
+        try {
+            return objectMapper.readValue(schema, JsonSchema.class);
+        }
+        catch (IOException e) {
+            throw new IllegalArgumentException("Invalid schema: " + schema, e);
+        }
+    }
 
 }

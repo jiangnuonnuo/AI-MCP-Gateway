@@ -1,6 +1,9 @@
 package cn.bugstack.ai.domain.session.adapter.repository;
 
 import cn.bugstack.ai.domain.session.model.valobj.gateway.McpGatewayConfigVO;
+import cn.bugstack.ai.domain.session.model.valobj.gateway.McpGatewayToolConfigVO;
+
+import java.util.List;
 
 /**
  * 会话仓储接口
@@ -11,5 +14,7 @@ import cn.bugstack.ai.domain.session.model.valobj.gateway.McpGatewayConfigVO;
 public interface ISessionRepository {
 
     McpGatewayConfigVO queryMcpGatewayConfigByGatewayId(String gatewayId);
+
+    List<McpGatewayToolConfigVO> queryMcpGatewayToolConfigListByGatewayId(String gatewayId);
 
 }
