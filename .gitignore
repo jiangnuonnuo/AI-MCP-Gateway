@@ -40,3 +40,4 @@ build/
 /ai-mcp-gateway-app/data/
 /.idea/
 /.mvn/
+/.trae/
