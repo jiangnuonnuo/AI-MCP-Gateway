@@ -1,11 +1,17 @@
 package cn.bugstack.ai.domain.session.service.message.handler.impl;
 
+import cn.bugstack.ai.domain.session.adapter.port.ISessionPort;
+import cn.bugstack.ai.domain.session.adapter.repository.ISessionRepository;
 import cn.bugstack.ai.domain.session.model.valobj.McpSchemaVO;
+import cn.bugstack.ai.domain.session.model.valobj.gateway.McpGatewayProtocolConfigVO;
 import cn.bugstack.ai.domain.session.service.message.handler.IRequestHandler;
 import cn.bugstack.ai.types.enums.McpErrorCodes;
+import com.fasterxml.jackson.core.type.TypeReference;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.Collection;
 import java.util.Map;
 
 /**
@@ -18,45 +24,49 @@ import java.util.Map;
 @Service("toolsCallHandler")
 public class ToolsCallHandler implements IRequestHandler {
 
+    @Resource
+    private ISessionRepository repository;
+
+    @Resource
+    private ISessionPort port;
+
     @Override
     public McpSchemaVO.JSONRPCResponse handle(String gatewayId, McpSchemaVO.JSONRPCRequest message) {
+        try {
+            McpGatewayProtocolConfigVO mcpGatewayProtocolConfigVO = repository.queryMcpGatewayProtocolConfig(gatewayId);
 
-        Object id = message.id();
-        Object params = message.params();
+            // 1. 转换参数
+            McpSchemaVO.CallToolRequest callToolRequest =
+                    McpSchemaVO.unmarshalFrom(message.params(), new TypeReference<>() {
+                    });
 
-        if (!(params instanceof Map)) {
+            Object argumentsObj = callToolRequest.arguments();
 
-            new McpSchemaVO.JSONRPCResponse.JSONRPCError(McpErrorCodes.INVALID_PARAMS, "Invalid arguments format", null);
+            // todo 暂时工具名称还没有使用，后续会调整。
+            String name = callToolRequest.name();
 
-            return new McpSchemaVO.JSONRPCResponse("2.0",
-                    message.id(),
-                    null,
-                    new McpSchemaVO.JSONRPCResponse.JSONRPCError(McpErrorCodes.INVALID_PARAMS, "无效参数 - 无效的方法参数", null));
-        }
+            // 2. 调用接口
+            Object result = port.toolCall(mcpGatewayProtocolConfigVO.getHttpConfig(), argumentsObj);
 
-        Map<String, Object> paramsMap = (Map<String, Object>) params;
-        String toolName = (String) paramsMap.get("name");
-        Object argumentsObj = paramsMap.get("arguments");
-
-        Map<String, Object> arguments = (Map<String, Object>) argumentsObj;
-
-        if ("toUpperCase".equals(toolName)) {
-            String word = arguments.get("word").toString();
-
-            return new McpSchemaVO.JSONRPCResponse("2.0", message.id(), Map.of(
+            return new McpSchemaVO.JSONRPCResponse(McpSchemaVO.JSONRPC_VERSION, message.id(), Map.of(
                     "content", new Object[]{
                             Map.of(
                                     "type", "text",
-                                    "text", word.toUpperCase()
-                            )
-                    }
+                                    "text", result
+                            ),
+
+                    },
+                    "isError", "false"
             ), null);
+
+        } catch (Exception e) {
+            return new McpSchemaVO.JSONRPCResponse(McpSchemaVO.JSONRPC_VERSION,
+                    message.id(),
+                    null,
+                    new McpSchemaVO.JSONRPCResponse.JSONRPCError(McpErrorCodes.INVALID_PARAMS, e.getMessage(), null));
+
         }
 
-        return new McpSchemaVO.JSONRPCResponse("2.0",
-                message.id(),
-                null,
-                new McpSchemaVO.JSONRPCResponse.JSONRPCError(McpErrorCodes.METHOD_NOT_FOUND, "方法未找到 - 方法不存在或不可用", null));
     }
 
 }

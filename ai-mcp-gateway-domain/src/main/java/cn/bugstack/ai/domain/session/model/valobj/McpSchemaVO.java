@@ -120,7 +120,7 @@ public final class McpSchemaVO {
     }
 
     public sealed interface Request
-            permits InitializeRequest {
+            permits InitializeRequest, CallToolRequest {
 
     }
 
@@ -340,5 +340,25 @@ public final class McpSchemaVO {
             throw new IllegalArgumentException("Invalid schema: " + schema, e);
         }
     }
+
+    @JsonInclude(JsonInclude.Include.NON_ABSENT)
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record CallToolRequest(// @formatter:off
+                                  @JsonProperty("name") String name,
+                                  @JsonProperty("arguments") Map<String, Object> arguments) implements Request {
+
+        public CallToolRequest(String name, String jsonArguments) {
+            this(name, parseJsonArguments(jsonArguments));
+        }
+
+        private static Map<String, Object> parseJsonArguments(String jsonArguments) {
+            try {
+                return objectMapper.readValue(jsonArguments, MAP_TYPE_REF);
+            }
+            catch (IOException e) {
+                throw new IllegalArgumentException("Invalid arguments: " + jsonArguments, e);
+            }
+        }
+    }// @formatter:off
 
 }
