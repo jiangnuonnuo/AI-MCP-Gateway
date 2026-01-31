@@ -2,6 +2,7 @@ package cn.bugstack.ai.domain.session.adapter.repository;
 
 import cn.bugstack.ai.domain.session.model.valobj.gateway.McpGatewayConfigVO;
 import cn.bugstack.ai.domain.session.model.valobj.gateway.McpGatewayToolConfigVO;
+import cn.bugstack.ai.domain.session.model.valobj.gateway.McpGatewayProtocolConfigVO;
 
 import java.util.List;
 
@@ -16,5 +17,7 @@ public interface ISessionRepository {
     McpGatewayConfigVO queryMcpGatewayConfigByGatewayId(String gatewayId);
 
     List<McpGatewayToolConfigVO> queryMcpGatewayToolConfigListByGatewayId(String gatewayId);
+
+    McpGatewayProtocolConfigVO queryMcpGatewayProtocolConfig(String gatewayId);
 
 }
