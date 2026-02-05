@@ -5,20 +5,22 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.io.Serializable;
 import java.util.Date;
 
 /**
- * MCP工具注册表
+ * MCP网关工具表
+ *
+ * @author xiaofuge bugstack.cn @小傅哥
+ * 2026/2/1 17:24
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class McpProtocolRegistryPO {
+public class McpGatewayToolPO {
 
     /**
-     * 主键ID
+     * 自增ID
      */
     private Long id;
     /**
@@ -46,29 +48,13 @@ public class McpProtocolRegistryPO {
      */
     private String toolVersion;
     /**
-     * HTTP接口地址
+     * 协议ID
      */
-    private String httpUrl;
+    private Long protocolId;
     /**
-     * HTTP请求方法：GET/POST/PUT/DELETE
+     * 协议类型；协议类型；http、dubbo、rabbitmq
      */
-    private String httpMethod;
-    /**
-     * HTTP请求头（JSON格式）
-     */
-    private String httpHeaders;
-    /**
-     * 超时时间（毫秒）
-     */
-    private Integer timeout;
-    /**
-     * 重试次数
-     */
-    private Integer retryTimes;
-    /**
-     * 状态：0-禁用，1-启用
-     */
-    private Integer status;
+    private String protocolType;
     /**
      * 创建时间
      */
