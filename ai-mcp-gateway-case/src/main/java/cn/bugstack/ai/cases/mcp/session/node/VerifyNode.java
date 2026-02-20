@@ -3,6 +3,7 @@ package cn.bugstack.ai.cases.mcp.session.node;
 import cn.bugstack.ai.cases.mcp.session.AbstractMcpSessionSupport;
 import cn.bugstack.ai.cases.mcp.session.factory.DefaultMcpSessionFactory;
 import cn.bugstack.wrench.design.framework.tree.StrategyHandler;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -15,10 +16,11 @@ import javax.annotation.Resource;
  * @author xiaofuge bugstack.cn @小傅哥
  * 2025/12/13 09:22
  */
-@Service
+@Slf4j
+@Service("mcpSessionVerifyNode")
 public class VerifyNode extends AbstractMcpSessionSupport {
 
-    @Resource
+    @Resource(name = "mcpSessionSessionNode")
     private SessionNode sessionNode;
 
     @Override
