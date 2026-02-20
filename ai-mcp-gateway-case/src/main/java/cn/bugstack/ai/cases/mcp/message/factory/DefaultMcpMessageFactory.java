@@ -1,31 +1,32 @@
-package cn.bugstack.ai.cases.mcp.session.factory;
+package cn.bugstack.ai.cases.mcp.message.factory;
 
-import cn.bugstack.ai.cases.mcp.session.node.RootNode;
+import cn.bugstack.ai.cases.mcp.message.node.RootNode;
+import cn.bugstack.ai.cases.mcp.session.factory.DefaultMcpSessionFactory;
+import cn.bugstack.ai.domain.session.model.entity.HandleMessageCommandEntity;
 import cn.bugstack.ai.domain.session.model.valobj.SessionConfigVO;
 import cn.bugstack.wrench.design.framework.tree.StrategyHandler;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
 
 import javax.annotation.Resource;
 
 /**
- * MCP 会话服务工厂
+ * MCP会话消息工厂
  *
  * @author xiaofuge bugstack.cn @小傅哥
- * 2025/12/13 09:09
+ * 2026/2/20 07:39
  */
 @Service
-public class DefaultMcpSessionFactory {
+public class DefaultMcpMessageFactory {
 
-    @Resource(name = "mcpSessionRootNode")
+    @Resource(name = "mcpMessageRootNode")
     private RootNode rootNode;
 
-    public StrategyHandler<String, DefaultMcpSessionFactory.DynamicContext, Flux<ServerSentEvent<String>>> strategyHandler() {
+    public StrategyHandler<HandleMessageCommandEntity, DefaultMcpMessageFactory.DynamicContext, ResponseEntity<Void>> strategyHandler() {
         return rootNode;
     }
 
