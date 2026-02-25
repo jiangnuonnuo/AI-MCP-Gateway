@@ -34,6 +34,9 @@ public class DefaultMcpSessionFactory {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class DynamicContext {
+
+        private String apiKey;
+
         private SessionConfigVO sessionConfigVO;
     }
 

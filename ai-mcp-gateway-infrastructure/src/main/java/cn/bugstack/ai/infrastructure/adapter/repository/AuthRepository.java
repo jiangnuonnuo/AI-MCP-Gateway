@@ -8,6 +8,8 @@ import cn.bugstack.ai.infrastructure.dao.IMcpGatewayAuthDao;
 import cn.bugstack.ai.infrastructure.dao.IMcpGatewayDao;
 import cn.bugstack.ai.infrastructure.dao.po.McpGatewayAuthPO;
 import cn.bugstack.ai.infrastructure.dao.po.McpGatewayPO;
+import cn.bugstack.ai.types.enums.McpErrorCodes;
+import cn.bugstack.ai.types.exception.AppException;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
@@ -67,6 +69,9 @@ public class AuthRepository implements IAuthRepository {
     @Override
     public AuthStatusEnum.GatewayConfig queryGatewayAuthStatus(String gatewayId) {
         McpGatewayPO mcpGatewayPO = mcpGatewayDao.queryMcpGatewayByGatewayId(gatewayId);
+        if (null == mcpGatewayPO) {
+            throw new AppException(McpErrorCodes.INVALID_PARAMS, "无效参数 gatewayId 不存在");
+        }
         return AuthStatusEnum.GatewayConfig.get(mcpGatewayPO.getAuth());
     }
 
