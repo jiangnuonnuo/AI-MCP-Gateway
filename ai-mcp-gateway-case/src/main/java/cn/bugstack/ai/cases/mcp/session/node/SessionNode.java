@@ -29,7 +29,7 @@ public class SessionNode extends AbstractMcpSessionSupport {
         log.info("创建会话-SessionNode:{}", requestParameter);
 
         // 创建会话服务
-        SessionConfigVO sessionConfigVO = sessionManagementService.createSession(requestParameter);
+        SessionConfigVO sessionConfigVO = sessionManagementService.createSession(requestParameter, dynamicContext.getApiKey());
 
         // 写入上下文中
         dynamicContext.setSessionConfigVO(sessionConfigVO);

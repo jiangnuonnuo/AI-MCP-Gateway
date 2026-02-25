@@ -20,12 +20,21 @@ public class HandleMessageCommandEntity {
 
     private String gatewayId;
 
+    private String apiKey;
+
     private String sessionId;
 
     private McpSchemaVO.JSONRPCMessage jsonrpcMessage;
 
     public HandleMessageCommandEntity(String gatewayId, String sessionId, String messageBody) throws Exception {
         this.gatewayId = gatewayId;
+        this.sessionId = sessionId;
+        this.jsonrpcMessage = McpSchemaVO.deserializeJsonRpcMessage(messageBody);
+    }
+
+    public HandleMessageCommandEntity(String gatewayId, String apiKey, String sessionId, String messageBody) throws Exception {
+        this.gatewayId = gatewayId;
+        this.apiKey = apiKey;
         this.sessionId = sessionId;
         this.jsonrpcMessage = McpSchemaVO.deserializeJsonRpcMessage(messageBody);
     }
