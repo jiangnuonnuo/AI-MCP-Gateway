@@ -31,7 +31,9 @@ public class Swagger2McpProtocolHttpTest {
 //        List<String> endpoints = Arrays.asList("/api/v1/mcp/get_company_employee");
 //        List<String> endpoints = Arrays.asList("/api/v1/mcp/query-test03");
 //        List<String> endpoints = Arrays.asList("/api/v1/mcp/query-test02");
-        List<String> endpoints = Arrays.asList("/api/v1/mcp/query-test01");
+        List<String> endpoints = Arrays.asList("/api/v1/mcp/query-by-id-01");
+//        List<String> endpoints = Arrays.asList("/api/v1/mcp/query-by-id-02");
+//        List<String> endpoints = Arrays.asList("/api/v1/mcp/query-by-id-03");
         List<HTTPProtocolVO> result = parse(json, endpoints);
         log.info("测试结果:{}", JSON.toJSONString(result));
     }
@@ -82,10 +84,10 @@ public class Swagger2McpProtocolHttpTest {
                                 .parentPath(null)
                                 .fieldName(rootName)
                                 .mcpPath(rootName)
-                                .mcpType(reqSchema.getString("type"))
+                                .mcpType(convertType(reqSchema.getString("type")))
                                 .mcpDesc(reqSchema.getString("description"))
                                 .isRequired(1)
-                                .sortOrder(mappings.size() + 1)
+                                .sortOrder(1)
                                 .build();
                         mappings.add(rootMapping);
 
@@ -122,7 +124,7 @@ public class Swagger2McpProtocolHttpTest {
                                 .parentPath(null)
                                 .fieldName(name)
                                 .mcpPath(name)
-                                .mcpType(type)
+                                .mcpType(convertType(type))
                                 .mcpDesc(description)
                                 .isRequired(required ? 1 : 0)
                                 .sortOrder(mappings.size() + 1)
@@ -136,7 +138,7 @@ public class Swagger2McpProtocolHttpTest {
                                 .parentPath(null)
                                 .fieldName(name)
                                 .mcpPath(name)
-                                .mcpType(type)
+                                .mcpType(convertType(type))
                                 .mcpDesc(description)
                                 .isRequired(required ? 1 : 0)
                                 .sortOrder(mappings.size() + 1)
@@ -177,7 +179,7 @@ public class Swagger2McpProtocolHttpTest {
                     .parentPath(parentMcpPath)
                     .fieldName(propName)
                     .mcpPath(currentMcpPath)
-                    .mcpType(type)
+                    .mcpType(convertType(type))
                     .mcpDesc(description)
                     .isRequired(requiredList != null && requiredList.contains(propName) ? 1 : 0)
                     .sortOrder(sortOrder++)
@@ -188,6 +190,17 @@ public class Swagger2McpProtocolHttpTest {
                 parseProperties(currentMcpPath, effectiveSchema.getJSONObject("properties"), effectiveSchema.getJSONArray("required"), definitions, mappings);
             }
         }
+    }
+
+    private String convertType(String type) {
+        if (type == null) return "string";
+        return switch (type.toLowerCase()) {
+            case "string", "char", "date", "datetime" -> "string";
+            case "integer", "int", "long", "double", "float", "number" -> "number";
+            case "boolean", "bool" -> "boolean";
+            case "array", "list" -> "array";
+            default -> "object";
+        };
     }
 
     private String detectMethod(JSONObject pathItem) {
