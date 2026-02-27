@@ -12,7 +12,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.Resource;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.util.FileCopyUtils;
-import org.springframework.core.io.ClassPathResource;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
