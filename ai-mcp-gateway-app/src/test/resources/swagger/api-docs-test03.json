@@ -18,6 +18,98 @@
     }
   ],
   "paths": {
+    "/api/v1/mcp/query-by-id-01": {
+      "get": {
+        "tags": [
+          "测试服务"
+        ],
+        "operationId": "queryAiClientById01",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mcp/query-by-id-02": {
+      "get": {
+        "tags": [
+          "测试服务"
+        ],
+        "operationId": "queryAiClientById02",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mcp/query-by-id-03": {
+      "get": {
+        "tags": [
+          "测试服务"
+        ],
+        "operationId": "queryAiClientById03",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/mcp/get_company_employee": {
       "post": {
         "tags": [
