@@ -8,6 +8,10 @@ import java.util.List;
 @Mapper
 public interface IMcpGatewayToolDao {
 
+    int insert(McpGatewayToolPO po);
+
+    int updateProtocolByGatewayId(McpGatewayToolPO po);
+
     List<McpGatewayToolPO> queryEffectiveTools(String gatewayId);
 
     Long queryToolProtocolIdByToolName(McpGatewayToolPO mcpGatewayToolPOReq);

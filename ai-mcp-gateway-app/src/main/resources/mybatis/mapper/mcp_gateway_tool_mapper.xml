@@ -16,6 +16,19 @@
         <result column="update_time" property="updateTime"/>
     </resultMap>
 
+    <insert id="insert" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpGatewayToolPO" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO mcp_gateway_tool (gateway_id, tool_id, tool_name, tool_type, tool_description, tool_version, protocol_id, protocol_type)
+        VALUES (#{gatewayId}, #{toolId}, #{toolName}, #{toolType}, #{toolDescription}, #{toolVersion}, #{protocolId}, #{protocolType})
+    </insert>
+
+    <update id="updateProtocolByGatewayId" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpGatewayToolPO">
+        UPDATE mcp_gateway_tool
+        SET protocol_id = #{protocolId},
+        protocol_type = #{protocolType},
+        update_time = NOW()
+        WHERE gateway_id = #{gatewayId}
+    </update>
+
     <select id="queryEffectiveTools" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpGatewayToolPO"
             resultMap="McpGatewayToolMap">
         SELECT id, gateway_id, tool_id, tool_name, tool_type, tool_description, tool_version, protocol_id, protocol_type,
@@ -28,6 +41,17 @@
         SELECT protocol_id FROM mcp_gateway_tool
         WHERE gateway_id = #{gatewayId} and tool_name = #{toolName}
     </select>
+
+    <update id="updateGatewayToolProtocol" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpGatewayToolPO">
+        UPDATE mcp_gateway_tool
+        SET protocol_id = #{protocolId},
+        protocol_type = #{protocolType},
+        update_time = NOW()
+        WHERE gateway_id = #{gatewayId}
+        <if test="toolId != null">
+            AND tool_id = #{toolId}
+        </if>
+    </update>
 
 </mapper>
 
