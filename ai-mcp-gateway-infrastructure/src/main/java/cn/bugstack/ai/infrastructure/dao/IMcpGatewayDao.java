@@ -14,6 +14,8 @@ public interface IMcpGatewayDao {
 
     int updateById(McpGatewayPO po);
 
+    int updateAuthStatusByGatewayId(McpGatewayPO po);
+
     McpGatewayPO queryById(Long id);
 
     List<McpGatewayPO> queryAll();

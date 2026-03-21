@@ -36,6 +36,13 @@
         WHERE id = #{id}
     </update>
 
+    <update id="updateAuthStatusByGatewayId" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpGatewayPO">
+        UPDATE mcp_gateway
+        SET auth = #{auth},
+        update_time = NOW()
+        WHERE gateway_id = #{gatewayId}
+    </update>
+
     <select id="queryById" parameterType="java.lang.Long" resultMap="McpGatewayMap">
         SELECT id, gateway_id, gateway_name, gateway_desc, version, auth, status, create_time, update_time
         FROM mcp_gateway
@@ -54,6 +61,13 @@
         FROM mcp_gateway
         WHERE gateway_id = #{gatewayId}
     </select>
+
+    <update id="updateGatewayAuthStatus" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpGatewayPO">
+        UPDATE mcp_gateway
+        SET auth = #{auth},
+        update_time = NOW()
+        WHERE gateway_id = #{gatewayId}
+    </update>
 
 </mapper>
 
