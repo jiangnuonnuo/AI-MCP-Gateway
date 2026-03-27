@@ -61,7 +61,7 @@ public enum GatewayEnum {
                 return null;
             }
             for (GatewayAuthStatusEnum anEnum : GatewayAuthStatusEnum.values()) {
-                if(anEnum.getCode().equals(code)){
+                if(anEnum.code.equals(code)){
                     return anEnum;
                 }
             }
