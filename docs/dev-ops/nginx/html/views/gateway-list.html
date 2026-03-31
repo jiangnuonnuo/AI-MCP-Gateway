@@ -1,0 +1,33 @@
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-3 mb-4 border-bottom">
+    <h1 class="page-title">网关列表</h1>
+    <button class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1" id="refreshGatewayList">
+        <i class="bi bi-arrow-clockwise"></i> 刷新数据
+    </button>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>网关ID</th>
+                        <th>网关名称</th>
+                        <th>描述</th>
+                        <th>版本</th>
+                        <th>认证校验</th>
+                        <th>状态</th>
+                    </tr>
+                </thead>
+                <tbody id="gatewayTableBody">
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">
+                            <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                            加载中...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

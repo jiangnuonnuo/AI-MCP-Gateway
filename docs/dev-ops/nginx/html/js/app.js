@@ -6,9 +6,6 @@ $(document).ready(function() {
         return;
     }
 
-    // 初始化页面显示 API 地址
-    $('#display-api-url').text(API_BASE_URL);
-
     // 退出登录
     $('#logoutBtn').on('click', function(e) {
         e.preventDefault();
@@ -16,7 +13,7 @@ $(document).ready(function() {
         window.location.href = 'index.html';
     });
 
-    // 侧边栏导航切换
+    // 侧边栏导航切换和动态加载页面
     $('.nav-link[data-target]').on('click', function(e) {
         e.preventDefault();
         
@@ -24,13 +21,45 @@ $(document).ready(function() {
         $('.nav-link').removeClass('active');
         $(this).addClass('active');
         
-        // 切换内容区域
         const targetId = $(this).data('target');
-        $('.content-section').removeClass('active');
-        $('#' + targetId).addClass('active');
+        loadView(targetId);
+    });
 
-        // 如果是网关列表页面，自动加载数据
-        if (targetId === 'gateway-list') {
+    // 动态加载视图
+    function loadView(targetId) {
+        const viewPath = `views/${targetId}.html`;
+        $('#main-content-wrapper').html('<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><div class="mt-2 text-muted">加载中...</div></div>');
+        
+        $('#main-content-wrapper').load(viewPath, function(response, status, xhr) {
+            if (status == "error") {
+                $('#main-content-wrapper').html(`<div class="alert alert-danger m-4">页面加载失败：${xhr.status} ${xhr.statusText}</div>`);
+                return;
+            }
+            
+            // 页面加载后的初始化逻辑
+            initViewLogic(targetId);
+        });
+    }
+
+    // 初始化各个页面的逻辑
+    function initViewLogic(targetId) {
+        if (targetId === 'dashboard') {
+            $('#display-api-url').text(API_BASE_URL);
+            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const dateEl = document.getElementById('current-date');
+            if(dateEl) dateEl.textContent = new Date().toLocaleDateString('zh-CN', dateOptions);
+            
+            // 尝试获取网关总数
+            $.ajax({
+                url: API_ENDPOINTS.GET_GATEWAY_LIST,
+                type: 'GET',
+                success: function(response) {
+                    if(response && response.code === '0000' && response.data) {
+                        $('#stat-gateway-count').text(response.data.length);
+                    }
+                }
+            });
+        } else if (targetId === 'gateway-list') {
             loadGatewayList();
         } else if (targetId === 'gateway-tool') {
             loadGatewayToolList();
@@ -39,18 +68,10 @@ $(document).ready(function() {
         } else if (targetId === 'gateway-auth') {
             loadGatewayAuthList();
         }
-    });
+    }
 
-    // 刷新列表按钮
-    $('#refreshGatewayList').on('click', function() {
-        const $btn = $(this);
-        const originalHtml = $btn.html();
-        $btn.html('<i class="bi bi-arrow-clockwise fa-spin"></i> 刷新中...').prop('disabled', true);
-        
-        loadGatewayList(() => {
-            $btn.html(originalHtml).prop('disabled', false);
-        });
-    });
+    // 初始加载 Dashboard
+    loadView('dashboard');
 
     // 显示 Toast 通知
     function showToast(message, isSuccess = true) {
@@ -69,9 +90,11 @@ $(document).ready(function() {
         toast.show();
     }
 
-    // 表单提交通用处理
-    function handleFormSubmit(formId, endpoint, dataProcessor, onSuccess) {
-        $('#' + formId).on('submit', function(e) {
+    // 表单提交通用处理 - 使用事件委托
+    function handleFormSubmitDelegated(formId, endpoint, dataProcessor, onSuccess) {
+        // 先解绑以防重复绑定
+        $(document).off('submit', '#' + formId);
+        $(document).on('submit', '#' + formId, function(e) {
             e.preventDefault();
             
             const $btn = $(this).find('button[type="submit"]');
@@ -120,7 +143,7 @@ $(document).ready(function() {
     }
 
     // 1. 保存网关基础配置
-    handleFormSubmit('form-gateway-config', API_ENDPOINTS.SAVE_GATEWAY_CONFIG, function(data) {
+    handleFormSubmitDelegated('form-gateway-config', API_ENDPOINTS.SAVE_GATEWAY_CONFIG, function(data) {
         return {
             gatewayId: data.gatewayId,
             gatewayName: data.gatewayName,
@@ -132,7 +155,7 @@ $(document).ready(function() {
     });
 
     // 2. 保存网关工具配置
-    handleFormSubmit('form-gateway-tool', API_ENDPOINTS.SAVE_GATEWAY_TOOL_CONFIG, function(data) {
+    handleFormSubmitDelegated('form-gateway-tool', API_ENDPOINTS.SAVE_GATEWAY_TOOL_CONFIG, function(data) {
         return {
             gatewayId: data.gatewayId,
             toolId: data.toolId,
@@ -145,11 +168,12 @@ $(document).ready(function() {
         };
     }, function() {
         $('#gatewayToolModal').modal('hide');
-        loadGatewayToolList();
+        // 由于模态框关闭动画有延迟，稍微延时刷新列表避免遮罩问题
+        setTimeout(loadGatewayToolList, 300);
     });
 
     // 3. 保存网关协议配置
-    handleFormSubmit('form-gateway-protocol', API_ENDPOINTS.SAVE_GATEWAY_PROTOCOL, function(data) {
+    handleFormSubmitDelegated('form-gateway-protocol', API_ENDPOINTS.SAVE_GATEWAY_PROTOCOL, function(data) {
         let mappings = null;
         if(data.mappingsJson && data.mappingsJson.trim() !== '') {
             try {
@@ -173,11 +197,11 @@ $(document).ready(function() {
         };
     }, function() {
         $('#gatewayProtocolModal').modal('hide');
-        loadGatewayProtocolList();
+        setTimeout(loadGatewayProtocolList, 300);
     });
 
     // 4. 保存网关认证配置
-    handleFormSubmit('form-gateway-auth', API_ENDPOINTS.SAVE_GATEWAY_AUTH, function(data) {
+    handleFormSubmitDelegated('form-gateway-auth', API_ENDPOINTS.SAVE_GATEWAY_AUTH, function(data) {
         return {
             gatewayId: data.gatewayId,
             rateLimit: parseInt(data.rateLimit),
@@ -185,10 +209,22 @@ $(document).ready(function() {
         };
     }, function() {
         $('#gatewayAuthModal').modal('hide');
-        loadGatewayAuthList();
+        setTimeout(loadGatewayAuthList, 300);
     });
 
-    // 获取网关列表数据
+    // ==========================================
+    // 网关列表相关
+    // ==========================================
+    $(document).on('click', '#refreshGatewayList', function() {
+        const $btn = $(this);
+        const originalHtml = $btn.html();
+        $btn.html('<i class="bi bi-arrow-clockwise fa-spin"></i> 刷新中...').prop('disabled', true);
+        
+        loadGatewayList(() => {
+            $btn.html(originalHtml).prop('disabled', false);
+        });
+    });
+
     function loadGatewayList(callback) {
         const tbody = $('#gatewayTableBody');
         if(!callback) {
@@ -201,9 +237,6 @@ $(document).ready(function() {
             success: function(response) {
                 if(response && response.code === '0000' && response.data) {
                     const list = response.data;
-                    
-                    // 更新控制台统计
-                    $('#stat-gateway-count').text(list.length);
                     
                     if(list.length === 0) {
                         tbody.html('<tr><td colspan="6" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>暂无网关数据</td></tr>');
@@ -239,11 +272,10 @@ $(document).ready(function() {
         });
     }
 
-    // 初始加载一次数据，用于统计
-    loadGatewayList();
-
-    // 刷新工具列表按钮
-    $('#refreshGatewayToolList').on('click', function() {
+    // ==========================================
+    // 网关工具相关
+    // ==========================================
+    $(document).on('click', '#refreshGatewayToolList', function() {
         const $btn = $(this);
         const originalHtml = $btn.html();
         $btn.html('<i class="bi bi-arrow-clockwise fa-spin"></i> 刷新中...').prop('disabled', true);
@@ -253,7 +285,66 @@ $(document).ready(function() {
         });
     });
 
-    // 获取网关工具列表数据
+    $(document).on('click', '#addGatewayToolBtn', function() {
+        $('#form-gateway-tool')[0].reset();
+        $('#tool-toolId').prop('readonly', false);
+        $('#gatewayToolModalLabel').html('<i class="bi bi-tools me-2"></i>新增网关工具配置');
+    });
+
+    // 事件委托 - 修改工具
+    $(document).on('click', '.btn-edit-tool', function() {
+        try {
+            const itemDataStr = decodeURIComponent($(this).data('item'));
+            const item = JSON.parse(itemDataStr);
+            
+            // 填充表单
+            $('#tool-gatewayId').val(item.gatewayId);
+            $('#tool-toolId').val(item.toolId).prop('readonly', true);
+            $('#tool-toolName').val(item.toolName);
+            $('#tool-toolType').val(item.toolType);
+            $('#tool-toolDescription').val(item.toolDescription);
+            $('#tool-toolVersion').val(item.toolVersion);
+            $('#tool-protocolId').val(item.protocolId);
+            $('#tool-protocolType').val(item.protocolType);
+            
+            $('#gatewayToolModalLabel').html('<i class="bi bi-pencil-square me-2"></i>修改网关工具配置');
+            $('#gatewayToolModal').modal('show');
+        } catch (e) {
+            console.error("解析数据失败", e);
+            showToast("解析数据失败", false);
+        }
+    });
+
+    // 事件委托 - 删除工具
+    $(document).on('click', '.btn-delete-tool', function() {
+        const gatewayId = $(this).data('gateway-id');
+        const toolId = $(this).data('tool-id');
+        
+        if(confirm(`确定要删除工具 ID: ${toolId} 吗？`)) {
+            const $btn = $(this);
+            const originalHtml = $btn.html();
+            $btn.html('<i class="bi bi-hourglass-split"></i>').prop('disabled', true);
+            
+            $.ajax({
+                url: `${API_ENDPOINTS.DELETE_GATEWAY_TOOL}?gatewayId=${encodeURIComponent(gatewayId)}&toolId=${encodeURIComponent(toolId)}`,
+                type: 'POST',
+                success: function(response) {
+                    if(response && response.code === '0000') {
+                        showToast('删除成功！');
+                        loadGatewayToolList();
+                    } else {
+                        showToast('删除失败：' + (response.info || '未知错误'), false);
+                        $btn.html(originalHtml).prop('disabled', false);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    showToast('请求失败：' + error, false);
+                    $btn.html(originalHtml).prop('disabled', false);
+                }
+            });
+        }
+    });
+
     function loadGatewayToolList(callback) {
         const tbody = $('#gatewayToolTableBody');
         if(!callback) {
@@ -272,7 +363,6 @@ $(document).ready(function() {
                     } else {
                         let html = '';
                         list.forEach(function(item) {
-                            // Serialize item for edit
                             const itemData = encodeURIComponent(JSON.stringify(item));
                             html += `
                                 <tr>
@@ -297,9 +387,6 @@ $(document).ready(function() {
                             `;
                         });
                         tbody.html(html);
-                        
-                        // 绑定事件
-                        bindToolActionEvents();
                     }
                 } else {
                     tbody.html(`<tr><td colspan="8" class="text-center text-danger py-4"><i class="bi bi-exclamation-triangle me-2"></i>加载失败: ${response.info || '未知错误'}</td></tr>`);
@@ -314,78 +401,10 @@ $(document).ready(function() {
         });
     }
 
-    // 绑定工具列表操作按钮事件
-    function bindToolActionEvents() {
-        // 修改工具
-        $('.btn-edit-tool').on('click', function() {
-            try {
-                const itemDataStr = decodeURIComponent($(this).data('item'));
-                const item = JSON.parse(itemDataStr);
-                
-                // 填充表单
-                $('#tool-gatewayId').val(item.gatewayId);
-                $('#tool-toolId').val(item.toolId).prop('readonly', true); // 工具ID通常不建议修改
-                $('#tool-toolName').val(item.toolName);
-                $('#tool-toolType').val(item.toolType);
-                $('#tool-toolDescription').val(item.toolDescription);
-                $('#tool-toolVersion').val(item.toolVersion);
-                $('#tool-protocolId').val(item.protocolId);
-                $('#tool-protocolType').val(item.protocolType);
-                
-                // 修改模态框标题
-                $('#gatewayToolModalLabel').html('<i class="bi bi-pencil-square me-2"></i>修改网关工具配置');
-                
-                // 显示模态框
-                $('#gatewayToolModal').modal('show');
-            } catch (e) {
-                console.error("解析数据失败", e);
-                showToast("解析数据失败", false);
-            }
-        });
-
-        // 删除工具
-        $('.btn-delete-tool').on('click', function() {
-            const gatewayId = $(this).data('gateway-id');
-            const toolId = $(this).data('tool-id');
-            
-            if(confirm(`确定要删除工具 ID: ${toolId} 吗？`)) {
-                const $btn = $(this);
-                const originalHtml = $btn.html();
-                $btn.html('<i class="bi bi-hourglass-split"></i>').prop('disabled', true);
-                
-                // 由于删除接口使用POST且为FormData形式，这里按照后端的@RequestParam进行传参
-                $.ajax({
-                    url: `${API_ENDPOINTS.DELETE_GATEWAY_TOOL}?gatewayId=${encodeURIComponent(gatewayId)}&toolId=${encodeURIComponent(toolId)}`,
-                    type: 'POST',
-                    success: function(response) {
-                        if(response && response.code === '0000') {
-                            showToast('删除成功！');
-                            loadGatewayToolList();
-                        } else {
-                            showToast('删除失败：' + (response.info || '未知错误'), false);
-                            $btn.html(originalHtml).prop('disabled', false);
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        showToast('请求失败：' + error, false);
-                        $btn.html(originalHtml).prop('disabled', false);
-                    }
-                });
-            }
-        });
-    }
-
-    // 新增工具按钮点击事件
-    $('#addGatewayToolBtn').on('click', function() {
-        $('#form-gateway-tool')[0].reset();
-        $('#tool-toolId').prop('readonly', false);
-        $('#gatewayToolModalLabel').html('<i class="bi bi-tools me-2"></i>新增网关工具配置');
-    });
-
     // ==========================================
     // 网关协议列表相关
     // ==========================================
-    $('#refreshGatewayProtocolList').on('click', function() {
+    $(document).on('click', '#refreshGatewayProtocolList', function() {
         const $btn = $(this);
         const originalHtml = $btn.html();
         $btn.html('<i class="bi bi-arrow-clockwise fa-spin"></i> 刷新中...').prop('disabled', true);
@@ -393,6 +412,66 @@ $(document).ready(function() {
         loadGatewayProtocolList(() => {
             $btn.html(originalHtml).prop('disabled', false);
         });
+    });
+
+    $(document).on('click', '#addGatewayProtocolBtn', function() {
+        $('#form-gateway-protocol')[0].reset();
+        $('#protocol-protocolId').val(''); 
+        $('#protocol-mappingsJson').val(''); 
+        $('#gatewayProtocolModalLabel').html('<i class="bi bi-hdd-network me-2"></i>新增网关协议配置');
+    });
+
+    $(document).on('click', '.btn-edit-protocol', function() {
+        try {
+            const itemDataStr = decodeURIComponent($(this).data('item'));
+            const item = JSON.parse(itemDataStr);
+            
+            $('#protocol-protocolId').val(item.protocolId);
+            $('#protocol-httpUrl').val(item.httpUrl);
+            $('#protocol-httpMethod').val(item.httpMethod);
+            $('#protocol-timeout').val(item.timeout);
+            $('#protocol-httpHeaders').val(item.httpHeaders);
+            
+            if (item.mappings && item.mappings.length > 0) {
+                $('#protocol-mappingsJson').val(JSON.stringify(item.mappings, null, 2));
+            } else {
+                $('#protocol-mappingsJson').val('');
+            }
+            
+            $('#gatewayProtocolModalLabel').html('<i class="bi bi-pencil-square me-2"></i>修改网关协议配置');
+            $('#gatewayProtocolModal').modal('show');
+        } catch (e) {
+            console.error("解析数据失败", e);
+            showToast("解析数据失败", false);
+        }
+    });
+
+    $(document).on('click', '.btn-delete-protocol', function() {
+        const protocolId = $(this).data('protocol-id');
+        
+        if(confirm(`确定要删除协议 ID: ${protocolId} 吗？`)) {
+            const $btn = $(this);
+            const originalHtml = $btn.html();
+            $btn.html('<i class="bi bi-hourglass-split"></i>').prop('disabled', true);
+            
+            $.ajax({
+                url: `${API_ENDPOINTS.DELETE_GATEWAY_PROTOCOL}?protocolId=${encodeURIComponent(protocolId)}`,
+                type: 'POST',
+                success: function(response) {
+                    if(response && response.code === '0000') {
+                        showToast('删除成功！');
+                        loadGatewayProtocolList();
+                    } else {
+                        showToast('删除失败：' + (response.info || '未知错误'), false);
+                        $btn.html(originalHtml).prop('disabled', false);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    showToast('请求失败：' + error, false);
+                    $btn.html(originalHtml).prop('disabled', false);
+                }
+            });
+        }
     });
 
     function loadGatewayProtocolList(callback) {
@@ -434,7 +513,6 @@ $(document).ready(function() {
                             `;
                         });
                         tbody.html(html);
-                        bindProtocolActionEvents();
                     }
                 } else {
                     tbody.html(`<tr><td colspan="5" class="text-center text-danger py-4"><i class="bi bi-exclamation-triangle me-2"></i>加载失败: ${response.info || '未知错误'}</td></tr>`);
@@ -449,72 +527,10 @@ $(document).ready(function() {
         });
     }
 
-    function bindProtocolActionEvents() {
-        $('.btn-edit-protocol').on('click', function() {
-            try {
-                const itemDataStr = decodeURIComponent($(this).data('item'));
-                const item = JSON.parse(itemDataStr);
-                
-                $('#protocol-protocolId').val(item.protocolId);
-                $('#protocol-httpUrl').val(item.httpUrl);
-                $('#protocol-httpMethod').val(item.httpMethod);
-                $('#protocol-timeout').val(item.timeout);
-                $('#protocol-httpHeaders').val(item.httpHeaders);
-                
-                if (item.mappings && item.mappings.length > 0) {
-                    $('#protocol-mappingsJson').val(JSON.stringify(item.mappings, null, 2));
-                } else {
-                    $('#protocol-mappingsJson').val('');
-                }
-                
-                $('#gatewayProtocolModalLabel').html('<i class="bi bi-pencil-square me-2"></i>修改网关协议配置');
-                $('#gatewayProtocolModal').modal('show');
-            } catch (e) {
-                console.error("解析数据失败", e);
-                showToast("解析数据失败", false);
-            }
-        });
-
-        $('.btn-delete-protocol').on('click', function() {
-            const protocolId = $(this).data('protocol-id');
-            
-            if(confirm(`确定要删除协议 ID: ${protocolId} 吗？`)) {
-                const $btn = $(this);
-                const originalHtml = $btn.html();
-                $btn.html('<i class="bi bi-hourglass-split"></i>').prop('disabled', true);
-                
-                $.ajax({
-                    url: `${API_ENDPOINTS.DELETE_GATEWAY_PROTOCOL}?protocolId=${encodeURIComponent(protocolId)}`,
-                    type: 'POST',
-                    success: function(response) {
-                        if(response && response.code === '0000') {
-                            showToast('删除成功！');
-                            loadGatewayProtocolList();
-                        } else {
-                            showToast('删除失败：' + (response.info || '未知错误'), false);
-                            $btn.html(originalHtml).prop('disabled', false);
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        showToast('请求失败：' + error, false);
-                        $btn.html(originalHtml).prop('disabled', false);
-                    }
-                });
-            }
-        });
-    }
-
-    $('#addGatewayProtocolBtn').on('click', function() {
-        $('#form-gateway-protocol')[0].reset();
-        $('#protocol-protocolId').val(''); // Clear protocol ID for new entry
-        $('#protocol-mappingsJson').val(''); // Clear mappings text area
-        $('#gatewayProtocolModalLabel').html('<i class="bi bi-hdd-network me-2"></i>新增网关协议配置');
-    });
-
     // ==========================================
     // 网关认证列表相关
     // ==========================================
-    $('#refreshGatewayAuthList').on('click', function() {
+    $(document).on('click', '#refreshGatewayAuthList', function() {
         const $btn = $(this);
         const originalHtml = $btn.html();
         $btn.html('<i class="bi bi-arrow-clockwise fa-spin"></i> 刷新中...').prop('disabled', true);
@@ -522,6 +538,57 @@ $(document).ready(function() {
         loadGatewayAuthList(() => {
             $btn.html(originalHtml).prop('disabled', false);
         });
+    });
+
+    $(document).on('click', '#addGatewayAuthBtn', function() {
+        $('#form-gateway-auth')[0].reset();
+        $('#auth-gatewayId').prop('readonly', false);
+        $('#gatewayAuthModalLabel').html('<i class="bi bi-shield-check me-2"></i>新增认证配置');
+    });
+
+    $(document).on('click', '.btn-edit-auth', function() {
+        try {
+            const itemDataStr = decodeURIComponent($(this).data('item'));
+            const item = JSON.parse(itemDataStr);
+            
+            $('#auth-gatewayId').val(item.gatewayId).prop('readonly', true);
+            $('#auth-rateLimit').val(item.rateLimit);
+            $('#auth-expireTime').val(item.expireTime);
+            
+            $('#gatewayAuthModalLabel').html('<i class="bi bi-pencil-square me-2"></i>修改网关认证配置');
+            $('#gatewayAuthModal').modal('show');
+        } catch (e) {
+            console.error("解析数据失败", e);
+            showToast("解析数据失败", false);
+        }
+    });
+
+    $(document).on('click', '.btn-delete-auth', function() {
+        const gatewayId = $(this).data('gateway-id');
+        
+        if(confirm(`确定要删除网关 ID: ${gatewayId} 的认证配置吗？`)) {
+            const $btn = $(this);
+            const originalHtml = $btn.html();
+            $btn.html('<i class="bi bi-hourglass-split"></i>').prop('disabled', true);
+            
+            $.ajax({
+                url: `${API_ENDPOINTS.DELETE_GATEWAY_AUTH}?gatewayId=${encodeURIComponent(gatewayId)}`,
+                type: 'POST',
+                success: function(response) {
+                    if(response && response.code === '0000') {
+                        showToast('删除成功！');
+                        loadGatewayAuthList();
+                    } else {
+                        showToast('删除失败：' + (response.info || '未知错误'), false);
+                        $btn.html(originalHtml).prop('disabled', false);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    showToast('请求失败：' + error, false);
+                    $btn.html(originalHtml).prop('disabled', false);
+                }
+            });
+        }
     });
 
     function loadGatewayAuthList(callback) {
@@ -569,7 +636,6 @@ $(document).ready(function() {
                             `;
                         });
                         tbody.html(html);
-                        bindAuthActionEvents();
                     }
                 } else {
                     tbody.html(`<tr><td colspan="5" class="text-center text-danger py-4"><i class="bi bi-exclamation-triangle me-2"></i>加载失败: ${response.info || '未知错误'}</td></tr>`);
@@ -583,58 +649,5 @@ $(document).ready(function() {
             }
         });
     }
-
-    function bindAuthActionEvents() {
-        $('.btn-edit-auth').on('click', function() {
-            try {
-                const itemDataStr = decodeURIComponent($(this).data('item'));
-                const item = JSON.parse(itemDataStr);
-                
-                $('#auth-gatewayId').val(item.gatewayId).prop('readonly', true);
-                $('#auth-rateLimit').val(item.rateLimit);
-                $('#auth-expireTime').val(item.expireTime);
-                
-                $('#gatewayAuthModalLabel').html('<i class="bi bi-pencil-square me-2"></i>修改网关认证配置');
-                $('#gatewayAuthModal').modal('show');
-            } catch (e) {
-                console.error("解析数据失败", e);
-                showToast("解析数据失败", false);
-            }
-        });
-
-        $('.btn-delete-auth').on('click', function() {
-            const gatewayId = $(this).data('gateway-id');
-            
-            if(confirm(`确定要删除网关 ID: ${gatewayId} 的认证配置吗？`)) {
-                const $btn = $(this);
-                const originalHtml = $btn.html();
-                $btn.html('<i class="bi bi-hourglass-split"></i>').prop('disabled', true);
-                
-                $.ajax({
-                    url: `${API_ENDPOINTS.DELETE_GATEWAY_AUTH}?gatewayId=${encodeURIComponent(gatewayId)}`,
-                    type: 'POST',
-                    success: function(response) {
-                        if(response && response.code === '0000') {
-                            showToast('删除成功！');
-                            loadGatewayAuthList();
-                        } else {
-                            showToast('删除失败：' + (response.info || '未知错误'), false);
-                            $btn.html(originalHtml).prop('disabled', false);
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        showToast('请求失败：' + error, false);
-                        $btn.html(originalHtml).prop('disabled', false);
-                    }
-                });
-            }
-        });
-    }
-
-    $('#addGatewayAuthBtn').on('click', function() {
-        $('#form-gateway-auth')[0].reset();
-        $('#auth-gatewayId').prop('readonly', false);
-        $('#gatewayAuthModalLabel').html('<i class="bi bi-shield-check me-2"></i>新增认证配置');
-    });
 
 });
