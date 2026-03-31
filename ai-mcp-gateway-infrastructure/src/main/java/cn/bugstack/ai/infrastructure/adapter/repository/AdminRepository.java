@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import cn.bugstack.ai.infrastructure.dao.po.McpGatewayPO;
 import cn.bugstack.ai.domain.admin.model.entity.GatewayConfigEntity;
+import cn.bugstack.ai.domain.admin.model.entity.GatewayToolConfigEntity;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -46,6 +47,21 @@ public class AdminRepository implements IAdminRepository {
                 .version(po.getVersion())
                 .auth(po.getAuth())
                 .status(po.getStatus())
+                .build()).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<GatewayToolConfigEntity> queryGatewayToolList() {
+        List<cn.bugstack.ai.infrastructure.dao.po.McpGatewayToolPO> mcpGatewayToolPOS = mcpGatewayToolDao.queryAll();
+        return mcpGatewayToolPOS.stream().map(po -> GatewayToolConfigEntity.builder()
+                .gatewayId(po.getGatewayId())
+                .toolId(po.getToolId())
+                .toolName(po.getToolName())
+                .toolType(po.getToolType())
+                .toolDescription(po.getToolDescription())
+                .toolVersion(po.getToolVersion())
+                .protocolId(po.getProtocolId())
+                .protocolType(po.getProtocolType())
                 .build()).collect(Collectors.toList());
     }
 

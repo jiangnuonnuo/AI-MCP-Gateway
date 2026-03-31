@@ -12,7 +12,11 @@ const API_ENDPOINTS = {
     // 保存网关协议配置
     SAVE_GATEWAY_PROTOCOL: `${API_BASE_URL}/admin/save_gateway_protocol`,
     // 保存网关认证配置
-    SAVE_GATEWAY_AUTH: `${API_BASE_URL}/admin/save_gateway_auth`
+    SAVE_GATEWAY_AUTH: `${API_BASE_URL}/admin/save_gateway_auth`,
+    // 获取网关工具列表
+    GET_GATEWAY_TOOL_LIST: `${API_BASE_URL}/admin/query_gateway_tool_list`,
+    // 删除网关工具配置
+    DELETE_GATEWAY_TOOL: `${API_BASE_URL}/admin/delete_gateway_tool_config`
 };
 
 // 模拟登录账号

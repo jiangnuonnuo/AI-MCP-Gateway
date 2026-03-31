@@ -32,6 +32,8 @@ $(document).ready(function() {
         // 如果是网关列表页面，自动加载数据
         if (targetId === 'gateway-list') {
             loadGatewayList();
+        } else if (targetId === 'gateway-tool') {
+            loadGatewayToolList();
         }
     });
 
@@ -64,7 +66,7 @@ $(document).ready(function() {
     }
 
     // 表单提交通用处理
-    function handleFormSubmit(formId, endpoint, dataProcessor) {
+    function handleFormSubmit(formId, endpoint, dataProcessor, onSuccess) {
         $('#' + formId).on('submit', function(e) {
             e.preventDefault();
             
@@ -98,7 +100,7 @@ $(document).ready(function() {
                 success: function(response) {
                     if(response && response.code === '0000') {
                         showToast('配置保存成功！');
-                        // $('#' + formId)[0].reset(); // 可选：是否提交后清空表单
+                        if (onSuccess) onSuccess();
                     } else {
                         showToast('保存失败：' + (response.info || '未知错误'), false);
                     }
@@ -137,6 +139,9 @@ $(document).ready(function() {
             protocolId: data.protocolId ? parseInt(data.protocolId) : null,
             protocolType: data.protocolType
         };
+    }, function() {
+        $('#gatewayToolModal').modal('hide');
+        loadGatewayToolList();
     });
 
     // 3. 保存网关协议配置
@@ -226,4 +231,145 @@ $(document).ready(function() {
 
     // 初始加载一次数据，用于统计
     loadGatewayList();
+
+    // 刷新工具列表按钮
+    $('#refreshGatewayToolList').on('click', function() {
+        const $btn = $(this);
+        const originalHtml = $btn.html();
+        $btn.html('<i class="bi bi-arrow-clockwise fa-spin"></i> 刷新中...').prop('disabled', true);
+        
+        loadGatewayToolList(() => {
+            $btn.html(originalHtml).prop('disabled', false);
+        });
+    });
+
+    // 获取网关工具列表数据
+    function loadGatewayToolList(callback) {
+        const tbody = $('#gatewayToolTableBody');
+        if(!callback) {
+            tbody.html('<tr><td colspan="8" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>加载中...</td></tr>');
+        }
+        
+        $.ajax({
+            url: API_ENDPOINTS.GET_GATEWAY_TOOL_LIST,
+            type: 'GET',
+            success: function(response) {
+                if(response && response.code === '0000' && response.data) {
+                    const list = response.data;
+                    
+                    if(list.length === 0) {
+                        tbody.html('<tr><td colspan="8" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>暂无网关工具数据</td></tr>');
+                    } else {
+                        let html = '';
+                        list.forEach(function(item) {
+                            // Serialize item for edit
+                            const itemData = encodeURIComponent(JSON.stringify(item));
+                            html += `
+                                <tr>
+                                    <td><code>${item.gatewayId || '-'}</code></td>
+                                    <td><span class="badge bg-secondary">${item.toolId || '-'}</span></td>
+                                    <td class="fw-bold text-truncate" style="max-width: 150px;" title="${item.toolName || ''}">${item.toolName || '-'}</td>
+                                    <td>${item.toolType || '-'}</td>
+                                    <td><span class="text-truncate d-inline-block text-muted" style="max-width: 150px;" title="${item.toolDescription || ''}">${item.toolDescription || '-'}</span></td>
+                                    <td>${item.toolVersion || '-'}</td>
+                                    <td><span class="badge bg-info text-dark">${item.protocolType || '-'}</span></td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-outline-primary btn-edit-tool" data-item="${itemData}">
+                                                <i class="bi bi-pencil-square"></i> 修改
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger btn-delete-tool" data-gateway-id="${item.gatewayId}" data-tool-id="${item.toolId}">
+                                                <i class="bi bi-trash"></i> 删除
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                        tbody.html(html);
+                        
+                        // 绑定事件
+                        bindToolActionEvents();
+                    }
+                } else {
+                    tbody.html(`<tr><td colspan="8" class="text-center text-danger py-4"><i class="bi bi-exclamation-triangle me-2"></i>加载失败: ${response.info || '未知错误'}</td></tr>`);
+                }
+            },
+            error: function() {
+                tbody.html('<tr><td colspan="8" class="text-center text-danger py-4"><i class="bi bi-wifi-off me-2"></i>网络请求失败，请检查服务是否启动</td></tr>');
+            },
+            complete: function() {
+                if(callback) callback();
+            }
+        });
+    }
+
+    // 绑定工具列表操作按钮事件
+    function bindToolActionEvents() {
+        // 修改工具
+        $('.btn-edit-tool').on('click', function() {
+            try {
+                const itemDataStr = decodeURIComponent($(this).data('item'));
+                const item = JSON.parse(itemDataStr);
+                
+                // 填充表单
+                $('#tool-gatewayId').val(item.gatewayId);
+                $('#tool-toolId').val(item.toolId).prop('readonly', true); // 工具ID通常不建议修改
+                $('#tool-toolName').val(item.toolName);
+                $('#tool-toolType').val(item.toolType);
+                $('#tool-toolDescription').val(item.toolDescription);
+                $('#tool-toolVersion').val(item.toolVersion);
+                $('#tool-protocolId').val(item.protocolId);
+                $('#tool-protocolType').val(item.protocolType);
+                
+                // 修改模态框标题
+                $('#gatewayToolModalLabel').html('<i class="bi bi-pencil-square me-2"></i>修改网关工具配置');
+                
+                // 显示模态框
+                $('#gatewayToolModal').modal('show');
+            } catch (e) {
+                console.error("解析数据失败", e);
+                showToast("解析数据失败", false);
+            }
+        });
+
+        // 删除工具
+        $('.btn-delete-tool').on('click', function() {
+            const gatewayId = $(this).data('gateway-id');
+            const toolId = $(this).data('tool-id');
+            
+            if(confirm(`确定要删除工具 ID: ${toolId} 吗？`)) {
+                const $btn = $(this);
+                const originalHtml = $btn.html();
+                $btn.html('<i class="bi bi-hourglass-split"></i>').prop('disabled', true);
+                
+                // 由于删除接口使用POST且为FormData形式，这里按照后端的@RequestParam进行传参
+                $.ajax({
+                    url: `${API_ENDPOINTS.DELETE_GATEWAY_TOOL}?gatewayId=${encodeURIComponent(gatewayId)}&toolId=${encodeURIComponent(toolId)}`,
+                    type: 'POST',
+                    success: function(response) {
+                        if(response && response.code === '0000') {
+                            showToast('删除成功！');
+                            loadGatewayToolList();
+                        } else {
+                            showToast('删除失败：' + (response.info || '未知错误'), false);
+                            $btn.html(originalHtml).prop('disabled', false);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        showToast('请求失败：' + error, false);
+                        $btn.html(originalHtml).prop('disabled', false);
+                    }
+                });
+            }
+        });
+    }
+
+    // 新增工具按钮点击事件
+    $('#addGatewayToolBtn').on('click', function() {
+        $('#form-gateway-tool')[0].reset();
+        $('#tool-toolId').prop('readonly', false);
+        $('#gatewayToolModalLabel').html('<i class="bi bi-tools me-2"></i>新增网关工具配置');
+    });
+
 });

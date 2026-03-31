@@ -100,6 +100,28 @@ body {
     color: #adb5bd;
 }
 
+/* 二级菜单动画与样式 */
+.nav-link .bi-chevron-down {
+    transition: transform var(--transition-speed) ease;
+    font-size: 0.8rem;
+    width: auto;
+    margin-left: auto;
+}
+
+.nav-link[aria-expanded="true"] .bi-chevron-down {
+    transform: rotate(180deg);
+}
+
+#elementConfigCollapse .nav-link {
+    padding: 0.5rem 1rem 0.5rem 2.5rem;
+    margin: 0.2rem 1rem;
+    font-size: 0.95em;
+}
+
+#elementConfigCollapse .nav-link i {
+    font-size: 1rem;
+}
+
 /* 主内容区域 */
 .main-content {
     margin-top: 60px;
