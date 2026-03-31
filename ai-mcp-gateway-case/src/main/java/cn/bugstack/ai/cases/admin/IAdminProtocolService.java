@@ -12,4 +12,6 @@ public interface IAdminProtocolService {
 
     void saveGatewayProtocol(StorageCommandEntity commandEntity);
 
+    void deleteGatewayProtocol(Long protocolId);
+
 }

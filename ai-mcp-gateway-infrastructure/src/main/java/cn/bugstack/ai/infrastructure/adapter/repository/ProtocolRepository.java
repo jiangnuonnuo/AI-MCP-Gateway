@@ -39,10 +39,17 @@ public class ProtocolRepository implements IProtocolRepository {
 
         for (HTTPProtocolVO httpProtocolVO : httpProtocolVOS) {
 
-            // 0. 生成协议ID，八位数字的。
-            long protocolId = Long.parseLong(RandomStringUtils.randomNumeric(8));
+            Long protocolId = httpProtocolVO.getProtocolId();
+            boolean isUpdate = false;
+            
+            if (protocolId != null) {
+                isUpdate = true;
+            } else {
+                // 0. 生成协议ID，八位数字的。
+                protocolId = Long.parseLong(RandomStringUtils.randomNumeric(8));
+            }
 
-            // 1. 保存 HTTP 协议配置
+            // 1. 保存/更新 HTTP 协议配置
             McpProtocolHttpPO mcpProtocolHttpPO = McpProtocolHttpPO.builder()
                     .protocolId(protocolId)
                     .httpUrl(httpProtocolVO.getHttpUrl())
@@ -52,11 +59,20 @@ public class ProtocolRepository implements IProtocolRepository {
                     .retryTimes(3)
                     .status(ProtocolStatusEnum.ENABLE.getCode())
                     .build();
-            protocolHttpDao.insert(mcpProtocolHttpPO);
+            
+            if (isUpdate) {
+                protocolHttpDao.updateByProtocolId(mcpProtocolHttpPO);
+                protocolMappingDao.deleteByProtocolId(protocolId);
+            } else {
+                protocolHttpDao.insert(mcpProtocolHttpPO);
+            }
 
             // 2. 保存协议映射配置
             List<HTTPProtocolVO.ProtocolMapping> mappings = httpProtocolVO.getMappings();
-            if (null == mappings || mappings.isEmpty()) continue;
+            if (null == mappings || mappings.isEmpty()) {
+                protocolIdList.add(protocolId);
+                continue;
+            }
 
             for (HTTPProtocolVO.ProtocolMapping mapping : mappings) {
                 McpProtocolMappingPO mcpProtocolMappingPO = McpProtocolMappingPO.builder()
@@ -77,6 +93,13 @@ public class ProtocolRepository implements IProtocolRepository {
         }
 
         return protocolIdList;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public void deleteGatewayProtocol(Long protocolId) {
+        protocolHttpDao.deleteByProtocolId(protocolId);
+        protocolMappingDao.deleteByProtocolId(protocolId);
     }
 
 }

@@ -287,75 +287,34 @@
             <div id="gateway-protocol" class="content-section">
                 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-3 mb-4 border-bottom">
                     <h1 class="page-title">网关协议配置</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        <button type="button" class="btn btn-sm btn-outline-secondary me-2" id="refreshGatewayProtocolList">
+                            <i class="bi bi-arrow-clockwise"></i> 刷新列表
+                        </button>
+                        <button type="button" class="btn btn-sm btn-primary d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#gatewayProtocolModal" id="addGatewayProtocolBtn">
+                            <i class="bi bi-plus-lg"></i> 新增协议
+                        </button>
+                    </div>
                 </div>
-                
-                <div class="alert alert-primary d-flex align-items-center" role="alert">
-                    <i class="bi bi-info-circle-fill me-2 fs-5"></i>
-                    <div>当前仅演示支持添加单个 HTTP 协议配置。</div>
-                </div>
-                
-                <div class="card">
-                    <div class="card-header"><i class="bi bi-hdd-network me-2"></i>HTTP 协议参数</div>
-                    <div class="card-body">
-                        <form id="form-gateway-protocol">
-                            <div class="row mb-4">
-                                <div class="col-md-3">
-                                    <label class="form-label">协议 ID <span class="text-danger">*</span></label>
-                                    <input type="number" class="form-control" name="protocolId" required placeholder="数字ID">
-                                </div>
-                                <div class="col-md-9 mt-3 mt-md-0">
-                                    <label class="form-label">请求地址 (URL) <span class="text-danger">*</span></label>
-                                    <div class="input-group">
-                                        <span class="input-group-text bg-light"><i class="bi bi-link-45deg"></i></span>
-                                        <input type="url" class="form-control" name="httpUrl" required placeholder="http://api.example.com/v1/resource">
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="row mb-4">
-                                <div class="col-md-4">
-                                    <label class="form-label">请求方法</label>
-                                    <select class="form-select" name="httpMethod">
-                                        <option value="GET">GET</option>
-                                        <option value="POST">POST</option>
-                                        <option value="PUT">PUT</option>
-                                        <option value="DELETE">DELETE</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-4 mt-3 mt-md-0">
-                                    <label class="form-label">超时时间 (ms)</label>
-                                    <div class="input-group">
-                                        <input type="number" class="form-control" name="timeout" value="5000">
-                                        <span class="input-group-text bg-light">ms</span>
-                                    </div>
-                                </div>
-                                <div class="col-md-4 mt-3 mt-md-0">
-                                    <label class="form-label">请求头 (Headers JSON)</label>
-                                    <input type="text" class="form-control" name="httpHeaders" placeholder='{"Content-Type":"application/json"}'>
-                                </div>
-                            </div>
-                            
-                            <div class="mb-4">
-                                <label class="form-label">参数映射 (Mappings JSON)</label>
-                                <textarea class="form-control font-monospace" name="mappingsJson" rows="4" placeholder='[
-  {
-    "mappingType": "query", 
-    "fieldName": "id", 
-    "mcpPath": "$.id", 
-    "mcpType": "string"
-  }
-]'></textarea>
-                                <div class="form-text">请填入合法的 JSON 数组格式。</div>
-                            </div>
-                            
-                            <hr class="my-4 text-muted">
-                            <div class="d-flex justify-content-end">
-                                <button type="reset" class="btn btn-light me-2">重置</button>
-                                <button type="submit" class="btn btn-primary d-flex align-items-center gap-1">
-                                    <i class="bi bi-check2-circle"></i> 保存配置
-                                </button>
-                            </div>
-                        </form>
+
+                <div class="card shadow-sm border-0">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>协议ID</th>
+                                        <th>请求地址(URL)</th>
+                                        <th>请求方法</th>
+                                        <th>超时时间</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="gatewayProtocolTableBody">
+                                    <!-- 数据由JS动态生成 -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -404,6 +363,79 @@
             </div>
             
         </main>
+    </div>
+</div>
+
+<!-- 网关协议配置模态框 -->
+<div class="modal fade" id="gatewayProtocolModal" tabindex="-1" aria-labelledby="gatewayProtocolModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="gatewayProtocolModalLabel"><i class="bi bi-hdd-network me-2"></i>新增网关协议配置</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-gateway-protocol">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">协议 ID</label>
+                            <input type="number" class="form-control" id="protocol-protocolId" name="protocolId" placeholder="自动生成或填写更新" readonly>
+                            <div class="form-text text-muted">新增时留空自动生成。</div>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">请求地址 (URL) <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="bi bi-link-45deg"></i></span>
+                                <input type="url" class="form-control" id="protocol-httpUrl" name="httpUrl" required placeholder="http://api.example.com/v1/resource">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">请求方法</label>
+                            <select class="form-select" id="protocol-httpMethod" name="httpMethod">
+                                <option value="GET">GET</option>
+                                <option value="POST">POST</option>
+                                <option value="PUT">PUT</option>
+                                <option value="DELETE">DELETE</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">超时时间 (ms)</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="protocol-timeout" name="timeout" value="5000">
+                                <span class="input-group-text bg-light">ms</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">请求头 (Headers JSON)</label>
+                            <input type="text" class="form-control" id="protocol-httpHeaders" name="httpHeaders" placeholder='{"Content-Type":"application/json"}'>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">参数映射 (Mappings JSON)</label>
+                        <textarea class="form-control font-monospace" id="protocol-mappingsJson" name="mappingsJson" rows="4" placeholder='[
+  {
+    "mappingType": "query", 
+    "fieldName": "id", 
+    "mcpPath": "$.id", 
+    "mcpType": "string"
+  }
+]'></textarea>
+                        <div class="form-text">请填入合法的 JSON 数组格式。</div>
+                    </div>
+                    
+                    <div class="modal-footer px-0 pb-0 border-0">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">取消</button>
+                        <button type="submit" class="btn btn-primary d-flex align-items-center gap-1">
+                            <i class="bi bi-check2-circle"></i> 保存配置
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 
