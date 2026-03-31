@@ -29,6 +29,10 @@
         DELETE FROM mcp_protocol_mapping WHERE id = #{id}
     </delete>
 
+    <delete id="deleteByProtocolId" parameterType="java.lang.Long">
+        DELETE FROM mcp_protocol_mapping WHERE protocol_id = #{protocolId}
+    </delete>
+
     <update id="updateById" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpProtocolMappingPO">
         UPDATE mcp_protocol_mapping
         SET

@@ -12,6 +12,8 @@ public interface IMcpProtocolMappingDao {
 
     int deleteById(Long id);
 
+    int deleteByProtocolId(Long protocolId);
+
     int updateById(McpProtocolMappingPO po);
 
     McpProtocolMappingPO queryById(Long id);

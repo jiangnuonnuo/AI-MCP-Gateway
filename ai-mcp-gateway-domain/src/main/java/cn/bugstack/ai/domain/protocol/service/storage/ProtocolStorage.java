@@ -27,4 +27,9 @@ public class ProtocolStorage implements IProtocolStorage {
         return repository.saveHttpProtocolAndMapping(commandEntity.getHttpProtocolVOS());
     }
 
+    @Override
+    public void deleteGatewayProtocol(Long protocolId) {
+        repository.deleteGatewayProtocol(protocolId);
+    }
+
 }

@@ -2,21 +2,23 @@ package cn.bugstack.ai.infrastructure.adapter.repository;
 
 import cn.bugstack.ai.domain.admin.adapter.respository.IAdminRepository;
 import cn.bugstack.ai.infrastructure.dao.*;
+import cn.bugstack.ai.infrastructure.dao.po.McpProtocolHttpPO;
+import cn.bugstack.ai.infrastructure.dao.po.McpProtocolMappingPO;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
 
 import cn.bugstack.ai.infrastructure.dao.po.McpGatewayPO;
 import cn.bugstack.ai.domain.admin.model.entity.GatewayConfigEntity;
+import cn.bugstack.ai.domain.admin.model.entity.GatewayProtocolConfigEntity;
 import cn.bugstack.ai.domain.admin.model.entity.GatewayToolConfigEntity;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- *
  * @author xiaofuge bugstack.cn @小傅哥
- * 2026/3/26 08:36
+ * 2026/3/26
  */
 @Slf4j
 @Repository
@@ -63,6 +65,31 @@ public class AdminRepository implements IAdminRepository {
                 .protocolId(po.getProtocolId())
                 .protocolType(po.getProtocolType())
                 .build()).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<GatewayProtocolConfigEntity> queryGatewayProtocolList() {
+        List<McpProtocolHttpPO> pos = protocolHttpDao.queryAll();
+        return pos.stream().map(po -> {
+            List<McpProtocolMappingPO> mappings = protocolMappingDao.queryMcpGatewayToolConfigListByProtocolId(po.getProtocolId());
+            return GatewayProtocolConfigEntity.builder()
+                    .protocolId(po.getProtocolId())
+                    .httpUrl(po.getHttpUrl())
+                    .httpMethod(po.getHttpMethod())
+                    .httpHeaders(po.getHttpHeaders())
+                    .timeout(po.getTimeout())
+                    .mappings(mappings == null ? null : mappings.stream().map(m -> GatewayProtocolConfigEntity.ProtocolMappingEntity.builder()
+                            .mappingType(m.getMappingType())
+                            .parentPath(m.getParentPath())
+                            .fieldName(m.getFieldName())
+                            .mcpPath(m.getMcpPath())
+                            .mcpType(m.getMcpType())
+                            .mcpDesc(m.getMcpDesc())
+                            .isRequired(m.getIsRequired())
+                            .sortOrder(m.getSortOrder())
+                            .build()).collect(Collectors.toList()))
+                    .build();
+        }).collect(Collectors.toList());
     }
 
 }

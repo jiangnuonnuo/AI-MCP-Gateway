@@ -34,6 +34,8 @@ $(document).ready(function() {
             loadGatewayList();
         } else if (targetId === 'gateway-tool') {
             loadGatewayToolList();
+        } else if (targetId === 'gateway-protocol') {
+            loadGatewayProtocolList();
         }
     });
 
@@ -158,7 +160,7 @@ $(document).ready(function() {
         return {
             httpProtocols: [
                 {
-                    protocolId: parseInt(data.protocolId),
+                    protocolId: data.protocolId ? parseInt(data.protocolId) : null,
                     httpUrl: data.httpUrl,
                     httpMethod: data.httpMethod,
                     timeout: parseInt(data.timeout) || 5000,
@@ -167,6 +169,9 @@ $(document).ready(function() {
                 }
             ]
         };
+    }, function() {
+        $('#gatewayProtocolModal').modal('hide');
+        loadGatewayProtocolList();
     });
 
     // 4. 保存网关认证配置
@@ -370,6 +375,135 @@ $(document).ready(function() {
         $('#form-gateway-tool')[0].reset();
         $('#tool-toolId').prop('readonly', false);
         $('#gatewayToolModalLabel').html('<i class="bi bi-tools me-2"></i>新增网关工具配置');
+    });
+
+    // ==========================================
+    // 网关协议列表相关
+    // ==========================================
+    $('#refreshGatewayProtocolList').on('click', function() {
+        const $btn = $(this);
+        const originalHtml = $btn.html();
+        $btn.html('<i class="bi bi-arrow-clockwise fa-spin"></i> 刷新中...').prop('disabled', true);
+        
+        loadGatewayProtocolList(() => {
+            $btn.html(originalHtml).prop('disabled', false);
+        });
+    });
+
+    function loadGatewayProtocolList(callback) {
+        const tbody = $('#gatewayProtocolTableBody');
+        if(!callback) {
+            tbody.html('<tr><td colspan="5" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>加载中...</td></tr>');
+        }
+        
+        $.ajax({
+            url: API_ENDPOINTS.GET_GATEWAY_PROTOCOL_LIST,
+            type: 'GET',
+            success: function(response) {
+                if(response && response.code === '0000' && response.data) {
+                    const list = response.data;
+                    
+                    if(list.length === 0) {
+                        tbody.html('<tr><td colspan="5" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>暂无网关协议数据</td></tr>');
+                    } else {
+                        let html = '';
+                        list.forEach(function(item) {
+                            const itemData = encodeURIComponent(JSON.stringify(item));
+                            html += `
+                                <tr>
+                                    <td><code>${item.protocolId || '-'}</code></td>
+                                    <td class="text-truncate" style="max-width: 250px;" title="${item.httpUrl || ''}">${item.httpUrl || '-'}</td>
+                                    <td><span class="badge bg-secondary">${item.httpMethod || '-'}</span></td>
+                                    <td>${item.timeout || '-'} ms</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-outline-primary btn-edit-protocol" data-item="${itemData}">
+                                                <i class="bi bi-pencil-square"></i> 修改
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger btn-delete-protocol" data-protocol-id="${item.protocolId}">
+                                                <i class="bi bi-trash"></i> 删除
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                        tbody.html(html);
+                        bindProtocolActionEvents();
+                    }
+                } else {
+                    tbody.html(`<tr><td colspan="5" class="text-center text-danger py-4"><i class="bi bi-exclamation-triangle me-2"></i>加载失败: ${response.info || '未知错误'}</td></tr>`);
+                }
+            },
+            error: function() {
+                tbody.html('<tr><td colspan="5" class="text-center text-danger py-4"><i class="bi bi-wifi-off me-2"></i>网络请求失败，请检查服务是否启动</td></tr>');
+            },
+            complete: function() {
+                if(callback) callback();
+            }
+        });
+    }
+
+    function bindProtocolActionEvents() {
+        $('.btn-edit-protocol').on('click', function() {
+            try {
+                const itemDataStr = decodeURIComponent($(this).data('item'));
+                const item = JSON.parse(itemDataStr);
+                
+                $('#protocol-protocolId').val(item.protocolId);
+                $('#protocol-httpUrl').val(item.httpUrl);
+                $('#protocol-httpMethod').val(item.httpMethod);
+                $('#protocol-timeout').val(item.timeout);
+                $('#protocol-httpHeaders').val(item.httpHeaders);
+                
+                if (item.mappings && item.mappings.length > 0) {
+                    $('#protocol-mappingsJson').val(JSON.stringify(item.mappings, null, 2));
+                } else {
+                    $('#protocol-mappingsJson').val('');
+                }
+                
+                $('#gatewayProtocolModalLabel').html('<i class="bi bi-pencil-square me-2"></i>修改网关协议配置');
+                $('#gatewayProtocolModal').modal('show');
+            } catch (e) {
+                console.error("解析数据失败", e);
+                showToast("解析数据失败", false);
+            }
+        });
+
+        $('.btn-delete-protocol').on('click', function() {
+            const protocolId = $(this).data('protocol-id');
+            
+            if(confirm(`确定要删除协议 ID: ${protocolId} 吗？`)) {
+                const $btn = $(this);
+                const originalHtml = $btn.html();
+                $btn.html('<i class="bi bi-hourglass-split"></i>').prop('disabled', true);
+                
+                $.ajax({
+                    url: `${API_ENDPOINTS.DELETE_GATEWAY_PROTOCOL}?protocolId=${encodeURIComponent(protocolId)}`,
+                    type: 'POST',
+                    success: function(response) {
+                        if(response && response.code === '0000') {
+                            showToast('删除成功！');
+                            loadGatewayProtocolList();
+                        } else {
+                            showToast('删除失败：' + (response.info || '未知错误'), false);
+                            $btn.html(originalHtml).prop('disabled', false);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        showToast('请求失败：' + error, false);
+                        $btn.html(originalHtml).prop('disabled', false);
+                    }
+                });
+            }
+        });
+    }
+
+    $('#addGatewayProtocolBtn').on('click', function() {
+        $('#form-gateway-protocol')[0].reset();
+        $('#protocol-protocolId').val(''); // Clear protocol ID for new entry
+        $('#protocol-mappingsJson').val(''); // Clear mappings text area
+        $('#gatewayProtocolModalLabel').html('<i class="bi bi-hdd-network me-2"></i>新增网关协议配置');
     });
 
 });

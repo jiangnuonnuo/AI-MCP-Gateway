@@ -9,6 +9,8 @@ import cn.bugstack.ai.cases.admin.IAdminAuthService;
 import cn.bugstack.ai.cases.admin.IAdminGatewayService;
 import cn.bugstack.ai.cases.admin.IAdminManageService;
 import cn.bugstack.ai.cases.admin.IAdminProtocolService;
+import cn.bugstack.ai.domain.admin.model.entity.GatewayProtocolConfigEntity;
+import cn.bugstack.ai.api.dto.GatewayProtocolDTO;
 import cn.bugstack.ai.api.dto.GatewayToolConfigDTO;
 import cn.bugstack.ai.domain.admin.model.entity.GatewayConfigEntity;
 import cn.bugstack.ai.domain.admin.model.entity.GatewayToolConfigEntity;
@@ -258,6 +260,63 @@ public class AdminController implements IAdminService {
                     .build();
         } catch (Exception e) {
             log.error("删除网关工具配置失败 gatewayId: {} toolId: {}", gatewayId, toolId, e);
+            return Response.<GatewayConfigResponseDTO>builder()
+                    .code(ResponseCode.UN_ERROR.getCode())
+                    .info(ResponseCode.UN_ERROR.getInfo())
+                    .build();
+        }
+    }
+
+    @RequestMapping(value = "query_gateway_protocol_list", method = RequestMethod.GET)
+    public Response<List<GatewayProtocolDTO>> queryGatewayProtocolList() {
+        try {
+            log.info("查询网关协议列表开始");
+            List<GatewayProtocolConfigEntity> entities = adminManageService.queryGatewayProtocolList();
+            List<GatewayProtocolDTO> dtoList = entities.stream().map(e -> GatewayProtocolDTO.builder()
+                    .protocolId(e.getProtocolId())
+                    .httpUrl(e.getHttpUrl())
+                    .httpMethod(e.getHttpMethod())
+                    .httpHeaders(e.getHttpHeaders())
+                    .timeout(e.getTimeout())
+                    .mappings(e.getMappings() == null ? null : e.getMappings().stream().map(m -> GatewayProtocolDTO.ProtocolMappingDTO.builder()
+                            .mappingType(m.getMappingType())
+                            .parentPath(m.getParentPath())
+                            .fieldName(m.getFieldName())
+                            .mcpPath(m.getMcpPath())
+                            .mcpType(m.getMcpType())
+                            .mcpDesc(m.getMcpDesc())
+                            .isRequired(m.getIsRequired())
+                            .sortOrder(m.getSortOrder())
+                            .build()).collect(Collectors.toList()))
+                    .build()).collect(Collectors.toList());
+            log.info("查询网关协议列表完成 count: {}", dtoList.size());
+            return Response.<List<GatewayProtocolDTO>>builder()
+                    .code(ResponseCode.SUCCESS.getCode())
+                    .info(ResponseCode.SUCCESS.getInfo())
+                    .data(dtoList)
+                    .build();
+        } catch (Exception e) {
+            log.error("查询网关协议列表失败", e);
+            return Response.<List<GatewayProtocolDTO>>builder()
+                    .code(ResponseCode.UN_ERROR.getCode())
+                    .info(ResponseCode.UN_ERROR.getInfo())
+                    .build();
+        }
+    }
+
+    @RequestMapping(value = "delete_gateway_protocol", method = RequestMethod.POST)
+    public Response<GatewayConfigResponseDTO> deleteGatewayProtocol(@RequestParam Long protocolId) {
+        try {
+            log.info("删除网关协议配置开始 protocolId: {}", protocolId);
+            adminProtocolService.deleteGatewayProtocol(protocolId);
+            log.info("删除网关协议配置完成 protocolId: {}", protocolId);
+            return Response.<GatewayConfigResponseDTO>builder()
+                    .code(ResponseCode.SUCCESS.getCode())
+                    .info(ResponseCode.SUCCESS.getInfo())
+                    .data(GatewayConfigResponseDTO.builder().success(true).build())
+                    .build();
+        } catch (Exception e) {
+            log.error("删除网关协议配置失败 protocolId: {}", protocolId, e);
             return Response.<GatewayConfigResponseDTO>builder()
                     .code(ResponseCode.UN_ERROR.getCode())
                     .info(ResponseCode.UN_ERROR.getInfo())

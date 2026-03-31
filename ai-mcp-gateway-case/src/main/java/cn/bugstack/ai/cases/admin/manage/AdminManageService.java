@@ -2,6 +2,7 @@ package cn.bugstack.ai.cases.admin.manage;
 
 import cn.bugstack.ai.cases.admin.IAdminManageService;
 import cn.bugstack.ai.domain.admin.model.entity.GatewayConfigEntity;
+import cn.bugstack.ai.domain.admin.model.entity.GatewayProtocolConfigEntity;
 import cn.bugstack.ai.domain.admin.model.entity.GatewayToolConfigEntity;
 import cn.bugstack.ai.domain.admin.service.IAdminService;
 import jakarta.annotation.Resource;
@@ -31,6 +32,11 @@ public class AdminManageService implements IAdminManageService {
     @Override
     public List<GatewayToolConfigEntity> queryGatewayToolList() {
         return adminService.queryGatewayToolList();
+    }
+
+    @Override
+    public List<GatewayProtocolConfigEntity> queryGatewayProtocolList() {
+        return adminService.queryGatewayProtocolList();
     }
 
 }

@@ -25,4 +25,9 @@ public class AdminProtocolService implements IAdminProtocolService {
         protocolStorage.doStorage(commandEntity);
     }
 
+    @Override
+    public void deleteGatewayProtocol(Long protocolId) {
+        protocolStorage.deleteGatewayProtocol(protocolId);
+    }
+
 }
