@@ -15,8 +15,12 @@ const API_ENDPOINTS = {
     SAVE_GATEWAY_PROTOCOL: `${API_BASE_URL}/admin/save_gateway_protocol`,
     // 删除网关协议配置
     DELETE_GATEWAY_PROTOCOL: `${API_BASE_URL}/admin/delete_gateway_protocol`,
+    // 获取网关认证列表
+    GET_GATEWAY_AUTH_LIST: `${API_BASE_URL}/admin/query_gateway_auth_list`,
     // 保存网关认证配置
     SAVE_GATEWAY_AUTH: `${API_BASE_URL}/admin/save_gateway_auth`,
+    // 删除网关认证配置
+    DELETE_GATEWAY_AUTH: `${API_BASE_URL}/admin/delete_gateway_auth`,
     // 获取网关工具列表
     GET_GATEWAY_TOOL_LIST: `${API_BASE_URL}/admin/query_gateway_tool_list`,
     // 删除网关工具配置

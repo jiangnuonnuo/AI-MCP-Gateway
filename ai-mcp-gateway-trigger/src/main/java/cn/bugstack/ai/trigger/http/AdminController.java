@@ -10,8 +10,10 @@ import cn.bugstack.ai.cases.admin.IAdminGatewayService;
 import cn.bugstack.ai.cases.admin.IAdminManageService;
 import cn.bugstack.ai.cases.admin.IAdminProtocolService;
 import cn.bugstack.ai.domain.admin.model.entity.GatewayProtocolConfigEntity;
+import cn.bugstack.ai.api.dto.GatewayAuthDTO;
 import cn.bugstack.ai.api.dto.GatewayProtocolDTO;
 import cn.bugstack.ai.api.dto.GatewayToolConfigDTO;
+import cn.bugstack.ai.domain.admin.model.entity.GatewayAuthConfigEntity;
 import cn.bugstack.ai.domain.admin.model.entity.GatewayConfigEntity;
 import cn.bugstack.ai.domain.admin.model.entity.GatewayToolConfigEntity;
 import cn.bugstack.ai.domain.auth.model.entity.RegisterCommandEntity;
@@ -317,6 +319,52 @@ public class AdminController implements IAdminService {
                     .build();
         } catch (Exception e) {
             log.error("删除网关协议配置失败 protocolId: {}", protocolId, e);
+            return Response.<GatewayConfigResponseDTO>builder()
+                    .code(ResponseCode.UN_ERROR.getCode())
+                    .info(ResponseCode.UN_ERROR.getInfo())
+                    .build();
+        }
+    }
+
+    @RequestMapping(value = "query_gateway_auth_list", method = RequestMethod.GET)
+    public Response<List<GatewayAuthDTO>> queryGatewayAuthList() {
+        try {
+            log.info("查询网关认证列表开始");
+            List<GatewayAuthConfigEntity> entities = adminManageService.queryGatewayAuthList();
+            List<GatewayAuthDTO> dtoList = entities.stream().map(e -> GatewayAuthDTO.builder()
+                    .gatewayId(e.getGatewayId())
+                    .apiKey(e.getApiKey())
+                    .rateLimit(e.getRateLimit())
+                    .expireTime(e.getExpireTime())
+                    .build()).collect(Collectors.toList());
+            log.info("查询网关认证列表完成 count: {}", dtoList.size());
+            return Response.<List<GatewayAuthDTO>>builder()
+                    .code(ResponseCode.SUCCESS.getCode())
+                    .info(ResponseCode.SUCCESS.getInfo())
+                    .data(dtoList)
+                    .build();
+        } catch (Exception e) {
+            log.error("查询网关认证列表失败", e);
+            return Response.<List<GatewayAuthDTO>>builder()
+                    .code(ResponseCode.UN_ERROR.getCode())
+                    .info(ResponseCode.UN_ERROR.getInfo())
+                    .build();
+        }
+    }
+
+    @RequestMapping(value = "delete_gateway_auth", method = RequestMethod.POST)
+    public Response<GatewayConfigResponseDTO> deleteGatewayAuth(@RequestParam String gatewayId) {
+        try {
+            log.info("删除网关认证配置开始 gatewayId: {}", gatewayId);
+            adminAuthService.deleteGatewayAuth(gatewayId);
+            log.info("删除网关认证配置完成 gatewayId: {}", gatewayId);
+            return Response.<GatewayConfigResponseDTO>builder()
+                    .code(ResponseCode.SUCCESS.getCode())
+                    .info(ResponseCode.SUCCESS.getInfo())
+                    .data(GatewayConfigResponseDTO.builder().success(true).build())
+                    .build();
+        } catch (Exception e) {
+            log.error("删除网关认证配置失败 gatewayId: {}", gatewayId, e);
             return Response.<GatewayConfigResponseDTO>builder()
                     .code(ResponseCode.UN_ERROR.getCode())
                     .info(ResponseCode.UN_ERROR.getInfo())

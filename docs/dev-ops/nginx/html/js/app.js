@@ -36,6 +36,8 @@ $(document).ready(function() {
             loadGatewayToolList();
         } else if (targetId === 'gateway-protocol') {
             loadGatewayProtocolList();
+        } else if (targetId === 'gateway-auth') {
+            loadGatewayAuthList();
         }
     });
 
@@ -181,6 +183,9 @@ $(document).ready(function() {
             rateLimit: parseInt(data.rateLimit),
             expireTime: parseInt(data.expireTime)
         };
+    }, function() {
+        $('#gatewayAuthModal').modal('hide');
+        loadGatewayAuthList();
     });
 
     // 获取网关列表数据
@@ -504,6 +509,132 @@ $(document).ready(function() {
         $('#protocol-protocolId').val(''); // Clear protocol ID for new entry
         $('#protocol-mappingsJson').val(''); // Clear mappings text area
         $('#gatewayProtocolModalLabel').html('<i class="bi bi-hdd-network me-2"></i>新增网关协议配置');
+    });
+
+    // ==========================================
+    // 网关认证列表相关
+    // ==========================================
+    $('#refreshGatewayAuthList').on('click', function() {
+        const $btn = $(this);
+        const originalHtml = $btn.html();
+        $btn.html('<i class="bi bi-arrow-clockwise fa-spin"></i> 刷新中...').prop('disabled', true);
+        
+        loadGatewayAuthList(() => {
+            $btn.html(originalHtml).prop('disabled', false);
+        });
+    });
+
+    function loadGatewayAuthList(callback) {
+        const tbody = $('#gatewayAuthTableBody');
+        if(!callback) {
+            tbody.html('<tr><td colspan="5" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>加载中...</td></tr>');
+        }
+        
+        $.ajax({
+            url: API_ENDPOINTS.GET_GATEWAY_AUTH_LIST,
+            type: 'GET',
+            success: function(response) {
+                if(response && response.code === '0000' && response.data) {
+                    const list = response.data;
+                    
+                    if(list.length === 0) {
+                        tbody.html('<tr><td colspan="5" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>暂无网关认证数据</td></tr>');
+                    } else {
+                        let html = '';
+                        list.forEach(function(item) {
+                            const itemData = encodeURIComponent(JSON.stringify(item));
+                            // 格式化时间戳
+                            let expireTimeStr = '-';
+                            if (item.expireTime) {
+                                const d = new Date(item.expireTime);
+                                expireTimeStr = d.toLocaleString();
+                            }
+                            html += `
+                                <tr>
+                                    <td><code>${item.gatewayId || '-'}</code></td>
+                                    <td><span class="text-truncate d-inline-block" style="max-width: 250px;" title="${item.apiKey || ''}">${item.apiKey || '-'}</span></td>
+                                    <td>${item.rateLimit || '-'} 次/秒</td>
+                                    <td>${expireTimeStr}</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-outline-primary btn-edit-auth" data-item="${itemData}">
+                                                <i class="bi bi-pencil-square"></i> 修改
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger btn-delete-auth" data-gateway-id="${item.gatewayId}">
+                                                <i class="bi bi-trash"></i> 删除
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                        tbody.html(html);
+                        bindAuthActionEvents();
+                    }
+                } else {
+                    tbody.html(`<tr><td colspan="5" class="text-center text-danger py-4"><i class="bi bi-exclamation-triangle me-2"></i>加载失败: ${response.info || '未知错误'}</td></tr>`);
+                }
+            },
+            error: function() {
+                tbody.html('<tr><td colspan="5" class="text-center text-danger py-4"><i class="bi bi-wifi-off me-2"></i>网络请求失败，请检查服务是否启动</td></tr>');
+            },
+            complete: function() {
+                if(callback) callback();
+            }
+        });
+    }
+
+    function bindAuthActionEvents() {
+        $('.btn-edit-auth').on('click', function() {
+            try {
+                const itemDataStr = decodeURIComponent($(this).data('item'));
+                const item = JSON.parse(itemDataStr);
+                
+                $('#auth-gatewayId').val(item.gatewayId).prop('readonly', true);
+                $('#auth-rateLimit').val(item.rateLimit);
+                $('#auth-expireTime').val(item.expireTime);
+                
+                $('#gatewayAuthModalLabel').html('<i class="bi bi-pencil-square me-2"></i>修改网关认证配置');
+                $('#gatewayAuthModal').modal('show');
+            } catch (e) {
+                console.error("解析数据失败", e);
+                showToast("解析数据失败", false);
+            }
+        });
+
+        $('.btn-delete-auth').on('click', function() {
+            const gatewayId = $(this).data('gateway-id');
+            
+            if(confirm(`确定要删除网关 ID: ${gatewayId} 的认证配置吗？`)) {
+                const $btn = $(this);
+                const originalHtml = $btn.html();
+                $btn.html('<i class="bi bi-hourglass-split"></i>').prop('disabled', true);
+                
+                $.ajax({
+                    url: `${API_ENDPOINTS.DELETE_GATEWAY_AUTH}?gatewayId=${encodeURIComponent(gatewayId)}`,
+                    type: 'POST',
+                    success: function(response) {
+                        if(response && response.code === '0000') {
+                            showToast('删除成功！');
+                            loadGatewayAuthList();
+                        } else {
+                            showToast('删除失败：' + (response.info || '未知错误'), false);
+                            $btn.html(originalHtml).prop('disabled', false);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        showToast('请求失败：' + error, false);
+                        $btn.html(originalHtml).prop('disabled', false);
+                    }
+                });
+            }
+        });
+    }
+
+    $('#addGatewayAuthBtn').on('click', function() {
+        $('#form-gateway-auth')[0].reset();
+        $('#auth-gatewayId').prop('readonly', false);
+        $('#gatewayAuthModalLabel').html('<i class="bi bi-shield-check me-2"></i>新增认证配置');
     });
 
 });

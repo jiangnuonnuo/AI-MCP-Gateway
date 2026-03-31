@@ -4,6 +4,7 @@ import cn.bugstack.ai.domain.admin.adapter.respository.IAdminRepository;
 import cn.bugstack.ai.domain.admin.model.entity.GatewayConfigEntity;
 import cn.bugstack.ai.domain.admin.model.entity.GatewayProtocolConfigEntity;
 import cn.bugstack.ai.domain.admin.model.entity.GatewayToolConfigEntity;
+import cn.bugstack.ai.domain.admin.model.entity.GatewayAuthConfigEntity;
 import cn.bugstack.ai.domain.admin.service.IAdminService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -33,6 +34,11 @@ public class AdminService implements IAdminService {
     @Override
     public List<GatewayProtocolConfigEntity> queryGatewayProtocolList() {
         return adminRepository.queryGatewayProtocolList();
+    }
+
+    @Override
+    public List<GatewayAuthConfigEntity> queryGatewayAuthList() {
+        return adminRepository.queryGatewayAuthList();
     }
 
 }
