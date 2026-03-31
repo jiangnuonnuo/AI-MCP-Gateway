@@ -4,6 +4,7 @@ import cn.bugstack.ai.cases.admin.IAdminManageService;
 import cn.bugstack.ai.domain.admin.model.entity.GatewayConfigEntity;
 import cn.bugstack.ai.domain.admin.model.entity.GatewayProtocolConfigEntity;
 import cn.bugstack.ai.domain.admin.model.entity.GatewayToolConfigEntity;
+import cn.bugstack.ai.domain.admin.model.entity.GatewayAuthConfigEntity;
 import cn.bugstack.ai.domain.admin.service.IAdminService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +38,11 @@ public class AdminManageService implements IAdminManageService {
     @Override
     public List<GatewayProtocolConfigEntity> queryGatewayProtocolList() {
         return adminService.queryGatewayProtocolList();
+    }
+
+    @Override
+    public List<GatewayAuthConfigEntity> queryGatewayAuthList() {
+        return adminService.queryGatewayAuthList();
     }
 
 }

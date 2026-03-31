@@ -4,6 +4,7 @@ import cn.bugstack.ai.domain.admin.adapter.respository.IAdminRepository;
 import cn.bugstack.ai.infrastructure.dao.*;
 import cn.bugstack.ai.infrastructure.dao.po.McpProtocolHttpPO;
 import cn.bugstack.ai.infrastructure.dao.po.McpProtocolMappingPO;
+import cn.bugstack.ai.infrastructure.dao.po.McpGatewayAuthPO;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
@@ -12,6 +13,7 @@ import cn.bugstack.ai.infrastructure.dao.po.McpGatewayPO;
 import cn.bugstack.ai.domain.admin.model.entity.GatewayConfigEntity;
 import cn.bugstack.ai.domain.admin.model.entity.GatewayProtocolConfigEntity;
 import cn.bugstack.ai.domain.admin.model.entity.GatewayToolConfigEntity;
+import cn.bugstack.ai.domain.admin.model.entity.GatewayAuthConfigEntity;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -90,6 +92,17 @@ public class AdminRepository implements IAdminRepository {
                             .build()).collect(Collectors.toList()))
                     .build();
         }).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<GatewayAuthConfigEntity> queryGatewayAuthList() {
+        List<McpGatewayAuthPO> mcpGatewayAuthPOS = mcpGatewayAuthDao.queryAll();
+        return mcpGatewayAuthPOS.stream().map(po -> GatewayAuthConfigEntity.builder()
+                .gatewayId(po.getGatewayId())
+                .apiKey(po.getApiKey())
+                .rateLimit(po.getRateLimit())
+                .expireTime(po.getExpireTime())
+                .build()).collect(Collectors.toList());
     }
 
 }
