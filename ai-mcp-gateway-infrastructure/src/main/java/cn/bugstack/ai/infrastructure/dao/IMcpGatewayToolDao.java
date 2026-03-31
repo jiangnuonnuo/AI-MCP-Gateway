@@ -16,4 +16,8 @@ public interface IMcpGatewayToolDao {
 
     Long queryToolProtocolIdByToolName(McpGatewayToolPO mcpGatewayToolPOReq);
 
+    List<McpGatewayToolPO> queryAll();
+
+    int deleteByToolId(Long toolId);
+
 }

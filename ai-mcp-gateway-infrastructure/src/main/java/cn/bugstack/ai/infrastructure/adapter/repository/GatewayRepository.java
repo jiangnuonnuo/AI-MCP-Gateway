@@ -94,4 +94,9 @@ public class GatewayRepository implements IGatewayRepository {
         }
     }
 
+    @Override
+    public void deleteGatewayToolConfig(Long toolId) {
+        mcpGatewayToolDao.deleteByToolId(toolId);
+    }
+
 }

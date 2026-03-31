@@ -19,6 +19,14 @@
     <insert id="insert" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpGatewayToolPO" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO mcp_gateway_tool (gateway_id, tool_id, tool_name, tool_type, tool_description, tool_version, protocol_id, protocol_type)
         VALUES (#{gatewayId}, #{toolId}, #{toolName}, #{toolType}, #{toolDescription}, #{toolVersion}, #{protocolId}, #{protocolType})
+        ON DUPLICATE KEY UPDATE
+        tool_name = #{toolName},
+        tool_type = #{toolType},
+        tool_description = #{toolDescription},
+        tool_version = #{toolVersion},
+        protocol_id = #{protocolId},
+        protocol_type = #{protocolType},
+        update_time = NOW()
     </insert>
 
     <update id="updateProtocolByGatewayId" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpGatewayToolPO">
@@ -52,6 +60,16 @@
             AND tool_id = #{toolId}
         </if>
     </update>
+
+    <select id="queryAll" resultMap="McpGatewayToolMap">
+        SELECT id, gateway_id, tool_id, tool_name, tool_type, tool_description, tool_version, protocol_id, protocol_type,
+        create_time, update_time
+        FROM mcp_gateway_tool
+    </select>
+
+    <delete id="deleteByToolId" parameterType="java.lang.Long">
+        DELETE FROM mcp_gateway_tool WHERE tool_id = #{toolId}
+    </delete>
 
 </mapper>
 

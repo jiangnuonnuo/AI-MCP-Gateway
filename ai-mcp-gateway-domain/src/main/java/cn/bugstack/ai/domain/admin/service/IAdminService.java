@@ -1,6 +1,7 @@
 package cn.bugstack.ai.domain.admin.service;
 
 import cn.bugstack.ai.domain.admin.model.entity.GatewayConfigEntity;
+import cn.bugstack.ai.domain.admin.model.entity.GatewayToolConfigEntity;
 import java.util.List;
 
 /**
@@ -11,5 +12,7 @@ import java.util.List;
 public interface IAdminService {
 
     List<GatewayConfigEntity> queryGatewayConfigList();
+
+    List<GatewayToolConfigEntity> queryGatewayToolList();
 
 }

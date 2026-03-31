@@ -4,6 +4,7 @@ import cn.bugstack.ai.api.dto.GatewayConfigRequestDTO;
 import cn.bugstack.ai.api.dto.GatewayConfigResponseDTO;
 import cn.bugstack.ai.api.response.Response;
 import cn.bugstack.ai.api.dto.GatewayConfigDTO;
+import cn.bugstack.ai.api.dto.GatewayToolConfigDTO;
 import java.util.List;
 
 /**
@@ -23,5 +24,9 @@ public interface IAdminService {
     Response<GatewayConfigResponseDTO> saveGatewayAuth(GatewayConfigRequestDTO.GatewayAuth requestDTO);
 
     Response<List<GatewayConfigDTO>> queryGatewayConfigList();
+
+    Response<List<GatewayToolConfigDTO>> queryGatewayToolList();
+
+    Response<GatewayConfigResponseDTO> deleteGatewayToolConfig(String gatewayId, Long toolId);
 
 }

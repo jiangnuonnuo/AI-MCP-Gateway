@@ -9,7 +9,9 @@ import cn.bugstack.ai.cases.admin.IAdminAuthService;
 import cn.bugstack.ai.cases.admin.IAdminGatewayService;
 import cn.bugstack.ai.cases.admin.IAdminManageService;
 import cn.bugstack.ai.cases.admin.IAdminProtocolService;
+import cn.bugstack.ai.api.dto.GatewayToolConfigDTO;
 import cn.bugstack.ai.domain.admin.model.entity.GatewayConfigEntity;
+import cn.bugstack.ai.domain.admin.model.entity.GatewayToolConfigEntity;
 import cn.bugstack.ai.domain.auth.model.entity.RegisterCommandEntity;
 import cn.bugstack.ai.domain.gateway.model.entity.GatewayConfigCommandEntity;
 import cn.bugstack.ai.domain.gateway.model.entity.GatewayToolConfigCommandEntity;
@@ -205,6 +207,58 @@ public class AdminController implements IAdminService {
         } catch (Exception e) {
             log.error("查询网关配置列表失败", e);
             return Response.<List<GatewayConfigDTO>>builder()
+                    .code(ResponseCode.UN_ERROR.getCode())
+                    .info(ResponseCode.UN_ERROR.getInfo())
+                    .build();
+        }
+    }
+
+    @RequestMapping(value = "query_gateway_tool_list", method = RequestMethod.GET)
+    @Override
+    public Response<List<GatewayToolConfigDTO>> queryGatewayToolList() {
+        try {
+            log.info("查询网关工具列表开始");
+            List<GatewayToolConfigEntity> entities = adminManageService.queryGatewayToolList();
+            List<GatewayToolConfigDTO> dtoList = entities.stream().map(e -> GatewayToolConfigDTO.builder()
+                    .gatewayId(e.getGatewayId())
+                    .toolId(e.getToolId())
+                    .toolName(e.getToolName())
+                    .toolType(e.getToolType())
+                    .toolDescription(e.getToolDescription())
+                    .toolVersion(e.getToolVersion())
+                    .protocolId(e.getProtocolId())
+                    .protocolType(e.getProtocolType())
+                    .build()).collect(Collectors.toList());
+            log.info("查询网关工具列表完成 count: {}", dtoList.size());
+            return Response.<List<GatewayToolConfigDTO>>builder()
+                    .code(ResponseCode.SUCCESS.getCode())
+                    .info(ResponseCode.SUCCESS.getInfo())
+                    .data(dtoList)
+                    .build();
+        } catch (Exception e) {
+            log.error("查询网关工具列表失败", e);
+            return Response.<List<GatewayToolConfigDTO>>builder()
+                    .code(ResponseCode.UN_ERROR.getCode())
+                    .info(ResponseCode.UN_ERROR.getInfo())
+                    .build();
+        }
+    }
+
+    @RequestMapping(value = "delete_gateway_tool_config", method = RequestMethod.POST)
+    @Override
+    public Response<GatewayConfigResponseDTO> deleteGatewayToolConfig(@RequestParam String gatewayId, @RequestParam Long toolId) {
+        try {
+            log.info("删除网关工具配置开始 gatewayId: {} toolId: {}", gatewayId, toolId);
+            adminGatewayService.deleteGatewayToolConfig(toolId);
+            log.info("删除网关工具配置完成 gatewayId: {} toolId: {}", gatewayId, toolId);
+            return Response.<GatewayConfigResponseDTO>builder()
+                    .code(ResponseCode.SUCCESS.getCode())
+                    .info(ResponseCode.SUCCESS.getInfo())
+                    .data(GatewayConfigResponseDTO.builder().success(true).build())
+                    .build();
+        } catch (Exception e) {
+            log.error("删除网关工具配置失败 gatewayId: {} toolId: {}", gatewayId, toolId, e);
+            return Response.<GatewayConfigResponseDTO>builder()
                     .code(ResponseCode.UN_ERROR.getCode())
                     .info(ResponseCode.UN_ERROR.getInfo())
                     .build();
