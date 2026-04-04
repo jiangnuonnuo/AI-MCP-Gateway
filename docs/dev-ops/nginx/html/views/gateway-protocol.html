@@ -4,11 +4,8 @@
         <button type="button" class="btn btn-sm btn-outline-secondary me-2" id="refreshGatewayProtocolList">
             <i class="bi bi-arrow-clockwise"></i> 刷新列表
         </button>
-        <button type="button" class="btn btn-sm btn-outline-success me-2 d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#importProtocolModal" id="importProtocolBtn">
+        <button type="button" class="btn btn-sm btn-outline-success d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#importProtocolModal" id="importProtocolBtn">
             <i class="bi bi-upload"></i> 导入协议
-        </button>
-        <button type="button" class="btn btn-sm btn-primary d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#gatewayProtocolModal" id="addGatewayProtocolBtn">
-            <i class="bi bi-plus-lg"></i> 新增协议
         </button>
     </div>
 </div>
@@ -39,7 +36,7 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="gatewayProtocolModalLabel"><i class="bi bi-hdd-network me-2"></i>新增网关协议配置</h5>
+                <h5 class="modal-title" id="gatewayProtocolModalLabel"><i class="bi bi-pencil-square me-2"></i>修改网关协议配置</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -47,8 +44,7 @@
                     <div class="row mb-3">
                         <div class="col-md-4">
                             <label class="form-label">协议 ID</label>
-                            <input type="number" class="form-control" id="protocol-protocolId" name="protocolId" placeholder="自动生成或填写更新" readonly>
-                            <div class="form-text text-muted">新增时留空自动生成。</div>
+                            <input type="number" class="form-control" id="protocol-protocolId" name="protocolId" readonly>
                         </div>
                         <div class="col-md-8">
                             <label class="form-label">请求地址 (URL) <span class="text-danger">*</span></label>
@@ -63,10 +59,10 @@
                         <div class="col-md-4">
                             <label class="form-label">请求方法</label>
                             <select class="form-select" id="protocol-httpMethod" name="httpMethod">
-                                <option value="GET">GET</option>
-                                <option value="POST">POST</option>
-                                <option value="PUT">PUT</option>
-                                <option value="DELETE">DELETE</option>
+                                <option value="get">get</option>
+                                <option value="post">post</option>
+                                <option value="put">put</option>
+                                <option value="delete">delete</option>
                             </select>
                         </div>
                         <div class="col-md-4">
