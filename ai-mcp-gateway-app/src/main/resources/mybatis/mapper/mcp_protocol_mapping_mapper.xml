@@ -72,5 +72,15 @@
         ORDER BY sort_order ASC
     </select>
 
+    <select id="queryListByProtocolIds" resultMap="McpProtocolMappingMap">
+        SELECT id, protocol_id, mapping_type, parent_path, field_name, mcp_path, mcp_type, mcp_desc, is_required, sort_order,
+               create_time, update_time
+        FROM mcp_protocol_mapping
+        WHERE protocol_id IN
+        <foreach collection="list" item="protocolId" open="(" separator="," close=")">
+            #{protocolId}
+        </foreach>
+    </select>
+
 </mapper>
 

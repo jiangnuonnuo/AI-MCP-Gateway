@@ -20,4 +20,8 @@ public interface IAdminRepository {
 
     List<GatewayAuthConfigEntity> queryGatewayAuthList();
 
+    List<GatewayToolConfigEntity> queryGatewayToolListByGatewayId(String gatewayId);
+
+    List<GatewayProtocolConfigEntity> queryGatewayProtocolListByProtocolIds(List<Long> protocolIds);
+
 }

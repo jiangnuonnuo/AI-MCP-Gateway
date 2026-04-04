@@ -274,6 +274,37 @@ public class AdminController implements IAdminService {
         }
     }
 
+    @RequestMapping(value = "query_gateway_tool_list_by_gateway_id", method = RequestMethod.GET)
+    @Override
+    public Response<List<GatewayToolConfigDTO>> queryGatewayToolListByGatewayId(@RequestParam String gatewayId) {
+        try {
+            log.info("根据网关ID查询网关工具列表开始 gatewayId: {}", gatewayId);
+            List<GatewayToolConfigEntity> entities = adminManageService.queryGatewayToolListByGatewayId(gatewayId);
+            List<GatewayToolConfigDTO> dtoList = entities.stream().map(e -> GatewayToolConfigDTO.builder()
+                    .gatewayId(e.getGatewayId())
+                    .toolId(e.getToolId())
+                    .toolName(e.getToolName())
+                    .toolType(e.getToolType())
+                    .toolDescription(e.getToolDescription())
+                    .toolVersion(e.getToolVersion())
+                    .protocolId(e.getProtocolId())
+                    .protocolType(e.getProtocolType())
+                    .build()).collect(Collectors.toList());
+            log.info("根据网关ID查询网关工具列表完成 count: {}", dtoList.size());
+            return Response.<List<GatewayToolConfigDTO>>builder()
+                    .code(ResponseCode.SUCCESS.getCode())
+                    .info(ResponseCode.SUCCESS.getInfo())
+                    .data(dtoList)
+                    .build();
+        } catch (Exception e) {
+            log.error("根据网关ID查询网关工具列表失败 gatewayId: {}", gatewayId, e);
+            return Response.<List<GatewayToolConfigDTO>>builder()
+                    .code(ResponseCode.UN_ERROR.getCode())
+                    .info(ResponseCode.UN_ERROR.getInfo())
+                    .build();
+        }
+    }
+
     @RequestMapping(value = "delete_gateway_tool_config", method = RequestMethod.POST)
     @Override
     public Response<GatewayConfigResponseDTO> deleteGatewayToolConfig(@RequestParam String gatewayId, @RequestParam Long toolId) {
@@ -325,6 +356,44 @@ public class AdminController implements IAdminService {
                     .build();
         } catch (Exception e) {
             log.error("查询网关协议列表失败", e);
+            return Response.<List<GatewayProtocolDTO>>builder()
+                    .code(ResponseCode.UN_ERROR.getCode())
+                    .info(ResponseCode.UN_ERROR.getInfo())
+                    .build();
+        }
+    }
+
+    @RequestMapping(value = "query_gateway_protocol_list_by_gateway_id", method = RequestMethod.GET)
+    @Override
+    public Response<List<GatewayProtocolDTO>> queryGatewayProtocolListByGatewayId(@RequestParam String gatewayId) {
+        try {
+            log.info("根据网关ID查询网关协议列表开始 gatewayId: {}", gatewayId);
+            List<GatewayProtocolConfigEntity> entities = adminManageService.queryGatewayProtocolListByGatewayId(gatewayId);
+            List<GatewayProtocolDTO> dtoList = entities.stream().map(e -> GatewayProtocolDTO.builder()
+                    .protocolId(e.getProtocolId())
+                    .httpUrl(e.getHttpUrl())
+                    .httpMethod(e.getHttpMethod())
+                    .httpHeaders(e.getHttpHeaders())
+                    .timeout(e.getTimeout())
+                    .mappings(e.getMappings() == null ? null : e.getMappings().stream().map(m -> GatewayProtocolDTO.ProtocolMappingDTO.builder()
+                            .mappingType(m.getMappingType())
+                            .parentPath(m.getParentPath())
+                            .fieldName(m.getFieldName())
+                            .mcpPath(m.getMcpPath())
+                            .mcpType(m.getMcpType())
+                            .mcpDesc(m.getMcpDesc())
+                            .isRequired(m.getIsRequired())
+                            .sortOrder(m.getSortOrder())
+                            .build()).collect(Collectors.toList()))
+                    .build()).collect(Collectors.toList());
+            log.info("根据网关ID查询网关协议列表完成 count: {}", dtoList.size());
+            return Response.<List<GatewayProtocolDTO>>builder()
+                    .code(ResponseCode.SUCCESS.getCode())
+                    .info(ResponseCode.SUCCESS.getInfo())
+                    .data(dtoList)
+                    .build();
+        } catch (Exception e) {
+            log.error("根据网关ID查询网关协议列表失败 gatewayId: {}", gatewayId, e);
             return Response.<List<GatewayProtocolDTO>>builder()
                     .code(ResponseCode.UN_ERROR.getCode())
                     .info(ResponseCode.UN_ERROR.getInfo())

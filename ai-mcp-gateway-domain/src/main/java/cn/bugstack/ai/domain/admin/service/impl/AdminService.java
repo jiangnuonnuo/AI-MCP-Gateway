@@ -41,4 +41,24 @@ public class AdminService implements IAdminService {
         return adminRepository.queryGatewayAuthList();
     }
 
+    @Override
+    public List<GatewayToolConfigEntity> queryGatewayToolListByGatewayId(String gatewayId) {
+        return adminRepository.queryGatewayToolListByGatewayId(gatewayId);
+    }
+
+    @Override
+    public List<GatewayProtocolConfigEntity> queryGatewayProtocolListByGatewayId(String gatewayId) {
+        List<GatewayToolConfigEntity> tools = adminRepository.queryGatewayToolListByGatewayId(gatewayId);
+        if (tools == null || tools.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+        List<Long> protocolIds = tools.stream()
+                .map(GatewayToolConfigEntity::getProtocolId)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .collect(java.util.stream.Collectors.toList());
+        
+        return adminRepository.queryGatewayProtocolListByProtocolIds(protocolIds);
+    }
+
 }

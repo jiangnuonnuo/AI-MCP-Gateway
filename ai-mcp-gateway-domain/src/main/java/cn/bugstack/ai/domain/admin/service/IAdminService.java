@@ -20,4 +20,8 @@ public interface IAdminService {
 
     List<GatewayAuthConfigEntity> queryGatewayAuthList();
 
+    List<GatewayToolConfigEntity> queryGatewayToolListByGatewayId(String gatewayId);
+
+    List<GatewayProtocolConfigEntity> queryGatewayProtocolListByGatewayId(String gatewayId);
+
 }
