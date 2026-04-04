@@ -528,13 +528,6 @@ $(document).ready(function() {
         });
     });
 
-    $(document).on('click', '#addGatewayProtocolBtn', function() {
-        $('#form-gateway-protocol')[0].reset();
-        $('#protocol-protocolId').val(''); 
-        $('#protocol-mappingsJson').val(''); 
-        $('#gatewayProtocolModalLabel').html('<i class="bi bi-hdd-network me-2"></i>新增网关协议配置');
-    });
-
     // 导入协议按钮点击
     $(document).on('click', '#importProtocolBtn', function() {
         $('#form-import-protocol')[0].reset();
