@@ -351,7 +351,8 @@ $(document).ready(function() {
                 if(response && response.code === '0000' && response.data) {
                     let optionsHtml = '<option value="">请选择网关...</option>';
                     response.data.forEach(function(gw) {
-                        const isSelected = selectedGatewayId === gw.gatewayId ? 'selected' : '';
+                        // 使用松散比较(==)或转换类型，因为从后端传来的类型可能和本地解析的不一致
+                        const isSelected = selectedGatewayId == gw.gatewayId ? 'selected' : '';
                         optionsHtml += `<option value="${gw.gatewayId}" ${isSelected}>${gw.gatewayName}</option>`;
                     });
                     $select.html(optionsHtml);
