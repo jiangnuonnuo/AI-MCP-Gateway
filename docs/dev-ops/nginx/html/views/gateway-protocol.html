@@ -110,6 +110,19 @@
                         </div>
                     </div>
                     
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="form-label">读取协议配置 (OpenAPI JSON)</label>
+                            <div class="input-group">
+                                <input class="form-control" type="file" id="protocol-import-json-file" accept=".json">
+                                <button class="btn btn-outline-secondary" type="button" id="btn-parse-protocol-json"><i class="bi bi-file-earmark-code"></i> 解析并导入</button>
+                            </div>
+                            <div class="form-text text-muted">
+                                解析目标地址为：<code id="protocol-target-endpoint">-</code>（通过上面的 URL 自动提取）
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="mb-3">
                         <label class="form-label">参数映射 (Mappings JSON)</label>
                         <textarea class="form-control font-monospace" id="protocol-mappingsJson" name="mappingsJson" rows="4" placeholder='[

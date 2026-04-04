@@ -1040,6 +1040,10 @@ $(document).ready(function() {
             } else {
                 $('#protocol-mappingsJson').val('');
             }
+
+            // 更新解析目标地址
+            updateProtocolTargetEndpoint();
+            $('#protocol-import-json-file').val('');
             
             $('#gatewayProtocolModalLabel').html('<i class="bi bi-pencil-square me-2"></i>修改网关协议配置');
             $('#gatewayProtocolModal').modal('show');
@@ -1047,6 +1051,111 @@ $(document).ready(function() {
             console.error("解析数据失败", e);
             showToast("解析数据失败", false);
         }
+    });
+
+    // 监听协议 URL 输入框变化，更新解析目标地址
+    $(document).on('input', '#protocol-httpUrl', function() {
+        updateProtocolTargetEndpoint();
+    });
+
+    function updateProtocolTargetEndpoint() {
+        const fullUrl = $('#protocol-httpUrl').val() || '';
+        try {
+            if (fullUrl) {
+                const urlObj = new URL(fullUrl);
+                const targetEndpoint = urlObj.pathname;
+                $('#protocol-target-endpoint').text(targetEndpoint);
+                return targetEndpoint;
+            }
+        } catch (e) {
+            // URL 不合法时不报错，保持原样或给出提示
+        }
+        $('#protocol-target-endpoint').text('-');
+        return null;
+    }
+
+    // 解析并导入协议 JSON
+    $(document).on('click', '#btn-parse-protocol-json', function() {
+        const fileInput = document.getElementById('protocol-import-json-file');
+        const file = fileInput.files[0];
+        
+        if (!file) {
+            showToast('请先选择要上传的 JSON 文件', false);
+            return;
+        }
+
+        const targetEndpoint = updateProtocolTargetEndpoint();
+        if (!targetEndpoint || targetEndpoint === '-') {
+            showToast('请先填写有效的请求地址 (URL)', false);
+            return;
+        }
+
+        const $btn = $(this);
+        const originalHtml = $btn.html();
+        $btn.html('<i class="spinner-border spinner-border-sm"></i> 解析中...').prop('disabled', true);
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const jsonStr = event.target.result;
+            
+            try {
+                // 验证是否为合法 JSON
+                JSON.parse(jsonStr);
+                
+                // 构造请求体
+                const requestData = {
+                    openApiJson: jsonStr,
+                    endpoints: [targetEndpoint]
+                };
+
+                $.ajax({
+                    url: API_ENDPOINTS.ANALYSIS_PROTOCOL,
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(requestData),
+                    success: function(response) {
+                        if (response && response.code === '0000' && response.data && response.data.length > 0) {
+                            const parsedProtocol = response.data[0];
+                            
+                            // 填充解析后的数据
+                            if (parsedProtocol.httpMethod) {
+                                $('#protocol-httpMethod').val(parsedProtocol.httpMethod.toLowerCase());
+                            }
+                            if (parsedProtocol.httpHeaders) {
+                                $('#protocol-httpHeaders').val(parsedProtocol.httpHeaders);
+                            }
+                            if (parsedProtocol.timeout) {
+                                $('#protocol-timeout').val(parsedProtocol.timeout);
+                            }
+                            if (parsedProtocol.mappings && parsedProtocol.mappings.length > 0) {
+                                $('#protocol-mappingsJson').val(JSON.stringify(parsedProtocol.mappings, null, 2));
+                            }
+                            
+                            showToast('解析成功，已填充配置信息');
+                        } else {
+                            showToast('解析失败：未找到对应的接口配置或解析结果为空', false);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        showToast('请求解析接口失败：' + error, false);
+                    },
+                    complete: function() {
+                        $btn.html(originalHtml).prop('disabled', false);
+                    }
+                });
+
+            } catch (e) {
+                showToast('JSON 文件格式不正确，请检查', false);
+                $btn.html(originalHtml).prop('disabled', false);
+            }
+        };
+        
+        reader.onerror = function() {
+            showToast('读取文件失败', false);
+            $btn.html(originalHtml).prop('disabled', false);
+        };
+        
+        reader.readAsText(file);
     });
 
     $(document).on('click', '.btn-delete-protocol', function() {

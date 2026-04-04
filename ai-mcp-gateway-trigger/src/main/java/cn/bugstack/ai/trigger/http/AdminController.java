@@ -181,6 +181,48 @@ public class AdminController implements IAdminService {
         }
     }
 
+    @RequestMapping(value = "analysis_protocol", method = RequestMethod.POST)
+    @Override
+    public Response<List<GatewayProtocolDTO>> analysisProtocol(@RequestBody GatewayConfigRequestDTO.GatewayProtocolImport requestDTO) {
+        try {
+            log.info("解析网关协议配置开始");
+            AnalysisCommandEntity commandEntity = AnalysisCommandEntity.builder()
+                    .openApiJson(requestDTO.getOpenApiJson())
+                    .endpoints(requestDTO.getEndpoints())
+                    .build();
+            List<cn.bugstack.ai.domain.protocol.model.valobj.http.HTTPProtocolVO> httpProtocolVOS = adminProtocolService.analysisProtocol(commandEntity);
+            
+            List<GatewayProtocolDTO> dtoList = httpProtocolVOS.stream().map(e -> GatewayProtocolDTO.builder()
+                    .httpUrl(e.getHttpUrl())
+                    .httpMethod(e.getHttpMethod())
+                    .httpHeaders(e.getHttpHeaders())
+                    .timeout(e.getTimeout())
+                    .mappings(e.getMappings() == null ? null : e.getMappings().stream().map(m -> GatewayProtocolDTO.ProtocolMappingDTO.builder()
+                            .mappingType(m.getMappingType())
+                            .parentPath(m.getParentPath())
+                            .fieldName(m.getFieldName())
+                            .mcpPath(m.getMcpPath())
+                            .mcpType(m.getMcpType())
+                            .mcpDesc(m.getMcpDesc())
+                            .isRequired(m.getIsRequired())
+                            .build()).collect(Collectors.toList()))
+                    .build()).collect(Collectors.toList());
+            
+            log.info("解析网关协议配置完成 size: {}", dtoList.size());
+            return Response.<List<GatewayProtocolDTO>>builder()
+                    .code(ResponseCode.SUCCESS.getCode())
+                    .info(ResponseCode.SUCCESS.getInfo())
+                    .data(dtoList)
+                    .build();
+        } catch (Exception e) {
+            log.error("解析网关协议配置失败", e);
+            return Response.<List<GatewayProtocolDTO>>builder()
+                    .code(ResponseCode.UN_ERROR.getCode())
+                    .info(ResponseCode.UN_ERROR.getInfo())
+                    .build();
+        }
+    }
+
     @RequestMapping(value = "save_gateway_auth", method = RequestMethod.POST)
     @Override
     public Response<GatewayConfigResponseDTO> saveGatewayAuth(@RequestBody GatewayConfigRequestDTO.GatewayAuth requestDTO) {

@@ -16,4 +16,6 @@ public interface IAdminProtocolService {
 
     void importGatewayProtocol(cn.bugstack.ai.domain.protocol.model.entity.AnalysisCommandEntity commandEntity);
 
+    java.util.List<cn.bugstack.ai.domain.protocol.model.valobj.http.HTTPProtocolVO> analysisProtocol(cn.bugstack.ai.domain.protocol.model.entity.AnalysisCommandEntity commandEntity);
+
 }
