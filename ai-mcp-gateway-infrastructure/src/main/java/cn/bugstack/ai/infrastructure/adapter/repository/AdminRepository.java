@@ -12,6 +12,8 @@ import org.springframework.stereotype.Repository;
 
 import cn.bugstack.ai.infrastructure.dao.po.McpGatewayPO;
 import cn.bugstack.ai.domain.admin.model.entity.GatewayConfigEntity;
+import cn.bugstack.ai.domain.admin.model.entity.GatewayConfigPageEntity;
+import cn.bugstack.ai.domain.admin.model.entity.GatewayConfigQueryEntity;
 import cn.bugstack.ai.domain.admin.model.entity.GatewayProtocolConfigEntity;
 import cn.bugstack.ai.domain.admin.model.entity.GatewayToolConfigEntity;
 import cn.bugstack.ai.domain.admin.model.entity.GatewayAuthConfigEntity;
@@ -53,6 +55,38 @@ public class AdminRepository implements IAdminRepository {
                 .auth(po.getAuth())
                 .status(po.getStatus())
                 .build()).collect(Collectors.toList());
+    }
+
+    @Override
+    public GatewayConfigPageEntity queryGatewayConfigPage(GatewayConfigQueryEntity queryEntity) {
+        McpGatewayPO query = new McpGatewayPO();
+        query.setGatewayId(queryEntity.getGatewayId());
+        query.setGatewayName(queryEntity.getGatewayName());
+        query.setPage(queryEntity.getPage());
+        query.setRows(queryEntity.getRows());
+
+        Long count = mcpGatewayDao.queryGatewayListCount(query);
+        if (count == null || count == 0) {
+            return GatewayConfigPageEntity.builder()
+                    .dataList(new java.util.ArrayList<>())
+                    .total(0L)
+                    .build();
+        }
+
+        List<McpGatewayPO> mcpGatewayPOS = mcpGatewayDao.queryGatewayList(query);
+        List<GatewayConfigEntity> dataList = mcpGatewayPOS.stream().map(po -> GatewayConfigEntity.builder()
+                .gatewayId(po.getGatewayId())
+                .gatewayName(po.getGatewayName())
+                .gatewayDesc(po.getGatewayDesc())
+                .version(po.getVersion())
+                .auth(po.getAuth())
+                .status(po.getStatus())
+                .build()).collect(Collectors.toList());
+
+        return GatewayConfigPageEntity.builder()
+                .dataList(dataList)
+                .total(count)
+                .build();
     }
 
     @Override

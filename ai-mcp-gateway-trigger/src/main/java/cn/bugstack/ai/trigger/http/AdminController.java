@@ -1,21 +1,14 @@
 package cn.bugstack.ai.trigger.http;
 
 import cn.bugstack.ai.api.IAdminService;
-import cn.bugstack.ai.api.dto.GatewayConfigDTO;
-import cn.bugstack.ai.api.dto.GatewayConfigRequestDTO;
-import cn.bugstack.ai.api.dto.GatewayConfigResponseDTO;
+import cn.bugstack.ai.api.dto.*;
 import cn.bugstack.ai.api.response.Response;
+import cn.bugstack.ai.api.response.ResponsePage;
 import cn.bugstack.ai.cases.admin.IAdminAuthService;
 import cn.bugstack.ai.cases.admin.IAdminGatewayService;
 import cn.bugstack.ai.cases.admin.IAdminManageService;
 import cn.bugstack.ai.cases.admin.IAdminProtocolService;
-import cn.bugstack.ai.domain.admin.model.entity.GatewayProtocolConfigEntity;
-import cn.bugstack.ai.api.dto.GatewayAuthDTO;
-import cn.bugstack.ai.api.dto.GatewayProtocolDTO;
-import cn.bugstack.ai.api.dto.GatewayToolConfigDTO;
-import cn.bugstack.ai.domain.admin.model.entity.GatewayAuthConfigEntity;
-import cn.bugstack.ai.domain.admin.model.entity.GatewayConfigEntity;
-import cn.bugstack.ai.domain.admin.model.entity.GatewayToolConfigEntity;
+import cn.bugstack.ai.domain.admin.model.entity.*;
 import cn.bugstack.ai.domain.auth.model.entity.RegisterCommandEntity;
 import cn.bugstack.ai.domain.gateway.model.entity.GatewayConfigCommandEntity;
 import cn.bugstack.ai.domain.gateway.model.entity.GatewayToolConfigCommandEntity;
@@ -237,6 +230,45 @@ public class AdminController implements IAdminService {
         } catch (Exception e) {
             log.error("查询网关配置列表失败", e);
             return Response.<List<GatewayConfigDTO>>builder()
+                    .code(ResponseCode.UN_ERROR.getCode())
+                    .info(ResponseCode.UN_ERROR.getInfo())
+                    .build();
+        }
+    }
+
+    @RequestMapping(value = "query_gateway_config_page", method = RequestMethod.GET)
+    @Override
+    public ResponsePage<List<GatewayConfigDTO>> queryGatewayConfigPage(GatewayConfigQueryDTO queryDTO) {
+        try {
+            log.info("查询网关配置分页开始 gatewayId: {}, gatewayName: {}, page: {}, rows: {}", 
+                     queryDTO.getGatewayId(), queryDTO.getGatewayName(), queryDTO.getPage(), queryDTO.getRows());
+            
+            GatewayConfigQueryEntity queryEntity = GatewayConfigQueryEntity.builder()
+                    .gatewayId(queryDTO.getGatewayId())
+                    .gatewayName(queryDTO.getGatewayName())
+                    .page(queryDTO.getPage() == null ? 1 : queryDTO.getPage())
+                    .rows(queryDTO.getRows() == null ? 10 : queryDTO.getRows())
+                    .build();
+                    
+            GatewayConfigPageEntity pageEntity = adminManageService.queryGatewayConfigPage(queryEntity);
+            List<GatewayConfigDTO> dtoList = pageEntity.getDataList().stream().map(e -> GatewayConfigDTO.builder()
+                    .gatewayId(e.getGatewayId())
+                    .gatewayName(e.getGatewayName())
+                    .gatewayDesc(e.getGatewayDesc())
+                    .version(e.getVersion())
+                    .auth(e.getAuth())
+                    .status(e.getStatus())
+                    .build()).collect(Collectors.toList());
+            log.info("查询网关配置分页完成 total: {}", pageEntity.getTotal());
+            return ResponsePage.<List<GatewayConfigDTO>>builder()
+                    .code(ResponseCode.SUCCESS.getCode())
+                    .info(ResponseCode.SUCCESS.getInfo())
+                    .data(dtoList)
+                    .total(pageEntity.getTotal())
+                    .build();
+        } catch (Exception e) {
+            log.error("查询网关配置分页失败", e);
+            return ResponsePage.<List<GatewayConfigDTO>>builder()
                     .code(ResponseCode.UN_ERROR.getCode())
                     .info(ResponseCode.UN_ERROR.getInfo())
                     .build();

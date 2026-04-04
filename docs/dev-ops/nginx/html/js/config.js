@@ -5,6 +5,7 @@ const API_BASE_URL = "http://127.0.0.1:8777/api-gateway"; // 替换为实际的�
 const API_ENDPOINTS = {
     // 获取网关列表
     GET_GATEWAY_LIST: `${API_BASE_URL}/admin/query_gateway_config_list`,
+    GET_GATEWAY_PAGE: `${API_BASE_URL}/admin/query_gateway_config_page`,
     // 保存网关配置
     SAVE_GATEWAY_CONFIG: `${API_BASE_URL}/admin/save_gateway_config`,
     // 保存网关工具配置
