@@ -1,8 +1,13 @@
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-3 mb-4 border-bottom">
     <h1 class="page-title">网关列表</h1>
-    <button class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1" id="refreshGatewayList">
-        <i class="bi bi-arrow-clockwise"></i> 刷新数据
-    </button>
+    <div>
+        <button class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1 me-2" id="refreshGatewayList">
+            <i class="bi bi-arrow-clockwise"></i> 刷新数据
+        </button>
+        <button class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#gatewayConfigModal" id="addGatewayBtn">
+            <i class="bi bi-plus-lg"></i> 新增网关
+        </button>
+    </div>
 </div>
 
 <div class="card">
@@ -28,6 +33,71 @@
                     </tr>
                 </tbody>
             </table>
+        </div>
+    </div>
+</div>
+
+<!-- 网关基础配置模态框 -->
+<div class="modal fade" id="gatewayConfigModal" tabindex="-1" aria-labelledby="gatewayConfigModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="gatewayConfigModalLabel"><i class="bi bi-pencil-square me-2"></i>网关基础配置</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-gateway-config">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">网关 ID <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="bi bi-hash"></i></span>
+                                <input type="text" class="form-control" name="gatewayId" id="config-gatewayId" required placeholder="例如: gw-001">
+                            </div>
+                        </div>
+                        <div class="col-md-6 mt-3 mt-md-0">
+                            <label class="form-label">网关名称 <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="bi bi-tag"></i></span>
+                                <input type="text" class="form-control" name="gatewayName" id="config-gatewayName" required placeholder="例如: 核心业务网关">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">网关描述</label>
+                        <textarea class="form-control" name="gatewayDesc" id="config-gatewayDesc" rows="3" placeholder="输入关于该网关的详细描述信息..."></textarea>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">版本号 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="version" id="config-version" required placeholder="1.0.0" value="1.0.0">
+                        </div>
+                        <div class="col-md-4 mt-3 mt-md-0">
+                            <label class="form-label">认证校验 (Auth)</label>
+                            <select class="form-select" name="auth" id="config-auth">
+                                <option value="1">启用 (1)</option>
+                                <option value="0">禁用 (0)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mt-3 mt-md-0">
+                            <label class="form-label">状态 (Status)</label>
+                            <select class="form-select" name="status" id="config-status">
+                                <option value="1">强校验 (1)</option>
+                                <option value="0">不校验 (0)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-footer px-0 pb-0 border-0">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">取消</button>
+                        <button type="submit" class="btn btn-primary d-flex align-items-center gap-1">
+                            <i class="bi bi-check2-circle"></i> 保存配置
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>
