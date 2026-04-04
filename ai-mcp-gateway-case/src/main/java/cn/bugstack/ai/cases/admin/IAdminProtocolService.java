@@ -14,4 +14,6 @@ public interface IAdminProtocolService {
 
     void deleteGatewayProtocol(Long protocolId);
 
+    void importGatewayProtocol(cn.bugstack.ai.domain.protocol.model.entity.AnalysisCommandEntity commandEntity);
+
 }

@@ -4,6 +4,9 @@
         <button type="button" class="btn btn-sm btn-outline-secondary me-2" id="refreshGatewayProtocolList">
             <i class="bi bi-arrow-clockwise"></i> 刷新列表
         </button>
+        <button type="button" class="btn btn-sm btn-outline-success me-2 d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#importProtocolModal" id="importProtocolBtn">
+            <i class="bi bi-upload"></i> 导入协议
+        </button>
         <button type="button" class="btn btn-sm btn-primary d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#gatewayProtocolModal" id="addGatewayProtocolBtn">
             <i class="bi bi-plus-lg"></i> 新增协议
         </button>
@@ -96,6 +99,40 @@
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">取消</button>
                         <button type="submit" class="btn btn-primary d-flex align-items-center gap-1">
                             <i class="bi bi-check2-circle"></i> 保存配置
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 导入协议配置模态框 -->
+<div class="modal fade" id="importProtocolModal" tabindex="-1" aria-labelledby="importProtocolModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="importProtocolModalLabel"><i class="bi bi-upload me-2"></i>导入协议配置 (OpenAPI JSON)</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-import-protocol">
+                    <div class="mb-3">
+                        <label class="form-label">上传 JSON 文件 <span class="text-danger">*</span></label>
+                        <input class="form-control" type="file" id="import-json-file" accept=".json" required>
+                    </div>
+                    <div class="mb-3 d-none" id="endpoints-selection-container">
+                        <label class="form-label">选择要导入的接口 <span class="text-danger">*</span></label>
+                        <div class="card">
+                            <div class="card-body" style="max-height: 300px; overflow-y: auto;" id="endpoints-list">
+                                <!-- 接口列表由 JS 动态生成 -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer px-0 pb-0 border-0">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">取消</button>
+                        <button type="submit" class="btn btn-primary d-flex align-items-center gap-1" id="btn-submit-import" disabled>
+                            <i class="bi bi-check2-circle"></i> 确认导入
                         </button>
                     </div>
                 </form>

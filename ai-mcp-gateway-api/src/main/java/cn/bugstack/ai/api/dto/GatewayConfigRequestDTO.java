@@ -39,6 +39,15 @@ public class GatewayConfigRequestDTO {
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
+    public static class GatewayProtocolImport {
+        private String openApiJson;
+        private List<String> endpoints;
+    }
+
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
     public static class GatewayToolConfig {
         /** 所属网关ID */
         private String gatewayId;
