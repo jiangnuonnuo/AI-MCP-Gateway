@@ -208,7 +208,7 @@ $(document).ready(function() {
         return {
             gatewayId: data.gatewayId,
             rateLimit: parseInt(data.rateLimit),
-            expireTime: parseInt(data.expireTime)
+            expireTime: data.expireTime ? new Date(data.expireTime).getTime() : null
         };
     }, function() {
         $('#gatewayAuthModal').modal('hide');
@@ -755,6 +755,12 @@ $(document).ready(function() {
         $('#form-gateway-auth')[0].reset();
         $('#auth-gatewayId').prop('readonly', false);
         $('#gatewayAuthModalLabel').html('<i class="bi bi-shield-check me-2"></i>新增认证配置');
+        
+        // 默认过期时间设置为1个月后
+        const d = new Date();
+        d.setMonth(d.getMonth() + 1);
+        const localIsoString = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+        $('#auth-expireTime').val(localIsoString);
     });
 
     $(document).on('click', '.btn-edit-auth', function() {
@@ -764,7 +770,14 @@ $(document).ready(function() {
             
             $('#auth-gatewayId').val(item.gatewayId).prop('readonly', true);
             $('#auth-rateLimit').val(item.rateLimit);
-            $('#auth-expireTime').val(item.expireTime);
+            
+            if (item.expireTime) {
+                const d = new Date(item.expireTime);
+                const localIsoString = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+                $('#auth-expireTime').val(localIsoString);
+            } else {
+                $('#auth-expireTime').val('');
+            }
             
             $('#gatewayAuthModalLabel').html('<i class="bi bi-pencil-square me-2"></i>修改网关认证配置');
             $('#gatewayAuthModal').modal('show');
@@ -802,6 +815,48 @@ $(document).ready(function() {
         }
     });
 
+    $(document).on('click', '.btn-copy-key', function() {
+        const apiKey = $(this).data('key');
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(apiKey).then(() => {
+                showToast('API Key 已复制到剪贴板！');
+            }).catch(err => {
+                console.error('无法复制文本: ', err);
+                showToast('复制失败，请手动复制', false);
+            });
+        } else {
+            // Fallback
+            const textArea = document.createElement("textarea");
+            textArea.value = apiKey;
+            // 确保不导致页面滚动
+            textArea.style.position = "fixed";
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.width = "2em";
+            textArea.style.height = "2em";
+            textArea.style.padding = "0";
+            textArea.style.border = "none";
+            textArea.style.outline = "none";
+            textArea.style.boxShadow = "none";
+            textArea.style.background = "transparent";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                const successful = document.execCommand('copy');
+                if(successful) {
+                    showToast('API Key 已复制到剪贴板！');
+                } else {
+                    showToast('复制失败，请手动复制', false);
+                }
+            } catch (err) {
+                console.error('无法复制文本: ', err);
+                showToast('复制失败，请手动复制', false);
+            }
+            document.body.removeChild(textArea);
+        }
+    });
+
     function loadGatewayAuthList(callback) {
         const tbody = $('#gatewayAuthTableBody');
         if(!callback) {
@@ -830,7 +885,12 @@ $(document).ready(function() {
                             html += `
                                 <tr>
                                     <td><code>${item.gatewayId || '-'}</code></td>
-                                    <td><span class="text-truncate d-inline-block" style="max-width: 250px;" title="${item.apiKey || ''}">${item.apiKey || '-'}</span></td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="text-truncate d-inline-block" style="max-width: 200px;" title="${item.apiKey || ''}">${item.apiKey || '-'}</span>
+                                            ${item.apiKey ? `<button type="button" class="btn btn-sm btn-outline-secondary btn-copy-key border-0" data-key="${item.apiKey}" title="复制 API Key"><i class="bi bi-clipboard"></i></button>` : ''}
+                                        </div>
+                                    </td>
                                     <td>${item.rateLimit || '-'} 次/秒</td>
                                     <td>${expireTimeStr}</td>
                                     <td>
