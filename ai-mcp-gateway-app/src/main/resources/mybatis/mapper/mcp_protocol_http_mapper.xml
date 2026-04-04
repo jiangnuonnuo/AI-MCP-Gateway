@@ -71,5 +71,15 @@
         WHERE protocol_id = #{protocolId}
     </select>
 
+    <select id="queryListByProtocolIds" resultMap="McpProtocolRegistryMap">
+        SELECT id, protocol_id, http_url, http_method, http_headers, timeout,
+               create_time, update_time
+        FROM mcp_protocol_http
+        WHERE protocol_id IN
+        <foreach collection="list" item="protocolId" open="(" separator="," close=")">
+            #{protocolId}
+        </foreach>
+    </select>
+
 </mapper>
 

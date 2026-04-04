@@ -2,6 +2,7 @@ package cn.bugstack.ai.infrastructure.adapter.repository;
 
 import cn.bugstack.ai.domain.admin.adapter.respository.IAdminRepository;
 import cn.bugstack.ai.infrastructure.dao.*;
+import cn.bugstack.ai.infrastructure.dao.po.McpGatewayToolPO;
 import cn.bugstack.ai.infrastructure.dao.po.McpProtocolHttpPO;
 import cn.bugstack.ai.infrastructure.dao.po.McpProtocolMappingPO;
 import cn.bugstack.ai.infrastructure.dao.po.McpGatewayAuthPO;
@@ -103,6 +104,54 @@ public class AdminRepository implements IAdminRepository {
                 .rateLimit(po.getRateLimit())
                 .expireTime(po.getExpireTime())
                 .build()).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<GatewayToolConfigEntity> queryGatewayToolListByGatewayId(String gatewayId) {
+        List<McpGatewayToolPO> pos = mcpGatewayToolDao.queryListByGatewayId(gatewayId);
+        return pos.stream().map(po -> GatewayToolConfigEntity.builder()
+                .gatewayId(po.getGatewayId())
+                .toolId(po.getToolId())
+                .toolName(po.getToolName())
+                .toolType(po.getToolType())
+                .toolDescription(po.getToolDescription())
+                .toolVersion(po.getToolVersion())
+                .protocolId(po.getProtocolId())
+                .protocolType(po.getProtocolType())
+                .build()).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<GatewayProtocolConfigEntity> queryGatewayProtocolListByProtocolIds(List<Long> protocolIds) {
+        if (protocolIds == null || protocolIds.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+        List<McpProtocolHttpPO> pos = protocolHttpDao.queryListByProtocolIds(protocolIds);
+        List<McpProtocolMappingPO> mappings = protocolMappingDao.queryListByProtocolIds(protocolIds);
+        
+        return pos.stream().map(po -> {
+            List<McpProtocolMappingPO> protocolMappings = mappings.stream()
+                    .filter(m -> m.getProtocolId().equals(po.getProtocolId()))
+                    .collect(Collectors.toList());
+                    
+            return GatewayProtocolConfigEntity.builder()
+                    .protocolId(po.getProtocolId())
+                    .httpUrl(po.getHttpUrl())
+                    .httpMethod(po.getHttpMethod())
+                    .httpHeaders(po.getHttpHeaders())
+                    .timeout(po.getTimeout())
+                    .mappings(protocolMappings.isEmpty() ? null : protocolMappings.stream().map(m -> GatewayProtocolConfigEntity.ProtocolMappingEntity.builder()
+                            .mappingType(m.getMappingType())
+                            .parentPath(m.getParentPath())
+                            .fieldName(m.getFieldName())
+                            .mcpPath(m.getMcpPath())
+                            .mcpType(m.getMcpType())
+                            .mcpDesc(m.getMcpDesc())
+                            .isRequired(m.getIsRequired())
+                            .sortOrder(m.getSortOrder())
+                            .build()).collect(Collectors.toList()))
+                    .build();
+        }).collect(Collectors.toList());
     }
 
 }

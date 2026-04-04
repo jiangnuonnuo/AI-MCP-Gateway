@@ -62,6 +62,13 @@
         </if>
     </update>
 
+    <select id="queryListByGatewayId" parameterType="java.lang.String" resultMap="McpGatewayToolMap">
+        SELECT id, gateway_id, tool_id, tool_name, tool_type, tool_description, tool_version, protocol_id, protocol_type,
+               create_time, update_time
+        FROM mcp_gateway_tool
+        WHERE gateway_id = #{gatewayId}
+    </select>
+
     <select id="queryAll" resultMap="McpGatewayToolMap">
         SELECT id, gateway_id, tool_id, tool_name, tool_type, tool_description, tool_version, protocol_id, protocol_type,
         create_time, update_time

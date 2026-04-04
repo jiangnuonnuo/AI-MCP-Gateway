@@ -22,11 +22,12 @@
                         <th>版本</th>
                         <th>认证校验</th>
                         <th>状态</th>
+                        <th>操作</th>
                     </tr>
                 </thead>
                 <tbody id="gatewayTableBody">
                     <tr>
-                        <td colspan="6" class="text-center text-muted py-4">
+                        <td colspan="7" class="text-center text-muted py-4">
                             <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
                             加载中...
                         </td>
@@ -97,6 +98,72 @@
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 关联工具列表模态框 -->
+<div class="modal fade" id="gatewayToolsModal" tabindex="-1" aria-labelledby="gatewayToolsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="gatewayToolsModalLabel"><i class="bi bi-tools me-2"></i>关联工具列表</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>工具ID</th>
+                                <th>工具名称</th>
+                                <th>工具类型</th>
+                                <th>描述</th>
+                                <th>版本</th>
+                                <th>协议类型</th>
+                            </tr>
+                        </thead>
+                        <tbody id="gatewayToolsTableBody">
+                            <!-- 数据由JS动态生成 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 关联协议列表模态框 -->
+<div class="modal fade" id="gatewayProtocolsModal" tabindex="-1" aria-labelledby="gatewayProtocolsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="gatewayProtocolsModalLabel"><i class="bi bi-hdd-network me-2"></i>关联协议列表</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>协议ID</th>
+                                <th>请求地址(URL)</th>
+                                <th>请求方法</th>
+                                <th>超时时间</th>
+                            </tr>
+                        </thead>
+                        <tbody id="gatewayProtocolsTableBody">
+                            <!-- 数据由JS动态生成 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">关闭</button>
             </div>
         </div>
     </div>

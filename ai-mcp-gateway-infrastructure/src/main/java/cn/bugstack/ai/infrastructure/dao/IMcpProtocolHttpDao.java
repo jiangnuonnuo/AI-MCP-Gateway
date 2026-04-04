@@ -22,5 +22,7 @@ public interface IMcpProtocolHttpDao {
 
     McpProtocolHttpPO queryMcpProtocolHttpByProtocolId(Long protocolId);
 
+    List<McpProtocolHttpPO> queryListByProtocolIds(List<Long> protocolIds);
+
 }
 

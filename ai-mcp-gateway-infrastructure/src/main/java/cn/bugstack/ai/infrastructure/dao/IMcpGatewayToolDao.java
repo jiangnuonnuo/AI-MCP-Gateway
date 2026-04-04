@@ -14,6 +14,8 @@ public interface IMcpGatewayToolDao {
 
     List<McpGatewayToolPO> queryEffectiveTools(String gatewayId);
 
+    List<McpGatewayToolPO> queryListByGatewayId(String gatewayId);
+
     Long queryToolProtocolIdByToolName(McpGatewayToolPO mcpGatewayToolPOReq);
 
     List<McpGatewayToolPO> queryAll();
