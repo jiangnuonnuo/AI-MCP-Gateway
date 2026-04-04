@@ -69,6 +69,43 @@
         WHERE gateway_id = #{gatewayId}
     </select>
 
+    <select id="queryToolList" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpGatewayToolPO" resultMap="McpGatewayToolMap">
+        SELECT id, gateway_id, tool_id, tool_name, tool_type, tool_description, tool_version, protocol_id, protocol_type,
+               create_time, update_time
+        FROM mcp_gateway_tool
+        <where>
+            <if test="gatewayId != null and gatewayId != ''">
+                AND gateway_id like concat('%', #{gatewayId}, '%')
+            </if>
+            <if test="toolId != null and toolId != ''">
+                AND tool_id like concat('%', #{toolId}, '%')
+            </if>
+            <if test="toolName != null and toolName != ''">
+                AND tool_name like concat('%', #{toolName}, '%')
+            </if>
+        </where>
+        ORDER BY update_time DESC
+        <if test="limitStart != null and limitCount != null">
+            LIMIT #{limitStart}, #{limitCount}
+        </if>
+    </select>
+
+    <select id="queryToolListCount" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpGatewayToolPO" resultType="java.lang.Long">
+        SELECT count(id)
+        FROM mcp_gateway_tool
+        <where>
+            <if test="gatewayId != null and gatewayId != ''">
+                AND gateway_id like concat('%', #{gatewayId}, '%')
+            </if>
+            <if test="toolId != null and toolId != ''">
+                AND tool_id like concat('%', #{toolId}, '%')
+            </if>
+            <if test="toolName != null and toolName != ''">
+                AND tool_name like concat('%', #{toolName}, '%')
+            </if>
+        </where>
+    </select>
+
     <select id="queryAll" resultMap="McpGatewayToolMap">
         SELECT id, gateway_id, tool_id, tool_name, tool_type, tool_description, tool_version, protocol_id, protocol_type,
         create_time, update_time

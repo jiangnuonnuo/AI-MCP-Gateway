@@ -81,5 +81,36 @@
         </foreach>
     </select>
 
+    <select id="queryProtocolList" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpProtocolHttpPO" resultMap="McpProtocolRegistryMap">
+        SELECT id, protocol_id, http_url, http_method, http_headers, timeout,
+               create_time, update_time
+        FROM mcp_protocol_http
+        <where>
+            <if test="protocolId != null">
+                AND protocol_id = #{protocolId}
+            </if>
+            <if test="httpUrl != null and httpUrl != ''">
+                AND http_url like concat('%', #{httpUrl}, '%')
+            </if>
+        </where>
+        ORDER BY update_time DESC
+        <if test="limitStart != null and limitCount != null">
+            LIMIT #{limitStart}, #{limitCount}
+        </if>
+    </select>
+
+    <select id="queryProtocolListCount" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpProtocolHttpPO" resultType="java.lang.Long">
+        SELECT count(id)
+        FROM mcp_protocol_http
+        <where>
+            <if test="protocolId != null">
+                AND protocol_id = #{protocolId}
+            </if>
+            <if test="httpUrl != null and httpUrl != ''">
+                AND http_url like concat('%', #{httpUrl}, '%')
+            </if>
+        </where>
+    </select>
+
 </mapper>
 

@@ -5,9 +5,17 @@ import cn.bugstack.ai.domain.admin.model.entity.GatewayConfigEntity;
 import cn.bugstack.ai.domain.admin.model.entity.GatewayConfigPageEntity;
 import cn.bugstack.ai.domain.admin.model.entity.GatewayConfigQueryEntity;
 import cn.bugstack.ai.domain.admin.model.entity.GatewayProtocolConfigEntity;
+import cn.bugstack.ai.domain.admin.model.entity.GatewayProtocolPageEntity;
+import cn.bugstack.ai.domain.admin.model.entity.GatewayProtocolQueryEntity;
 import cn.bugstack.ai.domain.admin.model.entity.GatewayToolConfigEntity;
+import cn.bugstack.ai.domain.admin.model.entity.GatewayToolPageEntity;
+import cn.bugstack.ai.domain.admin.model.entity.GatewayToolQueryEntity;
 import cn.bugstack.ai.domain.admin.model.entity.GatewayAuthConfigEntity;
+import cn.bugstack.ai.domain.admin.model.entity.GatewayAuthPageEntity;
+import cn.bugstack.ai.domain.admin.model.entity.GatewayAuthQueryEntity;
 import cn.bugstack.ai.domain.admin.service.IAdminService;
+
+import java.util.List;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
@@ -39,18 +47,23 @@ public class AdminService implements IAdminService {
     }
 
     @Override
-    public List<GatewayProtocolConfigEntity> queryGatewayProtocolList() {
-        return adminRepository.queryGatewayProtocolList();
-    }
-
-    @Override
-    public List<GatewayAuthConfigEntity> queryGatewayAuthList() {
-        return adminRepository.queryGatewayAuthList();
+    public GatewayToolPageEntity queryGatewayToolPage(GatewayToolQueryEntity queryEntity) {
+        return adminRepository.queryGatewayToolPage(queryEntity);
     }
 
     @Override
     public List<GatewayToolConfigEntity> queryGatewayToolListByGatewayId(String gatewayId) {
         return adminRepository.queryGatewayToolListByGatewayId(gatewayId);
+    }
+
+    @Override
+    public List<GatewayProtocolConfigEntity> queryGatewayProtocolList() {
+        return adminRepository.queryGatewayProtocolList();
+    }
+
+    @Override
+    public GatewayProtocolPageEntity queryGatewayProtocolPage(GatewayProtocolQueryEntity queryEntity) {
+        return adminRepository.queryGatewayProtocolPage(queryEntity);
     }
 
     @Override
@@ -66,6 +79,16 @@ public class AdminService implements IAdminService {
                 .collect(java.util.stream.Collectors.toList());
         
         return adminRepository.queryGatewayProtocolListByProtocolIds(protocolIds);
+    }
+
+    @Override
+    public List<GatewayAuthConfigEntity> queryGatewayAuthList() {
+        return adminRepository.queryGatewayAuthList();
+    }
+
+    @Override
+    public GatewayAuthPageEntity queryGatewayAuthPage(GatewayAuthQueryEntity queryEntity) {
+        return adminRepository.queryGatewayAuthPage(queryEntity);
     }
 
 }
