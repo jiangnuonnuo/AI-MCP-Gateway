@@ -552,6 +552,9 @@ $(document).ready(function() {
                                             <button type="button" class="btn btn-outline-primary btn-view-tools" data-gateway-id="${item.gatewayId}">
                                                 <i class="bi bi-tools"></i> 工具
                                             </button>
+                                            <button type="button" class="btn btn-outline-info btn-view-auth" data-gateway-id="${item.gatewayId}">
+                                                <i class="bi bi-shield-lock"></i> 认证
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -1400,5 +1403,50 @@ $(document).ready(function() {
             </li>
         `);
     }
+
+    // 查看网关认证配置
+    $(document).on('click', '.btn-view-auth', function() {
+        const gatewayId = $(this).data('gateway-id');
+        $('#gatewayAuthViewModalLabel').html(`<i class="bi bi-shield-lock me-2"></i>网关 [${gatewayId}] 认证配置`);
+        const tbody = $('#gatewayAuthViewTableBody');
+        tbody.html('<tr><td colspan="3" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>加载中...</td></tr>');
+        $('#gatewayAuthViewModal').modal('show');
+
+        $.ajax({
+            url: API_ENDPOINTS.GET_GATEWAY_AUTH_PAGE,
+            type: 'GET',
+            data: { gatewayId: gatewayId, page: 1, rows: 10 },
+            success: function(response) {
+                if (response && response.code === '0000') {
+                    const list = response.data || [];
+                    if (list.length === 0) {
+                        tbody.html('<tr><td colspan="3" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>该网关未配置认证信息</td></tr>');
+                    } else {
+                        let html = '';
+                        list.forEach(item => {
+                            html += `
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <code>${item.apiKey || '-'}</code>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary btn-copy-key border-0" data-key="${item.apiKey}" title="复制 API Key"><i class="bi bi-clipboard"></i></button>
+                                        </div>
+                                    </td>
+                                    <td><span class="badge bg-info bg-opacity-10 text-info border border-info">${item.rateLimit || '-'} 次/秒</span></td>
+                                    <td><span class="text-muted small"><i class="bi bi-clock me-1"></i>${item.expireTime ? new Date(item.expireTime).toLocaleString() : '永久'}</span></td>
+                                </tr>
+                            `;
+                        });
+                        tbody.html(html);
+                    }
+                } else {
+                    tbody.html(`<tr><td colspan="3" class="text-center text-danger py-4"><i class="bi bi-exclamation-triangle me-2"></i>加载失败: ${response.info || '未知错误'}</td></tr>`);
+                }
+            },
+            error: function() {
+                tbody.html('<tr><td colspan="3" class="text-center text-danger py-4"><i class="bi bi-wifi-off me-2"></i>网络请求失败</td></tr>');
+            }
+        });
+    });
 
 });
