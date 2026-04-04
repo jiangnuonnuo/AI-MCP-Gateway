@@ -231,7 +231,29 @@ $(document).ready(function() {
     $(document).on('click', '#addGatewayBtn', function() {
         $('#form-gateway-config')[0].reset();
         $('#config-gatewayId').prop('readonly', false);
-        $('#gatewayConfigModalLabel').html('<i class="bi bi-pencil-square me-2"></i>新增网关基础配置');
+        $('#gatewayConfigModalLabel').html('<i class="bi bi-plus-lg me-2"></i>新增网关基础配置');
+    });
+
+    // 修改网关配置
+    $(document).on('click', '.btn-edit-gateway', function() {
+        try {
+            const itemDataStr = decodeURIComponent($(this).data('item'));
+            const item = JSON.parse(itemDataStr);
+            
+            // 填充表单
+            $('#config-gatewayId').val(item.gatewayId).prop('readonly', true);
+            $('#config-gatewayName').val(item.gatewayName);
+            $('#config-gatewayDesc').val(item.gatewayDesc);
+            $('#config-version').val(item.version);
+            $('#config-auth').val(item.auth);
+            $('#config-status').val(item.status);
+            
+            $('#gatewayConfigModalLabel').html('<i class="bi bi-pencil-square me-2"></i>修改网关基础配置');
+            $('#gatewayConfigModal').modal('show');
+        } catch (e) {
+            console.error("解析数据失败", e);
+            showToast("解析数据失败", false);
+        }
     });
 
     // 查看关联工具
@@ -347,6 +369,9 @@ $(document).ready(function() {
                                     <td>${statusLabel}</td>
                                     <td>
                                         <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-outline-secondary btn-edit-gateway" data-item="${encodeURIComponent(JSON.stringify(item))}">
+                                                <i class="bi bi-pencil-square"></i> 修改
+                                            </button>
                                             <button type="button" class="btn btn-outline-primary btn-view-tools" data-gateway-id="${item.gatewayId}">
                                                 <i class="bi bi-tools"></i> 工具
                                             </button>

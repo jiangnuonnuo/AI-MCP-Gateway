@@ -18,6 +18,13 @@
             keyProperty="id">
         INSERT INTO mcp_gateway (gateway_id, gateway_name, gateway_desc, version, auth, status)
         VALUES (#{gatewayId}, #{gatewayName}, #{gatewayDesc}, #{version}, #{auth}, #{status})
+        ON DUPLICATE KEY UPDATE
+        gateway_name = #{gatewayName},
+        gateway_desc = #{gatewayDesc},
+        version = #{version},
+        auth = #{auth},
+        status = #{status},
+        update_time = NOW()
     </insert>
 
     <delete id="deleteById" parameterType="java.lang.Long">
