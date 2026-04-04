@@ -16,10 +16,11 @@
         <result column="update_time" property="updateTime"/>
     </resultMap>
 
-    <insert id="insert" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpGatewayToolPO" useGeneratedKeys="true" keyProperty="id">
+    <insert id="insert" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpGatewayToolPO">
         INSERT INTO mcp_gateway_tool (gateway_id, tool_id, tool_name, tool_type, tool_description, tool_version, protocol_id, protocol_type)
         VALUES (#{gatewayId}, #{toolId}, #{toolName}, #{toolType}, #{toolDescription}, #{toolVersion}, #{protocolId}, #{protocolType})
         ON DUPLICATE KEY UPDATE
+        gateway_id = #{gatewayId},
         tool_name = #{toolName},
         tool_type = #{toolType},
         tool_description = #{toolDescription},
