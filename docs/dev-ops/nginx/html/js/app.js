@@ -406,46 +406,6 @@ $(document).ready(function() {
         });
     });
 
-    // 查看关联协议
-    $(document).on('click', '.btn-view-protocols', function() {
-        const gatewayId = $(this).data('gateway-id');
-        $('#gatewayProtocolsModalLabel').html(`<i class="bi bi-hdd-network me-2"></i>网关 [${gatewayId}] 关联协议列表`);
-        const tbody = $('#gatewayProtocolsTableBody');
-        tbody.html('<tr><td colspan="4" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>加载中...</td></tr>');
-        $('#gatewayProtocolsModal').modal('show');
-
-        $.ajax({
-            url: `${API_ENDPOINTS.GET_GATEWAY_PROTOCOL_LIST_BY_ID}?gatewayId=${encodeURIComponent(gatewayId)}`,
-            type: 'GET',
-            success: function(response) {
-                if(response && response.code === '0000' && response.data) {
-                    const list = response.data;
-                    if(list.length === 0) {
-                        tbody.html('<tr><td colspan="4" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>暂无关联协议</td></tr>');
-                    } else {
-                        let html = '';
-                        list.forEach(function(item) {
-                            html += `
-                                <tr>
-                                    <td><code>${item.protocolId || '-'}</code></td>
-                                    <td class="text-truncate" style="max-width: 250px;" title="${item.httpUrl || ''}">${item.httpUrl || '-'}</td>
-                                    <td><span class="badge bg-secondary">${item.httpMethod || '-'}</span></td>
-                                    <td>${item.timeout || '-'} ms</td>
-                                </tr>
-                            `;
-                        });
-                        tbody.html(html);
-                    }
-                } else {
-                    tbody.html(`<tr><td colspan="4" class="text-center text-danger py-4">加载失败: ${response.info || '未知错误'}</td></tr>`);
-                }
-            },
-            error: function() {
-                tbody.html('<tr><td colspan="4" class="text-center text-danger py-4">网络请求失败，请检查服务是否启动</td></tr>');
-            }
-        });
-    });
-
     // 复制网关地址
     $(document).on('click', '.btn-copy-gateway-url', function() {
         const gatewayId = $(this).data('gateway-id');
@@ -531,9 +491,6 @@ $(document).ready(function() {
                                             </button>
                                             <button type="button" class="btn btn-outline-primary btn-view-tools" data-gateway-id="${item.gatewayId}">
                                                 <i class="bi bi-tools"></i> 工具
-                                            </button>
-                                            <button type="button" class="btn btn-outline-info btn-view-protocols" data-gateway-id="${item.gatewayId}">
-                                                <i class="bi bi-hdd-network"></i> 协议
                                             </button>
                                         </div>
                                     </td>
