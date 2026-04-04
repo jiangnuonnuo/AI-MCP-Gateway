@@ -516,6 +516,8 @@ $(document).ready(function() {
     // ==========================================
     // 网关协议列表相关
     // ==========================================
+    let uploadedOpenApiJson = ''; // 用于存储上传的 JSON 字符串
+
     $(document).on('click', '#refreshGatewayProtocolList', function() {
         const $btn = $(this);
         const originalHtml = $btn.html();
@@ -531,6 +533,110 @@ $(document).ready(function() {
         $('#protocol-protocolId').val(''); 
         $('#protocol-mappingsJson').val(''); 
         $('#gatewayProtocolModalLabel').html('<i class="bi bi-hdd-network me-2"></i>新增网关协议配置');
+    });
+
+    // 导入协议按钮点击
+    $(document).on('click', '#importProtocolBtn', function() {
+        $('#form-import-protocol')[0].reset();
+        $('#endpoints-selection-container').addClass('d-none');
+        $('#endpoints-list').empty();
+        $('#btn-submit-import').prop('disabled', true);
+        uploadedOpenApiJson = '';
+    });
+
+    // 监听文件上传
+    $(document).on('change', '#import-json-file', function(e) {
+        const file = e.target.files[0];
+        if (!file) {
+            $('#endpoints-selection-container').addClass('d-none');
+            $('#btn-submit-import').prop('disabled', true);
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            try {
+                const jsonStr = event.target.result;
+                const jsonObj = JSON.parse(jsonStr);
+                uploadedOpenApiJson = jsonStr;
+
+                if (!jsonObj.paths || Object.keys(jsonObj.paths).length === 0) {
+                    showToast('文件中未找到有效的接口路径 (paths)', false);
+                    return;
+                }
+
+                // 渲染接口列表
+                let listHtml = '<div class="list-group">';
+                Object.keys(jsonObj.paths).forEach((path, index) => {
+                    const methods = Object.keys(jsonObj.paths[path]).join(', ').toUpperCase();
+                    listHtml += `
+                        <label class="list-group-item d-flex gap-2">
+                            <input class="form-check-input flex-shrink-0 endpoint-checkbox" type="checkbox" value="${path}" checked>
+                            <span>
+                                <strong>${path}</strong>
+                                <small class="d-block text-muted">Methods: ${methods}</small>
+                            </span>
+                        </label>
+                    `;
+                });
+                listHtml += '</div>';
+
+                $('#endpoints-list').html(listHtml);
+                $('#endpoints-selection-container').removeClass('d-none');
+                $('#btn-submit-import').prop('disabled', false);
+
+            } catch (err) {
+                console.error(err);
+                showToast('JSON 文件解析失败，请检查格式', false);
+            }
+        };
+        reader.readAsText(file);
+    });
+
+    // 提交导入
+    $(document).on('submit', '#form-import-protocol', function(e) {
+        e.preventDefault();
+        
+        const selectedEndpoints = [];
+        $('.endpoint-checkbox:checked').each(function() {
+            selectedEndpoints.push($(this).val());
+        });
+
+        if (selectedEndpoints.length === 0) {
+            showToast('请至少选择一个要导入的接口', false);
+            return;
+        }
+
+        const $btn = $('#btn-submit-import');
+        const originalHtml = $btn.html();
+        $btn.html('<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>导入中...').prop('disabled', true);
+
+        const requestData = {
+            openApiJson: uploadedOpenApiJson,
+            endpoints: selectedEndpoints
+        };
+
+        $.ajax({
+            url: API_ENDPOINTS.IMPORT_GATEWAY_PROTOCOL,
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(requestData),
+            success: function(response) {
+                if(response && response.code === '0000') {
+                    showToast('协议导入成功！');
+                    $('#importProtocolModal').modal('hide');
+                    setTimeout(loadGatewayProtocolList, 300);
+                } else {
+                    showToast('导入失败：' + (response.info || '未知错误'), false);
+                }
+            },
+            error: function(xhr, status, error) {
+                showToast('请求失败：' + error, false);
+            },
+            complete: function() {
+                $btn.html(originalHtml).prop('disabled', false);
+            }
+        });
     });
 
     $(document).on('click', '.btn-edit-protocol', function() {

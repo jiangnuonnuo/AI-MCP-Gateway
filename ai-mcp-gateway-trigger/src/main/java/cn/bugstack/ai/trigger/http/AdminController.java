@@ -22,6 +22,7 @@ import cn.bugstack.ai.domain.gateway.model.entity.GatewayToolConfigCommandEntity
 import cn.bugstack.ai.domain.gateway.model.valobj.GatewayConfigVO;
 import cn.bugstack.ai.domain.gateway.model.valobj.GatewayToolConfigVO;
 import cn.bugstack.ai.domain.protocol.model.entity.StorageCommandEntity;
+import cn.bugstack.ai.domain.protocol.model.entity.AnalysisCommandEntity;
 import cn.bugstack.ai.domain.protocol.model.valobj.http.HTTPProtocolVO;
 import cn.bugstack.ai.types.enums.GatewayEnum;
 import cn.bugstack.ai.types.enums.ResponseCode;
@@ -155,6 +156,31 @@ public class AdminController implements IAdminService {
                     .build();
         } catch (Exception e) {
             log.error("保存网关协议配置失败", e);
+            return Response.<GatewayConfigResponseDTO>builder()
+                    .code(ResponseCode.UN_ERROR.getCode())
+                    .info(ResponseCode.UN_ERROR.getInfo())
+                    .build();
+        }
+    }
+
+    @RequestMapping(value = "import_gateway_protocol", method = RequestMethod.POST)
+    @Override
+    public Response<GatewayConfigResponseDTO> importGatewayProtocol(@RequestBody GatewayConfigRequestDTO.GatewayProtocolImport requestDTO) {
+        try {
+            log.info("导入网关协议配置开始");
+            AnalysisCommandEntity commandEntity = AnalysisCommandEntity.builder()
+                    .openApiJson(requestDTO.getOpenApiJson())
+                    .endpoints(requestDTO.getEndpoints())
+                    .build();
+            adminProtocolService.importGatewayProtocol(commandEntity);
+            log.info("导入网关协议配置完成");
+            return Response.<GatewayConfigResponseDTO>builder()
+                    .code(ResponseCode.SUCCESS.getCode())
+                    .info(ResponseCode.SUCCESS.getInfo())
+                    .data(GatewayConfigResponseDTO.builder().success(true).build())
+                    .build();
+        } catch (Exception e) {
+            log.error("导入网关协议配置失败", e);
             return Response.<GatewayConfigResponseDTO>builder()
                     .code(ResponseCode.UN_ERROR.getCode())
                     .info(ResponseCode.UN_ERROR.getInfo())

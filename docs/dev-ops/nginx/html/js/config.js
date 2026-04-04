@@ -13,6 +13,8 @@ const API_ENDPOINTS = {
     GET_GATEWAY_PROTOCOL_LIST: `${API_BASE_URL}/admin/query_gateway_protocol_list`,
     // 保存网关协议配置
     SAVE_GATEWAY_PROTOCOL: `${API_BASE_URL}/admin/save_gateway_protocol`,
+    // 导入网关协议配置
+    IMPORT_GATEWAY_PROTOCOL: `${API_BASE_URL}/admin/import_gateway_protocol`,
     // 删除网关协议配置
     DELETE_GATEWAY_PROTOCOL: `${API_BASE_URL}/admin/delete_gateway_protocol`,
     // 获取网关认证列表
