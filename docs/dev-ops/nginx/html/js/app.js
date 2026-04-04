@@ -261,40 +261,148 @@ $(document).ready(function() {
         const gatewayId = $(this).data('gateway-id');
         $('#gatewayToolsModalLabel').html(`<i class="bi bi-tools me-2"></i>网关 [${gatewayId}] 关联工具列表`);
         const tbody = $('#gatewayToolsTableBody');
-        tbody.html('<tr><td colspan="6" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>加载中...</td></tr>');
+        tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>加载中...</td></tr>');
         $('#gatewayToolsModal').modal('show');
 
-        $.ajax({
-            url: `${API_ENDPOINTS.GET_GATEWAY_TOOL_LIST_BY_ID}?gatewayId=${encodeURIComponent(gatewayId)}`,
-            type: 'GET',
-            success: function(response) {
-                if(response && response.code === '0000' && response.data) {
-                    const list = response.data;
-                    if(list.length === 0) {
-                        tbody.html('<tr><td colspan="6" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>暂无关联工具</td></tr>');
-                    } else {
-                        let html = '';
-                        list.forEach(function(item) {
-                            html += `
-                                <tr>
-                                    <td><span class="badge bg-secondary">${item.toolId || '-'}</span></td>
-                                    <td class="fw-bold">${item.toolName || '-'}</td>
-                                    <td>${item.toolType || '-'}</td>
-                                    <td><span class="text-truncate d-inline-block text-muted" style="max-width: 150px;" title="${item.toolDescription || ''}">${item.toolDescription || '-'}</span></td>
-                                    <td>${item.toolVersion || '-'}</td>
-                                    <td><span class="badge bg-info text-dark">${item.protocolType || '-'}</span></td>
-                                </tr>
-                            `;
-                        });
-                        tbody.html(html);
-                    }
+        // 同时请求工具列表和协议列表
+        $.when(
+            $.ajax({ url: `${API_ENDPOINTS.GET_GATEWAY_TOOL_LIST_BY_ID}?gatewayId=${encodeURIComponent(gatewayId)}`, type: 'GET' }),
+            $.ajax({ url: `${API_ENDPOINTS.GET_GATEWAY_PROTOCOL_LIST_BY_ID}?gatewayId=${encodeURIComponent(gatewayId)}`, type: 'GET' })
+        ).done(function(toolsResponse, protocolsResponse) {
+            const toolsResult = toolsResponse[0];
+            const protocolsResult = protocolsResponse[0];
+
+            if(toolsResult && toolsResult.code === '0000' && toolsResult.data) {
+                const toolsList = toolsResult.data;
+                const protocolsList = (protocolsResult && protocolsResult.code === '0000' && protocolsResult.data) ? protocolsResult.data : [];
+                
+                // 将协议列表转换为以 protocolId 为 key 的字典，方便查找
+                const protocolsMap = {};
+                protocolsList.forEach(p => {
+                    protocolsMap[p.protocolId] = p;
+                });
+
+                if(toolsList.length === 0) {
+                    tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>暂无关联工具</td></tr>');
                 } else {
-                    tbody.html(`<tr><td colspan="6" class="text-center text-danger py-4">加载失败: ${response.info || '未知错误'}</td></tr>`);
+                    let html = '';
+                    toolsList.forEach(function(item, index) {
+                        const protocol = item.protocolId ? protocolsMap[item.protocolId] : null;
+                        const collapseId = `collapse-protocol-${index}`;
+                        
+                        // 主行
+                        html += `
+                            <tr class="align-middle">
+                                <td class="text-center">
+                                    <button class="btn btn-sm btn-link text-decoration-none text-muted p-0 toggle-protocol-details" type="button" data-bs-toggle="collapse" data-bs-target="#${collapseId}" aria-expanded="false" aria-controls="${collapseId}">
+                                        <i class="bi bi-chevron-right"></i>
+                                    </button>
+                                </td>
+                                <td><span class="badge bg-secondary">${item.toolId || '-'}</span></td>
+                                <td class="fw-bold">${item.toolName || '-'}</td>
+                                <td>${item.toolType || '-'}</td>
+                                <td><span class="text-truncate d-inline-block text-muted" style="max-width: 150px;" title="${item.toolDescription || ''}">${item.toolDescription || '-'}</span></td>
+                                <td>${item.toolVersion || '-'}</td>
+                                <td><span class="badge bg-info text-dark">${item.protocolType || '-'}</span></td>
+                            </tr>
+                        `;
+
+                        // 子行（可折叠）
+                        let protocolDetailsHtml = '';
+                        if (protocol) {
+                            let mappingsHtml = '';
+                            if (protocol.mappings && protocol.mappings.length > 0) {
+                                let rows = protocol.mappings.map(m => `
+                                    <tr>
+                                        <td><code>${m.mappingType || '-'}</code></td>
+                                        <td>${m.parentPath || '-'}</td>
+                                        <td class="fw-bold">${m.fieldName || '-'}</td>
+                                        <td><code>${m.mcpPath || '-'}</code></td>
+                                        <td><span class="badge bg-light text-dark border">${m.mcpType || '-'}</span></td>
+                                        <td>${m.isRequired === 1 ? '<span class="text-danger">是</span>' : '<span class="text-muted">否</span>'}</td>
+                                        <td><span class="text-truncate d-inline-block" style="max-width: 150px;" title="${m.mcpDesc || ''}">${m.mcpDesc || '-'}</span></td>
+                                    </tr>
+                                `).join('');
+                                
+                                mappingsHtml = `
+                                    <div class="mt-3">
+                                        <h6 class="mb-2 text-muted" style="font-size: 0.85rem;"><i class="bi bi-list-columns-reverse me-1"></i>参数映射 (Mappings)</h6>
+                                        <div class="table-responsive bg-white rounded border">
+                                            <table class="table table-sm table-hover mb-0" style="font-size: 0.85rem;">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>映射类型</th>
+                                                        <th>父级路径</th>
+                                                        <th>字段名</th>
+                                                        <th>MCP路径</th>
+                                                        <th>MCP类型</th>
+                                                        <th>必填</th>
+                                                        <th>描述</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>${rows}</tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                `;
+                            } else {
+                                mappingsHtml = `<div class="mt-2 text-muted" style="font-size: 0.85rem;"><i class="bi bi-info-circle me-1"></i>暂无参数映射配置。</div>`;
+                            }
+
+                            protocolDetailsHtml = `
+                                <div class="card card-body bg-light border-0 p-3 my-2 shadow-sm">
+                                    <div class="row g-3">
+                                        <div class="col-md-8">
+                                            <div class="d-flex align-items-center gap-2 mb-2">
+                                                <span class="badge bg-primary fs-6">${protocol.httpMethod || '-'}</span>
+                                                <code class="fs-6 text-dark bg-white px-2 py-1 rounded border">${protocol.httpUrl || '-'}</code>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="d-flex flex-column gap-1 text-muted" style="font-size: 0.85rem;">
+                                                <div><strong>超时时间:</strong> ${protocol.timeout || '-'} ms</div>
+                                                <div><strong>Headers:</strong> <code>${protocol.httpHeaders || '{}'}</code></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    ${mappingsHtml}
+                                </div>
+                            `;
+                        } else {
+                            protocolDetailsHtml = `
+                                <div class="alert alert-warning py-2 mb-2" role="alert" style="font-size: 0.9rem;">
+                                    <i class="bi bi-exclamation-triangle me-2"></i>该工具尚未关联有效的协议配置，或关联的协议 ID (${item.protocolId || '无'}) 不存在。
+                                </div>
+                            `;
+                        }
+
+                        html += `
+                            <tr class="collapse" id="${collapseId}">
+                                <td colspan="7" class="p-0 border-bottom-0">
+                                    <div class="px-4 py-2 bg-white">
+                                        ${protocolDetailsHtml}
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    tbody.html(html);
+
+                    // 绑定折叠图标切换事件
+                    $('.collapse').on('show.bs.collapse', function () {
+                        $(this).prev('tr').find('.bi-chevron-right').removeClass('bi-chevron-right').addClass('bi-chevron-down');
+                        $(this).prev('tr').addClass('table-active');
+                    }).on('hide.bs.collapse', function () {
+                        $(this).prev('tr').find('.bi-chevron-down').removeClass('bi-chevron-down').addClass('bi-chevron-right');
+                        $(this).prev('tr').removeClass('table-active');
+                    });
+
                 }
-            },
-            error: function() {
-                tbody.html('<tr><td colspan="6" class="text-center text-danger py-4">网络请求失败，请检查服务是否启动</td></tr>');
+            } else {
+                tbody.html(`<tr><td colspan="7" class="text-center text-danger py-4">加载失败: ${toolsResult.info || '未知错误'}</td></tr>`);
             }
+        }).fail(function() {
+            tbody.html('<tr><td colspan="7" class="text-center text-danger py-4">网络请求失败，请检查服务是否启动</td></tr>');
         });
     });
 
@@ -338,6 +446,50 @@ $(document).ready(function() {
         });
     });
 
+    // 复制网关地址
+    $(document).on('click', '.btn-copy-gateway-url', function() {
+        const gatewayId = $(this).data('gateway-id');
+        const sseUrl = `${API_BASE_URL}/${gatewayId}/mcp/sse`;
+        
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(sseUrl).then(() => {
+                showToast('网关 SSE 地址已复制到剪贴板！');
+            }).catch(err => {
+                console.error('无法复制文本: ', err);
+                showToast('复制失败，请手动复制', false);
+            });
+        } else {
+            // Fallback
+            const textArea = document.createElement("textarea");
+            textArea.value = sseUrl;
+            textArea.style.position = "fixed";
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.width = "2em";
+            textArea.style.height = "2em";
+            textArea.style.padding = "0";
+            textArea.style.border = "none";
+            textArea.style.outline = "none";
+            textArea.style.boxShadow = "none";
+            textArea.style.background = "transparent";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                const successful = document.execCommand('copy');
+                if(successful) {
+                    showToast('网关 SSE 地址已复制到剪贴板！');
+                } else {
+                    showToast('复制失败，请手动复制', false);
+                }
+            } catch (err) {
+                console.error('无法复制文本: ', err);
+                showToast('复制失败，请手动复制', false);
+            }
+            document.body.removeChild(textArea);
+        }
+    });
+
     function loadGatewayList(callback) {
         const tbody = $('#gatewayTableBody');
         if(!callback) {
@@ -361,7 +513,12 @@ $(document).ready(function() {
                             
                             html += `
                                 <tr>
-                                    <td><code>${item.gatewayId || '-'}</code></td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <code>${item.gatewayId || '-'}</code>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary btn-copy-gateway-url border-0" data-gateway-id="${item.gatewayId}" title="复制网关 SSE 地址"><i class="bi bi-clipboard"></i></button>
+                                        </div>
+                                    </td>
                                     <td class="fw-bold">${item.gatewayName || '-'}</td>
                                     <td><span class="text-truncate d-inline-block text-muted" style="max-width: 200px;" title="${item.gatewayDesc || ''}">${item.gatewayDesc || '-'}</span></td>
                                     <td><span class="badge bg-light text-dark">${item.version || '-'}</span></td>
