@@ -152,6 +152,9 @@ $(document).ready(function() {
             auth: parseInt(data.auth),
             status: parseInt(data.status)
         };
+    }, function() {
+        $('#gatewayConfigModal').modal('hide');
+        setTimeout(loadGatewayList, 300);
     });
 
     // 2. 保存网关工具配置
@@ -225,6 +228,12 @@ $(document).ready(function() {
         });
     });
 
+    $(document).on('click', '#addGatewayBtn', function() {
+        $('#form-gateway-config')[0].reset();
+        $('#config-gatewayId').prop('readonly', false);
+        $('#gatewayConfigModalLabel').html('<i class="bi bi-pencil-square me-2"></i>新增网关基础配置');
+    });
+
     function loadGatewayList(callback) {
         const tbody = $('#gatewayTableBody');
         if(!callback) {
@@ -287,8 +296,17 @@ $(document).ready(function() {
 
     $(document).on('click', '#addGatewayToolBtn', function() {
         $('#form-gateway-tool')[0].reset();
-        $('#tool-toolId').prop('readonly', false);
+        
+        // 自动生成8位数字工具ID
+        const generatedToolId = Math.floor(10000000 + Math.random() * 90000000);
+        $('#tool-toolId').val(generatedToolId);
+        
+        $('#tool-gatewayId-help').text('网关ID: -');
+        $('#tool-protocolId-help').text('协议ID: -');
         $('#gatewayToolModalLabel').html('<i class="bi bi-tools me-2"></i>新增网关工具配置');
+        
+        loadGatewayOptions();
+        loadProtocolOptions();
     });
 
     // 事件委托 - 修改工具
@@ -298,20 +316,113 @@ $(document).ready(function() {
             const item = JSON.parse(itemDataStr);
             
             // 填充表单
-            $('#tool-gatewayId').val(item.gatewayId);
             $('#tool-toolId').val(item.toolId).prop('readonly', true);
             $('#tool-toolName').val(item.toolName);
             $('#tool-toolType').val(item.toolType);
             $('#tool-toolDescription').val(item.toolDescription);
             $('#tool-toolVersion').val(item.toolVersion);
-            $('#tool-protocolId').val(item.protocolId);
             $('#tool-protocolType').val(item.protocolType);
             
             $('#gatewayToolModalLabel').html('<i class="bi bi-pencil-square me-2"></i>修改网关工具配置');
+            
+            // 加载下拉框选项并设置选中值
+            loadGatewayOptions(item.gatewayId);
+            loadProtocolOptions(item.protocolId);
+            
             $('#gatewayToolModal').modal('show');
         } catch (e) {
             console.error("解析数据失败", e);
             showToast("解析数据失败", false);
+        }
+    });
+
+    // 动态加载网关配置选项
+    function loadGatewayOptions(selectedGatewayId = null) {
+        const $select = $('#tool-gatewayId');
+        const $helpText = $('#tool-gatewayId-help');
+        
+        // 保持现有选项，只更新"加载中"状态
+        $select.html('<option value="">加载网关列表中...</option>');
+        
+        $.ajax({
+            url: API_ENDPOINTS.GET_GATEWAY_LIST,
+            type: 'GET',
+            success: function(response) {
+                if(response && response.code === '0000' && response.data) {
+                    let optionsHtml = '<option value="">请选择网关...</option>';
+                    response.data.forEach(function(gw) {
+                        const isSelected = selectedGatewayId === gw.gatewayId ? 'selected' : '';
+                        optionsHtml += `<option value="${gw.gatewayId}" ${isSelected}>${gw.gatewayName}</option>`;
+                    });
+                    $select.html(optionsHtml);
+                    
+                    // 如果有选中值，触发 change 事件以更新小字提示
+                    if (selectedGatewayId) {
+                        $helpText.text(`网关ID: ${selectedGatewayId}`);
+                    } else {
+                        $helpText.text('网关ID: -');
+                    }
+                } else {
+                    $select.html('<option value="">加载失败，请重试</option>');
+                }
+            },
+            error: function() {
+                $select.html('<option value="">加载失败，请检查网络</option>');
+            }
+        });
+    }
+
+    // 监听下拉框改变事件更新小字
+    $(document).on('change', '#tool-gatewayId', function() {
+        const selectedId = $(this).val();
+        if (selectedId) {
+            $('#tool-gatewayId-help').text(`网关ID: ${selectedId}`);
+        } else {
+            $('#tool-gatewayId-help').text('网关ID: -');
+        }
+    });
+
+    // 动态加载关联协议选项
+    function loadProtocolOptions(selectedProtocolId = null) {
+        const $select = $('#tool-protocolId');
+        const $helpText = $('#tool-protocolId-help');
+        
+        $select.html('<option value="">加载协议列表中...</option>');
+        
+        $.ajax({
+            url: API_ENDPOINTS.GET_GATEWAY_PROTOCOL_LIST,
+            type: 'GET',
+            success: function(response) {
+                if(response && response.code === '0000' && response.data) {
+                    let optionsHtml = '<option value="">请选择关联协议...</option>';
+                    response.data.forEach(function(protocol) {
+                        const isSelected = selectedProtocolId == protocol.protocolId ? 'selected' : '';
+                        optionsHtml += `<option value="${protocol.protocolId}" ${isSelected}>${protocol.httpUrl}</option>`;
+                    });
+                    $select.html(optionsHtml);
+                    
+                    if (selectedProtocolId) {
+                        $helpText.text(`协议ID: ${selectedProtocolId}`);
+                    } else {
+                        $helpText.text('协议ID: -');
+                    }
+                } else {
+                    $select.html('<option value="">加载失败，请重试</option>');
+                }
+            },
+            error: function() {
+                $select.html('<option value="">加载失败，请检查网络</option>');
+            }
+        });
+    }
+
+    // 监听协议下拉框改变事件
+    $(document).on('change', '#tool-protocolId', function() {
+        const selectedId = $(this).val();
+        if (selectedId) {
+            $('#tool-protocolId-help').text(`协议ID: ${selectedId}`);
+        } else {
+            $('#tool-protocolId-help').text('协议ID: -');
         }
     });
 
