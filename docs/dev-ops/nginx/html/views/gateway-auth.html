@@ -54,10 +54,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Token 过期时间 <span class="text-danger">*</span></label>
-                        <div class="input-group">
-                            <input type="number" class="form-control" id="auth-expireTime" name="expireTime" required value="3600000">
-                            <span class="input-group-text bg-light">毫秒</span>
-                        </div>
+                        <input type="datetime-local" class="form-control" id="auth-expireTime" name="expireTime" required>
                     </div>
                     <div class="modal-footer px-0 pb-0 border-0">
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">取消</button>
