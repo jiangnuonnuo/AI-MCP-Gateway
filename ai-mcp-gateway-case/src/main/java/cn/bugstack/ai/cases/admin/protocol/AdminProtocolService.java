@@ -44,8 +44,12 @@ public class AdminProtocolService implements IAdminProtocolService {
         List<HTTPProtocolVO> httpProtocolVOS = protocolAnalysis.doAnalysis(commandEntity);
 
         // 2. 协议存储
-        protocolStorage.doStorage(StorageCommandEntity.builder()
-                .httpProtocolVOS(httpProtocolVOS).build());
+        protocolStorage.doStorage(StorageCommandEntity.builder().httpProtocolVOS(httpProtocolVOS).build());
+    }
+
+    @Override
+    public List<HTTPProtocolVO> analysisProtocol(AnalysisCommandEntity commandEntity) {
+        return protocolAnalysis.doAnalysis(commandEntity);
     }
 
 }
