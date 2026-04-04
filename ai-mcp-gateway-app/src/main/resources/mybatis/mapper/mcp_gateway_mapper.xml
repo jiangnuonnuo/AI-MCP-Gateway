@@ -62,11 +62,40 @@
         ORDER BY id DESC
     </select>
 
-    <select id="queryMcpGatewayByGatewayId" parameterType="java.lang.String"
-            resultMap="McpGatewayMap">
-        SELECT id, gateway_id, gateway_name, gateway_desc, version, auth, status
+    <select id="queryMcpGatewayByGatewayId" parameterType="java.lang.String" resultMap="McpGatewayMap">
+        SELECT id, gateway_id, gateway_name, gateway_desc, version, auth, status, create_time, update_time
         FROM mcp_gateway
         WHERE gateway_id = #{gatewayId}
+    </select>
+
+    <select id="queryGatewayList" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpGatewayPO" resultMap="McpGatewayMap">
+        SELECT id, gateway_id, gateway_name, gateway_desc, version, auth, status, create_time, update_time
+        FROM mcp_gateway
+        <where>
+            <if test="gatewayId != null and gatewayId != ''">
+                AND gateway_id like concat('%', #{gatewayId}, '%')
+            </if>
+            <if test="gatewayName != null and gatewayName != ''">
+                AND gateway_name like concat('%', #{gatewayName}, '%')
+            </if>
+        </where>
+        ORDER BY update_time DESC
+        <if test="limitStart != null and limitCount != null">
+            LIMIT #{limitStart}, #{limitCount}
+        </if>
+    </select>
+
+    <select id="queryGatewayListCount" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpGatewayPO" resultType="java.lang.Long">
+        SELECT count(id)
+        FROM mcp_gateway
+        <where>
+            <if test="gatewayId != null and gatewayId != ''">
+                AND gateway_id like concat('%', #{gatewayId}, '%')
+            </if>
+            <if test="gatewayName != null and gatewayName != ''">
+                AND gateway_name like concat('%', #{gatewayName}, '%')
+            </if>
+        </where>
     </select>
 
     <update id="updateGatewayAuthStatus" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpGatewayPO">

@@ -2,6 +2,8 @@ package cn.bugstack.ai.domain.admin.service.impl;
 
 import cn.bugstack.ai.domain.admin.adapter.respository.IAdminRepository;
 import cn.bugstack.ai.domain.admin.model.entity.GatewayConfigEntity;
+import cn.bugstack.ai.domain.admin.model.entity.GatewayConfigPageEntity;
+import cn.bugstack.ai.domain.admin.model.entity.GatewayConfigQueryEntity;
 import cn.bugstack.ai.domain.admin.model.entity.GatewayProtocolConfigEntity;
 import cn.bugstack.ai.domain.admin.model.entity.GatewayToolConfigEntity;
 import cn.bugstack.ai.domain.admin.model.entity.GatewayAuthConfigEntity;
@@ -24,6 +26,11 @@ public class AdminService implements IAdminService {
     @Override
     public List<GatewayConfigEntity> queryGatewayConfigList() {
         return adminRepository.queryGatewayConfigList();
+    }
+
+    @Override
+    public GatewayConfigPageEntity queryGatewayConfigPage(GatewayConfigQueryEntity queryEntity) {
+        return adminRepository.queryGatewayConfigPage(queryEntity);
     }
 
     @Override

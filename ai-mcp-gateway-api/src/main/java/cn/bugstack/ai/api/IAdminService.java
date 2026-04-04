@@ -2,10 +2,12 @@ package cn.bugstack.ai.api;
 
 import cn.bugstack.ai.api.dto.GatewayConfigRequestDTO;
 import cn.bugstack.ai.api.dto.GatewayConfigResponseDTO;
-import cn.bugstack.ai.api.response.Response;
 import cn.bugstack.ai.api.dto.GatewayConfigDTO;
+import cn.bugstack.ai.api.dto.GatewayConfigQueryDTO;
 import cn.bugstack.ai.api.dto.GatewayToolConfigDTO;
 import cn.bugstack.ai.api.dto.GatewayProtocolDTO;
+import cn.bugstack.ai.api.response.Response;
+import cn.bugstack.ai.api.response.ResponsePage;
 import java.util.List;
 
 /**
@@ -27,6 +29,8 @@ public interface IAdminService {
     Response<GatewayConfigResponseDTO> saveGatewayAuth(GatewayConfigRequestDTO.GatewayAuth requestDTO);
 
     Response<List<GatewayConfigDTO>> queryGatewayConfigList();
+
+    ResponsePage<List<GatewayConfigDTO>> queryGatewayConfigPage(GatewayConfigQueryDTO queryDTO);
 
     Response<List<GatewayToolConfigDTO>> queryGatewayToolList();
 

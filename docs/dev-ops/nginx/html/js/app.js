@@ -450,21 +450,62 @@ $(document).ready(function() {
         }
     });
 
+    // 分页状态
+    let gatewayCurrentPage = 1;
+    const gatewayPageSize = 10;
+
+    // 搜索表单提交
+    $(document).on('submit', '#form-gateway-search', function(e) {
+        e.preventDefault();
+        gatewayCurrentPage = 1; // 搜索时重置为第一页
+        loadGatewayList();
+    });
+
+    // 重置搜索
+    $(document).on('click', '#btn-reset-search', function() {
+        $('#form-gateway-search')[0].reset();
+        gatewayCurrentPage = 1;
+        loadGatewayList();
+    });
+
+    // 分页点击
+    $(document).on('click', '.page-link', function(e) {
+        e.preventDefault();
+        const page = $(this).data('page');
+        if (page && page !== gatewayCurrentPage) {
+            gatewayCurrentPage = page;
+            loadGatewayList();
+        }
+    });
+
     function loadGatewayList(callback) {
         const tbody = $('#gatewayTableBody');
         if(!callback) {
-            tbody.html('<tr><td colspan="6" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>加载中...</td></tr>');
+            tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>加载中...</td></tr>');
         }
         
+        // 收集搜索参数
+        const gatewayId = $('#search-gatewayId').val() || '';
+        const gatewayName = $('#search-gatewayName').val() || '';
+        
+        const params = {
+            page: gatewayCurrentPage,
+            rows: gatewayPageSize
+        };
+        if (gatewayId) params.gatewayId = gatewayId;
+        if (gatewayName) params.gatewayName = gatewayName;
+        
         $.ajax({
-            url: API_ENDPOINTS.GET_GATEWAY_LIST,
+            url: API_ENDPOINTS.GET_GATEWAY_PAGE,
             type: 'GET',
+            data: params,
             success: function(response) {
-                if(response && response.code === '0000' && response.data) {
-                    const list = response.data;
+                if(response && response.code === '0000') {
+                    const list = response.data || [];
+                    const total = response.total || 0;
                     
                     if(list.length === 0) {
-                        tbody.html('<tr><td colspan="6" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>暂无网关数据</td></tr>');
+                        tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>暂无网关数据</td></tr>');
                     } else {
                         let html = '';
                         list.forEach(function(item) {
@@ -499,17 +540,66 @@ $(document).ready(function() {
                         });
                         tbody.html(html);
                     }
+                    
+                    // 渲染分页控件
+                    renderPagination(total, gatewayCurrentPage, gatewayPageSize);
                 } else {
-                    tbody.html(`<tr><td colspan="6" class="text-center text-danger py-4"><i class="bi bi-exclamation-triangle me-2"></i>加载失败: ${response.info || '未知错误'}</td></tr>`);
+                    tbody.html(`<tr><td colspan="7" class="text-center text-danger py-4"><i class="bi bi-exclamation-triangle me-2"></i>加载失败: ${response.info || '未知错误'}</td></tr>`);
                 }
             },
             error: function() {
-                tbody.html('<tr><td colspan="6" class="text-center text-danger py-4"><i class="bi bi-wifi-off me-2"></i>网络请求失败，请检查服务是否启动</td></tr>');
+                tbody.html('<tr><td colspan="7" class="text-center text-danger py-4"><i class="bi bi-wifi-off me-2"></i>网络请求失败，请检查服务是否启动</td></tr>');
             },
             complete: function() {
                 if(callback) callback();
             }
         });
+    }
+
+    // 渲染分页组件
+    function renderPagination(total, currentPage, pageSize) {
+        const totalPages = Math.ceil(total / pageSize);
+        
+        // 更新信息文本
+        const start = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+        const end = Math.min(currentPage * pageSize, total);
+        $('#pagination-info').html(`显示 ${start} 到 ${end} 条，共 <span class="fw-bold text-dark">${total}</span> 条数据`);
+        
+        // 生成分页按钮
+        const $container = $('#pagination-container');
+        $container.empty();
+        
+        if (totalPages <= 1) return; // 只有一页不显示按钮
+        
+        // 上一页
+        $container.append(`
+            <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${currentPage - 1}">上一页</a>
+            </li>
+        `);
+        
+        // 页码按钮 (简单逻辑：显示最多5个页码)
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = Math.min(totalPages, startPage + 4);
+        
+        if (endPage - startPage < 4) {
+            startPage = Math.max(1, endPage - 4);
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+            $container.append(`
+                <li class="page-item ${currentPage === i ? 'active' : ''}">
+                    <a class="page-link" href="#" data-page="${i}">${i}</a>
+                </li>
+            `);
+        }
+        
+        // 下一页
+        $container.append(`
+            <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${currentPage + 1}">下一页</a>
+            </li>
+        `);
     }
 
     // ==========================================
