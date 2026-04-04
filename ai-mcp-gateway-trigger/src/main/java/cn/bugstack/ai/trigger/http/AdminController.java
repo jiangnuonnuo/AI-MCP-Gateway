@@ -306,6 +306,47 @@ public class AdminController implements IAdminService {
         }
     }
 
+    @RequestMapping(value = "query_gateway_tool_page", method = RequestMethod.GET)
+    @Override
+    public ResponsePage<List<GatewayToolConfigDTO>> queryGatewayToolPage(GatewayToolQueryDTO queryDTO) {
+        try {
+            log.info("查询网关工具分页开始 gatewayId: {}, toolId: {}, page: {}, rows: {}", 
+                     queryDTO.getGatewayId(), queryDTO.getToolId(), queryDTO.getPage(), queryDTO.getRows());
+            
+            GatewayToolQueryEntity queryEntity = GatewayToolQueryEntity.builder()
+                    .gatewayId(queryDTO.getGatewayId())
+                    .toolId(queryDTO.getToolId())
+                    .page(queryDTO.getPage() == null ? 1 : queryDTO.getPage())
+                    .rows(queryDTO.getRows() == null ? 10 : queryDTO.getRows())
+                    .build();
+                    
+            GatewayToolPageEntity pageEntity = adminManageService.queryGatewayToolPage(queryEntity);
+            List<GatewayToolConfigDTO> dtoList = pageEntity.getDataList().stream().map(e -> GatewayToolConfigDTO.builder()
+                    .gatewayId(e.getGatewayId())
+                    .toolId(e.getToolId())
+                    .toolName(e.getToolName())
+                    .toolType(e.getToolType())
+                    .toolDescription(e.getToolDescription())
+                    .toolVersion(e.getToolVersion())
+                    .protocolId(e.getProtocolId())
+                    .protocolType(e.getProtocolType())
+                    .build()).collect(Collectors.toList());
+            log.info("查询网关工具分页完成 total: {}", pageEntity.getTotal());
+            return ResponsePage.<List<GatewayToolConfigDTO>>builder()
+                    .code(ResponseCode.SUCCESS.getCode())
+                    .info(ResponseCode.SUCCESS.getInfo())
+                    .data(dtoList)
+                    .total(pageEntity.getTotal())
+                    .build();
+        } catch (Exception e) {
+            log.error("查询网关工具分页失败", e);
+            return ResponsePage.<List<GatewayToolConfigDTO>>builder()
+                    .code(ResponseCode.UN_ERROR.getCode())
+                    .info(ResponseCode.UN_ERROR.getInfo())
+                    .build();
+        }
+    }
+
     @RequestMapping(value = "query_gateway_tool_list_by_gateway_id", method = RequestMethod.GET)
     @Override
     public Response<List<GatewayToolConfigDTO>> queryGatewayToolListByGatewayId(@RequestParam String gatewayId) {
@@ -395,6 +436,54 @@ public class AdminController implements IAdminService {
         }
     }
 
+    @RequestMapping(value = "query_gateway_protocol_page", method = RequestMethod.GET)
+    @Override
+    public ResponsePage<List<GatewayProtocolDTO>> queryGatewayProtocolPage(GatewayProtocolQueryDTO queryDTO) {
+        try {
+            log.info("查询网关协议分页开始 protocolId: {}, httpUrl: {}, page: {}, rows: {}", 
+                     queryDTO.getProtocolId(), queryDTO.getHttpUrl(), queryDTO.getPage(), queryDTO.getRows());
+            
+            GatewayProtocolQueryEntity queryEntity = GatewayProtocolQueryEntity.builder()
+                    .protocolId(queryDTO.getProtocolId())
+                    .httpUrl(queryDTO.getHttpUrl())
+                    .page(queryDTO.getPage() == null ? 1 : queryDTO.getPage())
+                    .rows(queryDTO.getRows() == null ? 10 : queryDTO.getRows())
+                    .build();
+                    
+            GatewayProtocolPageEntity pageEntity = adminManageService.queryGatewayProtocolPage(queryEntity);
+            List<GatewayProtocolDTO> dtoList = pageEntity.getDataList().stream().map(e -> GatewayProtocolDTO.builder()
+                    .protocolId(e.getProtocolId())
+                    .httpUrl(e.getHttpUrl())
+                    .httpMethod(e.getHttpMethod())
+                    .httpHeaders(e.getHttpHeaders())
+                    .timeout(e.getTimeout())
+                    .mappings(e.getMappings() == null ? null : e.getMappings().stream().map(m -> GatewayProtocolDTO.ProtocolMappingDTO.builder()
+                            .mappingType(m.getMappingType())
+                            .parentPath(m.getParentPath())
+                            .fieldName(m.getFieldName())
+                            .mcpPath(m.getMcpPath())
+                            .mcpType(m.getMcpType())
+                            .mcpDesc(m.getMcpDesc())
+                            .isRequired(m.getIsRequired())
+                            .sortOrder(m.getSortOrder())
+                            .build()).collect(Collectors.toList()))
+                    .build()).collect(Collectors.toList());
+            log.info("查询网关协议分页完成 total: {}", pageEntity.getTotal());
+            return ResponsePage.<List<GatewayProtocolDTO>>builder()
+                    .code(ResponseCode.SUCCESS.getCode())
+                    .info(ResponseCode.SUCCESS.getInfo())
+                    .data(dtoList)
+                    .total(pageEntity.getTotal())
+                    .build();
+        } catch (Exception e) {
+            log.error("查询网关协议分页失败", e);
+            return ResponsePage.<List<GatewayProtocolDTO>>builder()
+                    .code(ResponseCode.UN_ERROR.getCode())
+                    .info(ResponseCode.UN_ERROR.getInfo())
+                    .build();
+        }
+    }
+
     @RequestMapping(value = "query_gateway_protocol_list_by_gateway_id", method = RequestMethod.GET)
     @Override
     public Response<List<GatewayProtocolDTO>> queryGatewayProtocolListByGatewayId(@RequestParam String gatewayId) {
@@ -473,6 +562,42 @@ public class AdminController implements IAdminService {
         } catch (Exception e) {
             log.error("查询网关认证列表失败", e);
             return Response.<List<GatewayAuthDTO>>builder()
+                    .code(ResponseCode.UN_ERROR.getCode())
+                    .info(ResponseCode.UN_ERROR.getInfo())
+                    .build();
+        }
+    }
+
+    @RequestMapping(value = "query_gateway_auth_page", method = RequestMethod.GET)
+    @Override
+    public ResponsePage<List<GatewayAuthDTO>> queryGatewayAuthPage(GatewayAuthQueryDTO queryDTO) {
+        try {
+            log.info("查询网关认证配置分页开始 gatewayId: {}, page: {}, rows: {}", 
+                     queryDTO.getGatewayId(), queryDTO.getPage(), queryDTO.getRows());
+            
+            GatewayAuthQueryEntity queryEntity = GatewayAuthQueryEntity.builder()
+                    .gatewayId(queryDTO.getGatewayId())
+                    .page(queryDTO.getPage() == null ? 1 : queryDTO.getPage())
+                    .rows(queryDTO.getRows() == null ? 10 : queryDTO.getRows())
+                    .build();
+                    
+            GatewayAuthPageEntity pageEntity = adminManageService.queryGatewayAuthPage(queryEntity);
+            List<GatewayAuthDTO> dtoList = pageEntity.getDataList().stream().map(e -> GatewayAuthDTO.builder()
+                    .gatewayId(e.getGatewayId())
+                    .apiKey(e.getApiKey())
+                    .rateLimit(e.getRateLimit())
+                    .expireTime(e.getExpireTime())
+                    .build()).collect(Collectors.toList());
+            log.info("查询网关认证配置分页完成 total: {}", pageEntity.getTotal());
+            return ResponsePage.<List<GatewayAuthDTO>>builder()
+                    .code(ResponseCode.SUCCESS.getCode())
+                    .info(ResponseCode.SUCCESS.getInfo())
+                    .data(dtoList)
+                    .total(pageEntity.getTotal())
+                    .build();
+        } catch (Exception e) {
+            log.error("查询网关认证配置分页失败", e);
+            return ResponsePage.<List<GatewayAuthDTO>>builder()
                     .code(ResponseCode.UN_ERROR.getCode())
                     .info(ResponseCode.UN_ERROR.getInfo())
                     .build();

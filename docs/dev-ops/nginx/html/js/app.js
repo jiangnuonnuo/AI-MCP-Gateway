@@ -472,9 +472,28 @@ $(document).ready(function() {
     $(document).on('click', '.page-link', function(e) {
         e.preventDefault();
         const page = $(this).data('page');
-        if (page && page !== gatewayCurrentPage) {
-            gatewayCurrentPage = page;
-            loadGatewayList();
+        const type = $(this).closest('nav').attr('id');
+        
+        if (type === 'pagination-container') {
+            if (page && page !== gatewayCurrentPage) {
+                gatewayCurrentPage = page;
+                loadGatewayList();
+            }
+        } else if (type === 'tool-pagination-container') {
+            if (page && page !== toolCurrentPage) {
+                toolCurrentPage = page;
+                loadGatewayToolList();
+            }
+        } else if (type === 'protocol-pagination-container') {
+            if (page && page !== protocolCurrentPage) {
+                protocolCurrentPage = page;
+                loadGatewayProtocolList();
+            }
+        } else if (type === 'auth-pagination-container') {
+            if (page && page !== authCurrentPage) {
+                authCurrentPage = page;
+                loadGatewayAuthList();
+            }
         }
     });
 
@@ -605,6 +624,23 @@ $(document).ready(function() {
     // ==========================================
     // 网关工具相关
     // ==========================================
+    let toolCurrentPage = 1;
+    const toolPageSize = 10;
+
+    // 搜索表单提交
+    $(document).on('submit', '#form-gateway-tool-search', function(e) {
+        e.preventDefault();
+        toolCurrentPage = 1;
+        loadGatewayToolList();
+    });
+
+    // 重置搜索
+    $(document).on('click', '#btn-reset-tool-search', function() {
+        $('#form-gateway-tool-search')[0].reset();
+        toolCurrentPage = 1;
+        loadGatewayToolList();
+    });
+
     $(document).on('click', '#refreshGatewayToolList', function() {
         const $btn = $(this);
         const originalHtml = $btn.html();
@@ -784,12 +820,25 @@ $(document).ready(function() {
             tbody.html('<tr><td colspan="8" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>加载中...</td></tr>');
         }
         
+        // 收集搜索参数
+        const gatewayId = $('#search-tool-gatewayId').val() || '';
+        const toolId = $('#search-tool-toolId').val() || '';
+        
+        const params = {
+            page: toolCurrentPage,
+            rows: toolPageSize
+        };
+        if (gatewayId) params.gatewayId = gatewayId;
+        if (toolId) params.toolId = toolId;
+        
         $.ajax({
-            url: API_ENDPOINTS.GET_GATEWAY_TOOL_LIST,
+            url: API_ENDPOINTS.GET_GATEWAY_TOOL_PAGE,
             type: 'GET',
+            data: params,
             success: function(response) {
-                if(response && response.code === '0000' && response.data) {
-                    const list = response.data;
+                if(response && response.code === '0000') {
+                    const list = response.data || [];
+                    const total = response.total || 0;
                     
                     if(list.length === 0) {
                         tbody.html('<tr><td colspan="8" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>暂无网关工具数据</td></tr>');
@@ -821,6 +870,8 @@ $(document).ready(function() {
                         });
                         tbody.html(html);
                     }
+                    
+                    renderPaginationTool(total, toolCurrentPage, toolPageSize, 'tool-pagination-info', 'tool-pagination-container');
                 } else {
                     tbody.html(`<tr><td colspan="8" class="text-center text-danger py-4"><i class="bi bi-exclamation-triangle me-2"></i>加载失败: ${response.info || '未知错误'}</td></tr>`);
                 }
@@ -837,6 +888,23 @@ $(document).ready(function() {
     // ==========================================
     // 网关协议列表相关
     // ==========================================
+    let protocolCurrentPage = 1;
+    const protocolPageSize = 10;
+
+    // 搜索表单提交
+    $(document).on('submit', '#form-gateway-protocol-search', function(e) {
+        e.preventDefault();
+        protocolCurrentPage = 1;
+        loadGatewayProtocolList();
+    });
+
+    // 重置搜索
+    $(document).on('click', '#btn-reset-protocol-search', function() {
+        $('#form-gateway-protocol-search')[0].reset();
+        protocolCurrentPage = 1;
+        loadGatewayProtocolList();
+    });
+
     let uploadedOpenApiJson = ''; // 用于存储上传的 JSON 字符串
 
     $(document).on('click', '#refreshGatewayProtocolList', function() {
@@ -1012,12 +1080,25 @@ $(document).ready(function() {
             tbody.html('<tr><td colspan="5" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>加载中...</td></tr>');
         }
         
+        // 收集搜索参数
+        const protocolId = $('#search-protocol-protocolId').val() || '';
+        const httpUrl = $('#search-protocol-httpUrl').val() || '';
+        
+        const params = {
+            page: protocolCurrentPage,
+            rows: protocolPageSize
+        };
+        if (protocolId) params.protocolId = protocolId;
+        if (httpUrl) params.httpUrl = httpUrl;
+        
         $.ajax({
-            url: API_ENDPOINTS.GET_GATEWAY_PROTOCOL_LIST,
+            url: API_ENDPOINTS.GET_GATEWAY_PROTOCOL_PAGE,
             type: 'GET',
+            data: params,
             success: function(response) {
-                if(response && response.code === '0000' && response.data) {
-                    const list = response.data;
+                if(response && response.code === '0000') {
+                    const list = response.data || [];
+                    const total = response.total || 0;
                     
                     if(list.length === 0) {
                         tbody.html('<tr><td colspan="5" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>暂无网关协议数据</td></tr>');
@@ -1046,6 +1127,8 @@ $(document).ready(function() {
                         });
                         tbody.html(html);
                     }
+                    
+                    renderPaginationTool(total, protocolCurrentPage, protocolPageSize, 'protocol-pagination-info', 'protocol-pagination-container');
                 } else {
                     tbody.html(`<tr><td colspan="5" class="text-center text-danger py-4"><i class="bi bi-exclamation-triangle me-2"></i>加载失败: ${response.info || '未知错误'}</td></tr>`);
                 }
@@ -1062,6 +1145,23 @@ $(document).ready(function() {
     // ==========================================
     // 网关认证列表相关
     // ==========================================
+    let authCurrentPage = 1;
+    const authPageSize = 10;
+
+    // 搜索表单提交
+    $(document).on('submit', '#form-gateway-auth-search', function(e) {
+        e.preventDefault();
+        authCurrentPage = 1;
+        loadGatewayAuthList();
+    });
+
+    // 重置搜索
+    $(document).on('click', '#btn-reset-auth-search', function() {
+        $('#form-gateway-auth-search')[0].reset();
+        authCurrentPage = 1;
+        loadGatewayAuthList();
+    });
+
     $(document).on('click', '#refreshGatewayAuthList', function() {
         const $btn = $(this);
         const originalHtml = $btn.html();
@@ -1184,12 +1284,23 @@ $(document).ready(function() {
             tbody.html('<tr><td colspan="5" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>加载中...</td></tr>');
         }
         
+        // 收集搜索参数
+        const gatewayId = $('#search-auth-gatewayId').val() || '';
+        
+        const params = {
+            page: authCurrentPage,
+            rows: authPageSize
+        };
+        if (gatewayId) params.gatewayId = gatewayId;
+        
         $.ajax({
-            url: API_ENDPOINTS.GET_GATEWAY_AUTH_LIST,
+            url: API_ENDPOINTS.GET_GATEWAY_AUTH_PAGE,
             type: 'GET',
+            data: params,
             success: function(response) {
-                if(response && response.code === '0000' && response.data) {
-                    const list = response.data;
+                if(response && response.code === '0000') {
+                    const list = response.data || [];
+                    const total = response.total || 0;
                     
                     if(list.length === 0) {
                         tbody.html('<tr><td colspan="5" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>暂无网关认证数据</td></tr>');
@@ -1229,6 +1340,8 @@ $(document).ready(function() {
                         });
                         tbody.html(html);
                     }
+                    
+                    renderPaginationTool(total, authCurrentPage, authPageSize, 'auth-pagination-info', 'auth-pagination-container');
                 } else {
                     tbody.html(`<tr><td colspan="5" class="text-center text-danger py-4"><i class="bi bi-exclamation-triangle me-2"></i>加载失败: ${response.info || '未知错误'}</td></tr>`);
                 }
@@ -1240,6 +1353,52 @@ $(document).ready(function() {
                 if(callback) callback();
             }
         });
+    }
+
+    // 通用的渲染分页组件（网关、工具、协议、认证共用结构）
+    function renderPaginationTool(total, currentPage, pageSize, infoId, containerId) {
+        const totalPages = Math.ceil(total / pageSize);
+        
+        // 更新信息文本
+        const start = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+        const end = Math.min(currentPage * pageSize, total);
+        $(`#${infoId}`).html(`显示 ${start} 到 ${end} 条，共 <span class="fw-bold text-dark">${total}</span> 条数据`);
+        
+        // 生成分页按钮
+        const $container = $(`#${containerId}`);
+        $container.empty();
+        
+        if (totalPages <= 1) return; // 只有一页不显示按钮
+        
+        // 上一页
+        $container.append(`
+            <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${currentPage - 1}">上一页</a>
+            </li>
+        `);
+        
+        // 页码按钮
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = Math.min(totalPages, startPage + 4);
+        
+        if (endPage - startPage < 4) {
+            startPage = Math.max(1, endPage - 4);
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+            $container.append(`
+                <li class="page-item ${currentPage === i ? 'active' : ''}">
+                    <a class="page-link" href="#" data-page="${i}">${i}</a>
+                </li>
+            `);
+        }
+        
+        // 下一页
+        $container.append(`
+            <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${currentPage + 1}">下一页</a>
+            </li>
+        `);
     }
 
 });

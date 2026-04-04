@@ -5,7 +5,11 @@ import cn.bugstack.ai.api.dto.GatewayConfigResponseDTO;
 import cn.bugstack.ai.api.dto.GatewayConfigDTO;
 import cn.bugstack.ai.api.dto.GatewayConfigQueryDTO;
 import cn.bugstack.ai.api.dto.GatewayToolConfigDTO;
+import cn.bugstack.ai.api.dto.GatewayAuthDTO;
+import cn.bugstack.ai.api.dto.GatewayAuthQueryDTO;
 import cn.bugstack.ai.api.dto.GatewayProtocolDTO;
+import cn.bugstack.ai.api.dto.GatewayProtocolQueryDTO;
+import cn.bugstack.ai.api.dto.GatewayToolQueryDTO;
 import cn.bugstack.ai.api.response.Response;
 import cn.bugstack.ai.api.response.ResponsePage;
 import java.util.List;
@@ -34,9 +38,19 @@ public interface IAdminService {
 
     Response<List<GatewayToolConfigDTO>> queryGatewayToolList();
 
+    ResponsePage<List<GatewayToolConfigDTO>> queryGatewayToolPage(GatewayToolQueryDTO queryDTO);
+
     Response<List<GatewayToolConfigDTO>> queryGatewayToolListByGatewayId(String gatewayId);
 
+    Response<List<GatewayProtocolDTO>> queryGatewayProtocolList();
+
+    ResponsePage<List<GatewayProtocolDTO>> queryGatewayProtocolPage(GatewayProtocolQueryDTO queryDTO);
+
     Response<List<GatewayProtocolDTO>> queryGatewayProtocolListByGatewayId(String gatewayId);
+
+    Response<List<GatewayAuthDTO>> queryGatewayAuthList();
+
+    ResponsePage<List<GatewayAuthDTO>> queryGatewayAuthPage(GatewayAuthQueryDTO queryDTO);
 
     Response<GatewayConfigResponseDTO> deleteGatewayToolConfig(String gatewayId, Long toolId);
 
