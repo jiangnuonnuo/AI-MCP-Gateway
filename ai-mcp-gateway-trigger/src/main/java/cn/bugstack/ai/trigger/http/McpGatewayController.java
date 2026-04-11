@@ -56,7 +56,7 @@ public class McpGatewayController implements IMcpGatewayService {
     @GetMapping(value = "{gatewayId}/mcp/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Override
     public Flux<ServerSentEvent<String>> handleSseConnection(
-            @PathVariable("gatewayId") String gatewayId, @RequestParam("api_key") String apiKey) throws Exception {
+            @PathVariable("gatewayId") String gatewayId, @RequestParam(value = "api_key", required = false, defaultValue = "") String apiKey) throws Exception {
         try {
             log.info("建立 MCP SSE 连接，gatewayId:{}", gatewayId);
             if (StringUtils.isBlank(gatewayId)) {
@@ -106,7 +106,7 @@ public class McpGatewayController implements IMcpGatewayService {
     @PostMapping(value = "{gatewayId}/mcp/sse", consumes = MediaType.APPLICATION_JSON_VALUE)
     public Mono<ResponseEntity<Void>> handleMessage(@PathVariable("gatewayId") String gatewayId,
                                                     @RequestParam("sessionId") String sessionId,
-                                                    @RequestParam("api_key") String apiKey,
+                                                    @RequestParam(value = "api_key", required = false, defaultValue = "") String apiKey,
                                                     @RequestBody String messageBody) {
         try {
             log.info("处理 MCP SSE 消息，gatewayId:{} apiKey:{} sessionId:{} messageBody:{}", gatewayId, apiKey, sessionId, messageBody);
