@@ -646,6 +646,39 @@ public class AdminController implements IAdminService {
         }
     }
 
+    /**
+     * 根据网关ID查询该网关下的认证 Key 列表
+     *
+     * 说明：
+     * - 供前端网关测试页使用，通过 gatewayId 精确拉取可用的 apiKey 列表
+     * - 复用 adminManageService 进行查询，保持 DDD 分层：Trigger -> Case(Manage) -> Domain
+     */
+    @RequestMapping(value = "query_gateway_auth_list_by_gateway_id", method = RequestMethod.GET)
+    public Response<List<GatewayAuthDTO>> queryGatewayAuthListByGatewayId(@RequestParam String gatewayId) {
+        try {
+            log.info("根据网关ID查询网关认证列表开始 gatewayId: {}", gatewayId);
+            List<GatewayAuthConfigEntity> entities = adminManageService.queryGatewayAuthListByGatewayId(gatewayId);
+            List<GatewayAuthDTO> dtoList = entities.stream().map(e -> GatewayAuthDTO.builder()
+                    .gatewayId(e.getGatewayId())
+                    .apiKey(e.getApiKey())
+                    .rateLimit(e.getRateLimit())
+                    .expireTime(e.getExpireTime())
+                    .build()).collect(Collectors.toList());
+            log.info("根据网关ID查询网关认证列表完成 count: {}", dtoList.size());
+            return Response.<List<GatewayAuthDTO>>builder()
+                    .code(ResponseCode.SUCCESS.getCode())
+                    .info(ResponseCode.SUCCESS.getInfo())
+                    .data(dtoList)
+                    .build();
+        } catch (Exception e) {
+            log.error("根据网关ID查询网关认证列表失败 gatewayId: {}", gatewayId, e);
+            return Response.<List<GatewayAuthDTO>>builder()
+                    .code(ResponseCode.UN_ERROR.getCode())
+                    .info(ResponseCode.UN_ERROR.getInfo())
+                    .build();
+        }
+    }
+
     @RequestMapping(value = "delete_gateway_auth", method = RequestMethod.POST)
     public Response<GatewayConfigResponseDTO> deleteGatewayAuth(@RequestParam String gatewayId) {
         try {
@@ -668,12 +701,13 @@ public class AdminController implements IAdminService {
 
     @RequestMapping(value = "test_call_gateway", method = RequestMethod.POST)
     @Override
-    public Response<GatewayLLMResponseDTO> testCallGateway(GatewayLLMRequestDTO requestDTO) {
+    public Response<GatewayLLMResponseDTO> testCallGateway(@RequestBody GatewayLLMRequestDTO requestDTO) {
         try {
-            log.info("测试请求网关服务开始 gatewayId: {}", requestDTO.getGatewayId());
+            // 为了便于排查测试调用问题，这里额外打印 apiKey（auth 校验 Key）
+            log.info("测试请求网关服务开始 gatewayId: {} authApiKey: {} reqDTO:{}", requestDTO.getGatewayId(), requestDTO.getAuthApiKey(), JSON.toJSONString(requestDTO));
 
             GatewayLLMResponseDTO responseDTO = adminLLMService.testCallGateway(requestDTO);
-            log.info("测试请求网关服务完成 gatewayId: {} resDTO:{}", requestDTO.getGatewayId(), JSON.toJSONString(responseDTO));
+            log.info("测试请求网关服务完成 gatewayId: {} authApiKey: {} resDTO:{}", requestDTO.getGatewayId(), requestDTO.getAuthApiKey(), JSON.toJSONString(responseDTO));
 
             return Response.<GatewayLLMResponseDTO>builder()
                     .code(ResponseCode.SUCCESS.getCode())

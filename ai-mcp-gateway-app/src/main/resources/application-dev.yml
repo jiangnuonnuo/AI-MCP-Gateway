@@ -35,7 +35,7 @@ spring:
   ai:
     openai:
       base-url: https://apis.itedus.cn
-      api-key: sk-BcXGyxj6nzqGYc4kB2F8A848A845443d984bFfB0A960Db77
+      api-key: sk-g40ItteM7qJg5LE413DcA18cDd00424f86032674D7318e43
       chat:
         options:
           model: gpt-4o
