@@ -1,7 +1,7 @@
-package cn.bugstack.ai.cases.mcp.message;
+package cn.bugstack.ai.cases.mcp.sse.message;
 
 import cn.bugstack.ai.cases.mcp.IMcpMessageService;
-import cn.bugstack.ai.cases.mcp.message.factory.DefaultMcpMessageFactory;
+import cn.bugstack.ai.cases.mcp.sse.message.factory.DefaultMcpMessageFactory;
 import cn.bugstack.ai.domain.session.model.entity.HandleMessageCommandEntity;
 import cn.bugstack.wrench.design.framework.tree.StrategyHandler;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +18,7 @@ import javax.annotation.Resource;
  */
 @Slf4j
 @Service
-public class McpMessageService implements IMcpMessageService {
+public class McpSSEMessageService implements IMcpMessageService {
 
     @Resource
     private DefaultMcpMessageFactory defaultMcpMessageFactory;

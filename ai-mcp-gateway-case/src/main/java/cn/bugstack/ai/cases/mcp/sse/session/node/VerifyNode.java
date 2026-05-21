@@ -1,7 +1,7 @@
-package cn.bugstack.ai.cases.mcp.session.node;
+package cn.bugstack.ai.cases.mcp.sse.session.node;
 
-import cn.bugstack.ai.cases.mcp.session.AbstractMcpSessionSupport;
-import cn.bugstack.ai.cases.mcp.session.factory.DefaultMcpSessionFactory;
+import cn.bugstack.ai.cases.mcp.sse.session.AbstractMcpSSESessionSupport;
+import cn.bugstack.ai.cases.mcp.sse.session.factory.DefaultMcpSSESessionFactory;
 import cn.bugstack.ai.domain.auth.model.entity.LicenseCommandEntity;
 import cn.bugstack.ai.domain.auth.service.IAuthLicenseService;
 import cn.bugstack.ai.types.enums.McpErrorCodes;
@@ -22,16 +22,16 @@ import javax.annotation.Resource;
  */
 @Slf4j
 @Service("mcpSessionVerifyNode")
-public class VerifyNode extends AbstractMcpSessionSupport {
+public class VerifyNode extends AbstractMcpSSESessionSupport {
 
     @Resource(name = "mcpSessionSessionNode")
-    private SessionNode sessionNode;
+    private SSESessionNode sessionNode;
 
     @Resource
     private IAuthLicenseService authLicenseService;
 
     @Override
-    protected Flux<ServerSentEvent<String>> doApply(String requestParameter, DefaultMcpSessionFactory.DynamicContext dynamicContext) throws Exception {
+    protected Flux<ServerSentEvent<String>> doApply(String requestParameter, DefaultMcpSSESessionFactory.DynamicContext dynamicContext) throws Exception {
         log.info("创建会话-VerifyNode:{}", requestParameter);
 
         boolean isCheckSuccess
@@ -45,7 +45,7 @@ public class VerifyNode extends AbstractMcpSessionSupport {
     }
 
     @Override
-    public StrategyHandler<String, DefaultMcpSessionFactory.DynamicContext, Flux<ServerSentEvent<String>>> get(String requestParameter, DefaultMcpSessionFactory.DynamicContext dynamicContext) throws Exception {
+    public StrategyHandler<String, DefaultMcpSSESessionFactory.DynamicContext, Flux<ServerSentEvent<String>>> get(String requestParameter, DefaultMcpSSESessionFactory.DynamicContext dynamicContext) throws Exception {
         return sessionNode;
     }
 

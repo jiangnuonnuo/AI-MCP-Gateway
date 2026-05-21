@@ -1,7 +1,6 @@
-package cn.bugstack.ai.cases.mcp.message.factory;
+package cn.bugstack.ai.cases.mcp.sse.message.factory;
 
-import cn.bugstack.ai.cases.mcp.message.node.RootNode;
-import cn.bugstack.ai.cases.mcp.session.factory.DefaultMcpSessionFactory;
+import cn.bugstack.ai.cases.mcp.sse.message.node.RootNode;
 import cn.bugstack.ai.domain.session.model.entity.HandleMessageCommandEntity;
 import cn.bugstack.ai.domain.session.model.valobj.SessionConfigVO;
 import cn.bugstack.wrench.design.framework.tree.StrategyHandler;

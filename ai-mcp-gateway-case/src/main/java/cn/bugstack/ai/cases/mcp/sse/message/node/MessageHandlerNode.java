@@ -1,7 +1,7 @@
-package cn.bugstack.ai.cases.mcp.message.node;
+package cn.bugstack.ai.cases.mcp.sse.message.node;
 
-import cn.bugstack.ai.cases.mcp.message.AbstractMcpMessageServiceSupport;
-import cn.bugstack.ai.cases.mcp.message.factory.DefaultMcpMessageFactory;
+import cn.bugstack.ai.cases.mcp.sse.message.AbstractMcpMessageServiceSupport;
+import cn.bugstack.ai.cases.mcp.sse.message.factory.DefaultMcpMessageFactory;
 import cn.bugstack.ai.domain.session.model.entity.HandleMessageCommandEntity;
 import cn.bugstack.ai.domain.session.model.valobj.McpSchemaVO;
 import cn.bugstack.ai.domain.session.model.valobj.SessionConfigVO;

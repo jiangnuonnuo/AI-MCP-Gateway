@@ -1,6 +1,6 @@
-package cn.bugstack.ai.cases.mcp.session.factory;
+package cn.bugstack.ai.cases.mcp.sse.session.factory;
 
-import cn.bugstack.ai.cases.mcp.session.node.RootNode;
+import cn.bugstack.ai.cases.mcp.sse.session.node.RootNode;
 import cn.bugstack.ai.domain.session.model.valobj.SessionConfigVO;
 import cn.bugstack.wrench.design.framework.tree.StrategyHandler;
 import lombok.AllArgsConstructor;
@@ -20,12 +20,12 @@ import javax.annotation.Resource;
  * 2025/12/13 09:09
  */
 @Service
-public class DefaultMcpSessionFactory {
+public class DefaultMcpSSESessionFactory {
 
     @Resource(name = "mcpSessionRootNode")
     private RootNode rootNode;
 
-    public StrategyHandler<String, DefaultMcpSessionFactory.DynamicContext, Flux<ServerSentEvent<String>>> strategyHandler() {
+    public StrategyHandler<String, DefaultMcpSSESessionFactory.DynamicContext, Flux<ServerSentEvent<String>>> strategyHandler() {
         return rootNode;
     }
 
