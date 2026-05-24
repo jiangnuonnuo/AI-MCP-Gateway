@@ -17,7 +17,7 @@ import javax.annotation.Resource;
  * 2026/2/20 07:37
  */
 @Slf4j
-@Service
+@Service("mcpSSEMessageService")
 public class McpSSEMessageService implements IMcpMessageService {
 
     @Resource

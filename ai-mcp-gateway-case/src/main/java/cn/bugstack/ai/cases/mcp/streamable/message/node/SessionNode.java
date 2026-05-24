@@ -1,7 +1,6 @@
 package cn.bugstack.ai.cases.mcp.streamable.message.node;
 
-import cn.bugstack.ai.cases.mcp.sse.message.AbstractMcpMessageServiceSupport;
-import cn.bugstack.ai.cases.mcp.sse.message.factory.DefaultMcpMessageFactory;
+import cn.bugstack.ai.cases.mcp.streamable.message.AbstractMcpStreamableMessageServiceSupport;
 import cn.bugstack.ai.cases.mcp.streamable.message.factory.DefaultMcpStreamableMessageFactory;
 import cn.bugstack.ai.domain.session.model.entity.HandleMessageCommandEntity;
 import cn.bugstack.wrench.design.framework.tree.StrategyHandler;
@@ -17,7 +16,7 @@ import org.springframework.stereotype.Service;
  */
 @Slf4j
 @Service("mcpStreamableMessageSessionNode")
-public class SessionNode extends AbstractMcpMessageServiceSupport {
+public class SessionNode extends AbstractMcpStreamableMessageServiceSupport {
 
     @Override
     protected ResponseEntity<Void> doApply(HandleMessageCommandEntity requestParameter, DefaultMcpStreamableMessageFactory.DynamicContext dynamicContext) throws Exception {
