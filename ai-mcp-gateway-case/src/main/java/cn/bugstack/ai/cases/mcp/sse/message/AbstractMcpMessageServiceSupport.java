@@ -1,5 +1,6 @@
 package cn.bugstack.ai.cases.mcp.sse.message;
 
+import cn.bugstack.ai.cases.mcp.sse.message.factory.DefaultMcpMessageFactory;
 import cn.bugstack.ai.cases.mcp.streamable.message.factory.DefaultMcpStreamableMessageFactory;
 import cn.bugstack.ai.domain.session.model.entity.HandleMessageCommandEntity;
 import cn.bugstack.ai.domain.session.service.ISessionManagementService;
@@ -11,7 +12,7 @@ import javax.annotation.Resource;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
-public abstract class AbstractMcpMessageServiceSupport extends AbstractMultiThreadStrategyRouter<HandleMessageCommandEntity, DefaultMcpStreamableMessageFactory.DynamicContext, ResponseEntity<Void>> {
+public abstract class AbstractMcpMessageServiceSupport extends AbstractMultiThreadStrategyRouter<HandleMessageCommandEntity, DefaultMcpMessageFactory.DynamicContext, ResponseEntity<Void>> {
 
     @Resource
     protected ISessionMessageService serviceMessageService;
@@ -20,7 +21,7 @@ public abstract class AbstractMcpMessageServiceSupport extends AbstractMultiThre
     protected ISessionManagementService sessionManagementService;
 
     @Override
-    protected void multiThread(HandleMessageCommandEntity requestParameter, DefaultMcpStreamableMessageFactory.DynamicContext dynamicContext) throws ExecutionException, InterruptedException, TimeoutException {
+    protected void multiThread(HandleMessageCommandEntity requestParameter, DefaultMcpMessageFactory.DynamicContext dynamicContext) throws ExecutionException, InterruptedException, TimeoutException {
 
     }
 

@@ -18,7 +18,7 @@ import static cn.bugstack.ai.types.enums.ResponseCode.METHOD_NOT_FOUND;
  * @author xiaofuge bugstack.cn @小傅哥
  * 2025/12/13 09:08
  */
-@Service
+@Service("mcpSSESessionService")
 public class McpSSESessionService implements IMcpSessionService {
 
     @Resource

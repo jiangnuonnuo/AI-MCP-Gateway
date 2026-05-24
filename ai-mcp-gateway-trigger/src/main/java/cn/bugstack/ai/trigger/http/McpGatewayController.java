@@ -1,22 +1,15 @@
 package cn.bugstack.ai.trigger.http;
 
 import cn.bugstack.ai.api.IMcpGatewayService;
+import cn.bugstack.ai.api.response.Response;
 import cn.bugstack.ai.cases.mcp.IMcpMessageService;
 import cn.bugstack.ai.cases.mcp.IMcpSessionService;
 import cn.bugstack.ai.domain.session.model.entity.HandleMessageCommandEntity;
-import cn.bugstack.ai.domain.session.model.valobj.McpSchemaVO;
-import cn.bugstack.ai.domain.session.model.valobj.SessionConfigVO;
-import cn.bugstack.ai.domain.session.service.ISessionManagementService;
-import cn.bugstack.ai.domain.session.service.ISessionMessageService;
 import cn.bugstack.ai.types.enums.ResponseCode;
-import cn.bugstack.ai.api.response.Response;
 import cn.bugstack.ai.types.exception.AppException;
 import com.alibaba.fastjson.JSON;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.ServerSentEvent;
@@ -25,6 +18,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Resource;
+import java.util.UUID;
 
 /**
  * MCP 网关服务接口管理
@@ -38,10 +32,10 @@ import javax.annotation.Resource;
 @RequestMapping("/")
 public class McpGatewayController implements IMcpGatewayService {
 
-    @Resource
+    @Resource(name = "mcpSSESessionService")
     private IMcpSessionService mcpSessionService;
 
-    @Resource
+    @Resource(name = "mcpSSEMessageService")
     private IMcpMessageService mcpMessageService;
 
     /**
