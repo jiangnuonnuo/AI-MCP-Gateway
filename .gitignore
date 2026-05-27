@@ -41,3 +41,4 @@ build/
 /.idea/
 /.mvn/
 /.trae/
+/.walicode/output.json

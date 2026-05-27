@@ -18,7 +18,7 @@ import javax.annotation.Resource;
  */
 @Slf4j
 @Service("mcpSSEMessageService")
-public class McpSSEMessageService implements IMcpMessageService {
+public class McpSSEMessageService implements IMcpMessageService<Void> {
 
     @Resource
     private DefaultMcpMessageFactory defaultMcpMessageFactory;

@@ -1,9 +1,6 @@
 package cn.bugstack.ai.cases.mcp.streamable.session.factory;
 
-import cn.bugstack.ai.cases.mcp.sse.message.factory.DefaultMcpMessageFactory;
-import cn.bugstack.ai.cases.mcp.sse.session.factory.DefaultMcpSSESessionFactory;
 import cn.bugstack.ai.cases.mcp.streamable.session.node.RootNode;
-import cn.bugstack.ai.domain.session.model.entity.HandleMessageCommandEntity;
 import cn.bugstack.ai.domain.session.model.valobj.SessionConfigVO;
 import cn.bugstack.wrench.design.framework.tree.StrategyHandler;
 import jakarta.annotation.Resource;
@@ -11,8 +8,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
 /**
@@ -21,6 +18,7 @@ import reactor.core.publisher.Flux;
  * @author xiaofuge bugstack.cn @小傅哥
  * 2026/5/20 07:04
  */
+@Service
 public class DefaultMcpStreamableSessionFactory {
 
     @Resource(name = "mcpStreamableSessionRootNode")
@@ -35,6 +33,8 @@ public class DefaultMcpStreamableSessionFactory {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class DynamicContext {
+
+        private String gatewayId;
 
         private String apiKey;
 

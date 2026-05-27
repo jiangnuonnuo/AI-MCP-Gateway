@@ -12,18 +12,18 @@ import reactor.core.publisher.Mono;
 public interface IMcpStreamableService {
 
     /**
-     * 建立 SSE 连接，返回 endpoint 等初始事件 (GET 请求)
+     * 建立 Streamable SSE 监听连接，要求客户端携带 Mcp-Session-Id，兼容 query sessionId
      */
-    Flux<ServerSentEvent<String>> handleGet(String headerSessionId, HttpHeaders headers);
+    Flux<ServerSentEvent<String>> handleGet(String gatewayId, String apiKey, String paramSessionId, String headerSessionId, HttpHeaders headers);
 
     /**
-     * 接收 MCP 的请求并返回 JSON RPC 响应 (POST 请求)
+     * 接收 MCP Streamable 请求并返回 JSON RPC 响应或 202 Accepted，优先使用 Mcp-Session-Id，兼容 query sessionId
      */
-    Mono<ResponseEntity<?>> handlePost(String paramSessionId, String headerSessionId, String messageBody, HttpHeaders headers);
+    Mono<ResponseEntity<?>> handlePost(String gatewayId, String apiKey, String paramSessionId, String headerSessionId, String messageBody, HttpHeaders headers);
 
     /**
-     * 接收 DELETE 请求，关闭会话
+     * 接收 DELETE 请求，关闭会话，优先使用 Mcp-Session-Id，兼容 query sessionId
      */
-    Mono<ResponseEntity<Void>> handleDelete(String sessionId, HttpHeaders headers);
+    Mono<ResponseEntity<Void>> handleDelete(String gatewayId, String paramSessionId, String headerSessionId, HttpHeaders headers);
 
 }

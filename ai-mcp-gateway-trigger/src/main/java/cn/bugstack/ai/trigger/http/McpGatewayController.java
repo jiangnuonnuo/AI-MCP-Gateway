@@ -36,7 +36,7 @@ public class McpGatewayController implements IMcpGatewayService {
     private IMcpSessionService mcpSessionService;
 
     @Resource(name = "mcpSSEMessageService")
-    private IMcpMessageService mcpMessageService;
+    private IMcpMessageService<Void> mcpMessageService;
 
     /**
      * 处理 sse 连接，创建会话
