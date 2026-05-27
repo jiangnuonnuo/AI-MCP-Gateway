@@ -41,4 +41,9 @@ public class McpSSESessionService implements IMcpSessionService {
         throw new AppException(METHOD_NOT_FOUND.getCode(), METHOD_NOT_FOUND.getInfo());
     }
 
+    @Override
+    public void deleteMcpSession(String sessionId) {
+        throw new AppException(METHOD_NOT_FOUND.getCode(), METHOD_NOT_FOUND.getInfo());
+    }
+
 }
