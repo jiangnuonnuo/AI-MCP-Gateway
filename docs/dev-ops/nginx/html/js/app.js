@@ -131,12 +131,15 @@ $(document).ready(function() {
             const originalHtml = $btn.html();
             $btn.html('<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>发送中...').prop('disabled', true);
 
+            const mcpType = $('input[name="mcpType"]:checked').val() || 'sse';
+
             const requestBody = {
                 gatewayId: gatewayId,
                 authApiKey: apiKey || null,
                 timeout: timeout,
                 reload: reload,
-                message: message
+                message: message,
+                mcpType: mcpType
             };
 
             const startTime = Date.now();
@@ -176,6 +179,12 @@ $(document).ready(function() {
                     $btn.html(originalHtml).prop('disabled', false);
                 }
             });
+        });
+
+        // 快捷案例按钮
+        $(document).off('click', '.btn-quick-case').on('click', '.btn-quick-case', function() {
+            const message = $(this).data('message');
+            $('#test-message').val(message);
         });
 
         // 清空结果
@@ -745,6 +754,50 @@ $(document).ready(function() {
         }
     });
 
+    // 复制 Streamable HTTP 地址
+    $(document).on('click', '.btn-copy-gateway-url-http', function() {
+        const gatewayId = $(this).data('gateway-id');
+        const httpUrl = `${API_BASE_URL}/${gatewayId}/mcp`;
+
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(httpUrl).then(() => {
+                showToast('网关 Streamable HTTP 地址已复制到剪贴板！');
+            }).catch(err => {
+                console.error('无法复制文本: ', err);
+                showToast('复制失败，请手动复制', false);
+            });
+        } else {
+            // Fallback
+            const textArea = document.createElement("textarea");
+            textArea.value = httpUrl;
+            textArea.style.position = "fixed";
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.width = "2em";
+            textArea.style.height = "2em";
+            textArea.style.padding = "0";
+            textArea.style.border = "none";
+            textArea.style.outline = "none";
+            textArea.style.boxShadow = "none";
+            textArea.style.background = "transparent";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                const successful = document.execCommand('copy');
+                if(successful) {
+                    showToast('网关 Streamable HTTP 地址已复制到剪贴板！');
+                } else {
+                    showToast('复制失败，请手动复制', false);
+                }
+            } catch (err) {
+                console.error('无法复制文本: ', err);
+                showToast('复制失败，请手动复制', false);
+            }
+            document.body.removeChild(textArea);
+        }
+    });
+
     // 分页状态
     let gatewayCurrentPage = 1;
     const gatewayPageSize = 10;
@@ -831,7 +884,8 @@ $(document).ready(function() {
                                     <td>
                                         <div class="d-flex align-items-center gap-2">
                                             <code>${item.gatewayId || '-'}</code>
-                                            <button type="button" class="btn btn-sm btn-outline-secondary btn-copy-gateway-url border-0" data-gateway-id="${item.gatewayId}" title="复制网关 SSE 地址"><i class="bi bi-clipboard"></i></button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary btn-copy-gateway-url border-0" data-gateway-id="${item.gatewayId}" title="复制 SSE 地址" style="min-width:36px">SSE</button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary btn-copy-gateway-url-http border-0" data-gateway-id="${item.gatewayId}" title="复制 Streamable HTTP 地址" style="min-width:36px">HTTP</button>
                                         </div>
                                     </td>
                                     <td class="fw-bold">${item.gatewayName || '-'}</td>
