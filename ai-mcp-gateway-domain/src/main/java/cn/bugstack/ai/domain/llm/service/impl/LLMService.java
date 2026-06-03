@@ -2,11 +2,14 @@ package cn.bugstack.ai.domain.llm.service.impl;
 
 import cn.bugstack.ai.domain.llm.model.entity.BuildChatModelCommandEntity;
 import cn.bugstack.ai.domain.llm.model.valobj.McpConfigVO;
+import cn.bugstack.ai.domain.llm.model.valobj.enums.McpTypeEnumVO;
 import cn.bugstack.ai.domain.llm.service.ILLMService;
 import com.alibaba.fastjson.JSON;
 import io.modelcontextprotocol.client.McpClient;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.client.transport.HttpClientSseClientTransport;
+import io.modelcontextprotocol.client.transport.HttpClientStreamableHttpTransport;
+import io.modelcontextprotocol.spec.McpClientTransport;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -35,15 +38,24 @@ public class LLMService implements ILLMService {
 
     private final Map<String, ChatModel> chatModelMap = new HashMap<>();
 
+    // 全局策略映射（构造函数方式，只初始化一次）
+    private final Map<McpTypeEnumVO, ToolCallbackBuilderStrategy> strategyMap = new HashMap<>();
+
     @Resource
     private OpenAiApi openAiApi;
 
     @Value("${spring.ai.openai.options.model:gpt-4o}")
     private String model;
 
+    // 构造函数，初始化策略映射
+    public LLMService() {
+        strategyMap.put(McpTypeEnumVO.SSE, new SseToolCallbackBuilderStrategy());
+        strategyMap.put(McpTypeEnumVO.STREAMABLE, new StreamableToolCallbackBuilderStrategy());
+    }
+
     @Override
     public void buildChatModel(BuildChatModelCommandEntity commandEntity) {
-        log.info("构建对话模型 gatewayId:{} mcp:{}", commandEntity.getGatewayId(), JSON.toJSONString(commandEntity.getMcpConfigVO()));
+        log.info("构建对话模型 gatewayId:{} mcp:{} type:{}", commandEntity.getGatewayId(), JSON.toJSONString(commandEntity.getMcpConfigVO()), commandEntity.getMcpType());
 
         // mcp 配置
         McpConfigVO mcpConfigVO = commandEntity.getMcpConfigVO();
@@ -53,7 +65,7 @@ public class LLMService implements ILLMService {
                 .openAiApi(openAiApi)
                 .defaultOptions(OpenAiChatOptions.builder()
                         .model(model)
-                        .toolCallbacks(buildToolCallback(mcpConfigVO))
+                        .toolCallbacks(buildToolCallback(mcpConfigVO, commandEntity.getMcpType()))
                         .build())
                 .build();
 
@@ -61,25 +73,66 @@ public class LLMService implements ILLMService {
         chatModelMap.put(commandEntity.getGatewayId(), chatModel);
     }
 
-    public ToolCallback[] buildToolCallback(McpConfigVO mcpConfigVO) {
-        String sseEndPoint = mcpConfigVO.getSseEndpoint();
-        if (StringUtils.isNotBlank(mcpConfigVO.getAuthApiKey())) {
-            sseEndPoint += "?api_key=" + mcpConfigVO.getAuthApiKey();
+    /**
+     * 工具策略接口（直接在内部类实现）
+     */
+    private interface ToolCallbackBuilderStrategy {
+        ToolCallback[] build(McpConfigVO config);
+    }
+
+    /**
+     * SSE 策略实现
+     */
+    private static class SseToolCallbackBuilderStrategy implements ToolCallbackBuilderStrategy {
+        @Override
+        public ToolCallback[] build(McpConfigVO mcpConfigVO) {
+            String sseEndPoint = mcpConfigVO.getSseEndpoint();
+            if (StringUtils.isNotBlank(mcpConfigVO.getAuthApiKey())) {
+                sseEndPoint += "?api_key=" + mcpConfigVO.getAuthApiKey();
+            }
+            HttpClientSseClientTransport sseClientTransport = HttpClientSseClientTransport
+                    .builder(mcpConfigVO.getBaseUri())
+                    .sseEndpoint(sseEndPoint)
+                    .build();
+            McpSyncClient mcpSyncClient = McpClient
+                    .sync(sseClientTransport)
+                    .requestTimeout(Duration.ofMillis(mcpConfigVO.getTimeout())).build();
+            var initialize = mcpSyncClient.initialize();
+            log.info("tool sse mcp initialize {}", initialize);
+            return SyncMcpToolCallbackProvider.builder().mcpClients(mcpSyncClient).build().getToolCallbacks();
         }
 
-        HttpClientSseClientTransport sseClientTransport = HttpClientSseClientTransport
-                .builder(mcpConfigVO.getBaseUri())
-                .sseEndpoint(sseEndPoint)
-                .build();
+    }
 
-        McpSyncClient mcpSyncClient = McpClient
-                .sync(sseClientTransport)
-                .requestTimeout(Duration.ofMillis(mcpConfigVO.getTimeout())).build();
-        var initialize = mcpSyncClient.initialize();
+    /**
+     * Streamable 策略实现
+     */
+    private static class StreamableToolCallbackBuilderStrategy implements ToolCallbackBuilderStrategy {
+        @Override
+        public ToolCallback[] build(McpConfigVO mcpConfigVO) {
+            McpClientTransport mcpClientTransport = HttpClientStreamableHttpTransport
+                    .builder(mcpConfigVO.getBaseUri())
+                    .endpoint(mcpConfigVO.getSseEndpoint())
+                    .build();
+            McpSyncClient mcpSyncClient = McpClient.sync(mcpClientTransport)
+                    .requestTimeout(Duration.ofMillis(mcpConfigVO.getTimeout())).build();
+            var init_streamable = mcpSyncClient.initialize();
+            log.info("tool streamable mcp initialize {}", init_streamable);
+            return SyncMcpToolCallbackProvider.builder().mcpClients(mcpSyncClient).build().getToolCallbacks();
+        }
+    }
 
-        log.info("tool sse mcp initialize {}", initialize);
-
-        return new SyncMcpToolCallbackProvider(mcpSyncClient).getToolCallbacks();
+    /**
+     * 工具回调分派策略，根据类型选择实现。
+     * mcpType 为 null 或不支持时，默认为 SSE。
+     */
+    public ToolCallback[] buildToolCallback(McpConfigVO mcpConfigVO, McpTypeEnumVO mcpType) {
+        ToolCallbackBuilderStrategy strategy = strategyMap.get(mcpType);
+        if (strategy == null) {
+            // 默认 SSE
+            strategy = strategyMap.get(McpTypeEnumVO.SSE);
+        }
+        return strategy.build(mcpConfigVO);
     }
 
     @Override

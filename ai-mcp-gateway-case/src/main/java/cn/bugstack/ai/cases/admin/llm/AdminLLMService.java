@@ -7,10 +7,12 @@ import cn.bugstack.ai.domain.gateway.model.valobj.GatewayToolConfigVO;
 import cn.bugstack.ai.domain.gateway.service.IGatewayToolConfigService;
 import cn.bugstack.ai.domain.llm.model.entity.BuildChatModelCommandEntity;
 import cn.bugstack.ai.domain.llm.model.valobj.McpConfigVO;
+import cn.bugstack.ai.domain.llm.model.valobj.enums.McpTypeEnumVO;
 import cn.bugstack.ai.domain.llm.service.ILLMService;
 import cn.bugstack.ai.domain.protocol.service.IProtocolStorage;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -41,12 +43,27 @@ public class AdminLLMService implements IAdminLLMService {
 
     @Override
     public GatewayLLMResponseDTO testCallGateway(GatewayLLMRequestDTO requestDTO) {
-        log.info("AdminLLMService.testCallGateway {} {}", requestDTO.getGatewayId(), requestDTO.getMessage());
+        log.info("AdminLLMService.testCallGateway {} {} mcpType:{}", requestDTO.getGatewayId(), requestDTO.getMessage(), requestDTO.getMcpType());
 
         String gatewayId = requestDTO.getGatewayId();
 
         String baseUrl = "http://localhost:" + port;
-        String sseEndpoint = baseUrlContextPath + "/" + gatewayId + "/mcp/sse";
+
+        // 解析 MCP 连接类型；默认 SSE
+        McpTypeEnumVO mcpType = McpTypeEnumVO.SSE;
+        if (StringUtils.isNotBlank(requestDTO.getMcpType())) {
+            try {
+                mcpType = McpTypeEnumVO.valueOf(requestDTO.getMcpType().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                log.warn("不支持的 mcpType:{}，使用默认 SSE", requestDTO.getMcpType());
+            }
+        }
+
+        // 根据 MCP 类型拼接 endpoint；SSE 带 /sse 后缀，Streamable 不带
+        String endpoint = baseUrlContextPath + "/" + gatewayId + "/mcp";
+        if (McpTypeEnumVO.SSE == mcpType) {
+            endpoint += "/sse";
+        }
 
         // 获取对话模型
         ChatModel chatModel = llmService.getChatModel(gatewayId);
@@ -56,7 +73,7 @@ public class AdminLLMService implements IAdminLLMService {
 
             McpConfigVO mcpConfigVO = McpConfigVO.builder()
                     .baseUri(baseUrl)
-                    .sseEndpoint(sseEndpoint)
+                    .sseEndpoint(endpoint)
                     .authApiKey(requestDTO.getAuthApiKey())
                     .timeout(requestDTO.getTimeout())
                     .build();
@@ -64,6 +81,7 @@ public class AdminLLMService implements IAdminLLMService {
             BuildChatModelCommandEntity commandEntity = BuildChatModelCommandEntity.builder()
                     .gatewayId(gatewayId)
                     .mcpConfigVO(mcpConfigVO)
+                    .mcpType(mcpType)
                     .build();
 
             llmService.buildChatModel(commandEntity);
