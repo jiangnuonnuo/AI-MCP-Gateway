@@ -157,6 +157,13 @@
                 <version>2.9.0</version>
             </dependency>
 
+            <!-- 如果拉取识别，maven 手动下载 jar 指引（解决pom自动拉取失败问题）；https://t.zsxq.com/RGQ18 -->
+            <dependency>
+                <groupId>org.redisson</groupId>
+                <artifactId>redisson-spring-boot-starter</artifactId>
+                <version>3.26.0</version>
+            </dependency>
+
             <!-- 工程模块 -->
             <dependency>
                 <groupId>cn.bugstack.ai</groupId>
