@@ -30,11 +30,18 @@ public class EndNode extends AbstractMcpStreamableSessionSupport {
         return sessionConfigVO.getSink().asFlux()
                 .mergeWith(Flux.interval(Duration.ofSeconds(60))
                         .map(i -> ServerSentEvent.<String>builder()
-                                .event("ping")
-                                .data("ping")
+                                .comment("ping")
                                 .build()))
-                .doOnCancel(() -> log.info("Streamable SSE 监听取消，会话ID: {}", sessionId))
-                .doOnTerminate(() -> log.info("Streamable SSE 监听终止，会话ID: {}", sessionId));
+                // 连接取消时的清理逻辑
+                .doOnCancel(() -> {
+                    log.info("Streamable 连接取消，会话ID: {}", sessionId);
+                    sessionManagementService.removeSession(sessionId);
+                })
+                // 连接终止时的清理逻辑
+                .doOnTerminate(() -> {
+                    log.info("Streamable 连接终止，会话ID: {}", sessionId);
+                    sessionManagementService.removeSession(sessionId);
+                });
     }
 
     @Override

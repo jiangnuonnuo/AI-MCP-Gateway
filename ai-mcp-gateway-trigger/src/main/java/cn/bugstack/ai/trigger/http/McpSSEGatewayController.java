@@ -30,7 +30,7 @@ import java.util.UUID;
 @RestController
 @CrossOrigin(origins = "*", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS})
 @RequestMapping("/")
-public class McpGatewayController implements IMcpGatewayService {
+public class McpSSEGatewayController implements IMcpGatewayService {
 
     @Resource(name = "mcpSSESessionService")
     private IMcpSessionService mcpSessionService;

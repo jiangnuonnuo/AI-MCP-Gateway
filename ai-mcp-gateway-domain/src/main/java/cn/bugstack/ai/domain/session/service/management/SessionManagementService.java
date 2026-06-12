@@ -1,8 +1,13 @@
 package cn.bugstack.ai.domain.session.service.management;
 
 import cn.bugstack.ai.domain.session.model.valobj.SessionConfigVO;
+import cn.bugstack.ai.domain.session.model.valobj.SessionSyncEventVO;
+import cn.bugstack.ai.domain.session.model.valobj.SessionSyncInfoVO;
 import cn.bugstack.ai.domain.session.model.valobj.enums.SessionTransportTypeEnumVO;
+import cn.bugstack.ai.domain.session.service.ISessionDistributedService;
 import cn.bugstack.ai.domain.session.service.ISessionManagementService;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.codec.ServerSentEvent;
@@ -15,6 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 /**
  * 会话管理服务
@@ -41,9 +47,17 @@ public class SessionManagementService implements ISessionManagementService {
      */
     private final Map<String, SessionConfigVO> activeSessions = new ConcurrentHashMap<>();
 
+    @Resource
+    private ISessionDistributedService sessionDistributedService;
+
     public SessionManagementService() {
         cleanupScheduler.scheduleAtFixedRate(this::cleanupExpiredSessions, 5, 5, TimeUnit.MINUTES);
         log.info("会话管理服务已启动，会话超时时间: {} 分钟", SESSION_TIMEOUT_MINUTES);
+    }
+
+    @PostConstruct
+    public void init() {
+        initializeDistributedSessions();
     }
 
     @Override
@@ -57,25 +71,10 @@ public class SessionManagementService implements ISessionManagementService {
         log.info("创建会话 gatewayId:{} transportType:{}", gatewayId, sessionTransportType.getCode());
 
         String sessionId = UUID.randomUUID().toString();
+        SessionConfigVO sessionConfigVO = createLocalSession(sessionId, gatewayId, apiKey, sessionTransportType);
 
-        Sinks.Many<ServerSentEvent<String>> sink = Sinks.many().multicast().onBackpressureBuffer();
-
-        // SSE 协议需要发送 endpoint 事件，Streamable HTTP 协议通过 Mcp-Session-Id 响应头返回会话，不发送 endpoint，避免破坏协议语义。
-        if (SessionTransportTypeEnumVO.SSE.equals(sessionTransportType)) {
-            String messageEndpoint = "/api-gateway/" + gatewayId + "/mcp/sse?sessionId=" + sessionId;
-            if (StringUtils.isNoneBlank(apiKey)) {
-                messageEndpoint += "&api_key=" + apiKey;
-            }
-
-            sink.tryEmitNext(ServerSentEvent.<String>builder()
-                    .event("endpoint")
-                    .data(messageEndpoint)
-                    .build());
-        }
-
-        SessionConfigVO sessionConfigVO = new SessionConfigVO(sessionId, sink);
-
-        activeSessions.put(sessionId, sessionConfigVO);
+        SessionSyncInfoVO sessionSyncInfoVO = sessionDistributedService.buildSessionSyncInfo(sessionId, gatewayId, apiKey, sessionTransportType);
+        sessionDistributedService.saveSession(sessionSyncInfoVO);
 
         log.info("创建会话 gatewayId:{} sessionId:{} transportType:{},当前活跃会话数:{}", gatewayId, sessionId, sessionTransportType.getCode(), activeSessions.size());
 
@@ -85,8 +84,18 @@ public class SessionManagementService implements ISessionManagementService {
     @Override
     public void removeSession(String sessionId) {
         log.info("删除会话配置 sessionId:{}", sessionId);
+        removeLocalSession(sessionId);
+        sessionDistributedService.removeSession(sessionId);
+    }
+
+    @Override
+    public void removeLocalSession(String sessionId) {
         SessionConfigVO sessionConfigVO = activeSessions.remove(sessionId);
-        if (null == sessionConfigVO) return;
+
+        if (null == sessionConfigVO) {
+            log.info("会话{}已不存在于本地实例", sessionId);
+            return;
+        }
 
         sessionConfigVO.markInactive();
 
@@ -96,7 +105,7 @@ public class SessionManagementService implements ISessionManagementService {
             log.warn("关闭会话Sink时出错:{}", e.getMessage());
         }
 
-        log.info("移除会话:{},剩余活跃会话数:{}", sessionId, activeSessions.size());
+        log.info("移除本地会话:{},剩余活跃会话数:{}", sessionId, activeSessions.size());
     }
 
     @Override
@@ -114,6 +123,52 @@ public class SessionManagementService implements ISessionManagementService {
         return null;
     }
 
+    @Override
+    public void syncSession(SessionSyncInfoVO sessionSyncInfoVO) {
+        if (sessionSyncInfoVO == null || StringUtils.isBlank(sessionSyncInfoVO.getSessionId()) || !sessionSyncInfoVO.isActive()) {
+            return;
+        }
+
+        activeSessions.computeIfAbsent(sessionSyncInfoVO.getSessionId(), key -> {
+            log.info("同步远端会话到本地实例 sessionId:{} transportType:{}", sessionSyncInfoVO.getSessionId(),
+                    sessionSyncInfoVO.getTransportType() == null ? "unknown" : sessionSyncInfoVO.getTransportType().getCode());
+            return sessionDistributedService.rebuildLocalSession(sessionSyncInfoVO);
+        });
+    }
+
+    @Override
+    public boolean hasSession(String sessionId) {
+        return StringUtils.isNotBlank(sessionId) && activeSessions.containsKey(sessionId);
+    }
+
+    @Override
+    public void initializeDistributedSessions() {
+        int loadCount = 0;
+        for (SessionSyncInfoVO sessionSyncInfoVO : sessionDistributedService.loadActiveSessions()) {
+            if (sessionSyncInfoVO == null || StringUtils.isBlank(sessionSyncInfoVO.getSessionId()) || !sessionSyncInfoVO.isActive()) {
+                continue;
+            }
+
+            if (activeSessions.containsKey(sessionSyncInfoVO.getSessionId())) {
+                continue;
+            }
+
+            activeSessions.put(sessionSyncInfoVO.getSessionId(), sessionDistributedService.rebuildLocalSession(sessionSyncInfoVO));
+            loadCount++;
+        }
+
+        if (loadCount > 0) {
+            log.info("应用启动完成分布式会话初始化，同步会话数:{} 当前本地活跃会话数:{}", loadCount, activeSessions.size());
+        } else {
+            log.info("应用启动完成分布式会话初始化，未发现可恢复会话");
+        }
+    }
+
+    @Override
+    public void subscribeSessionSyncEvent(Consumer<SessionSyncEventVO> consumer) {
+        sessionDistributedService.subscribeSessionSyncEvent(consumer);
+    }
+
     public void cleanupExpiredSessions() {
         int cleanedCount = 0;
 
@@ -127,7 +182,6 @@ public class SessionManagementService implements ISessionManagementService {
 
         }
 
-        // 记录清理日志
         if (cleanedCount > 0) {
             log.info("清理了 {} 个过期会话，剩余活跃会话数: {}", cleanedCount, activeSessions.size());
         }
@@ -141,22 +195,38 @@ public class SessionManagementService implements ISessionManagementService {
             removeSession(sessionId);
         }
 
-        // 关闭清理调度器
         cleanupScheduler.shutdown();
 
         try {
-            // 等待5秒让正在执行的任务完成
             if (!cleanupScheduler.awaitTermination(5, TimeUnit.SECONDS)) {
-                // 超时强制关闭
                 cleanupScheduler.shutdown();
             }
         } catch (InterruptedException e) {
-            // 异常强制关闭
             cleanupScheduler.shutdown();
             Thread.currentThread().interrupt();
         }
 
         log.info("关闭会话管理服务完成");
+    }
+
+    private SessionConfigVO createLocalSession(String sessionId, String gatewayId, String apiKey, SessionTransportTypeEnumVO transportType) {
+        Sinks.Many<ServerSentEvent<String>> sink = Sinks.many().multicast().onBackpressureBuffer();
+
+        if (SessionTransportTypeEnumVO.SSE.equals(transportType)) {
+            String messageEndpoint = "/api-gateway/" + gatewayId + "/mcp/sse?sessionId=" + sessionId;
+            if (StringUtils.isNoneBlank(apiKey)) {
+                messageEndpoint += "&api_key=" + apiKey;
+            }
+
+            sink.tryEmitNext(ServerSentEvent.<String>builder()
+                    .event("endpoint")
+                    .data(messageEndpoint)
+                    .build());
+        }
+
+        SessionConfigVO sessionConfigVO = new SessionConfigVO(sessionId, sink);
+        activeSessions.put(sessionId, sessionConfigVO);
+        return sessionConfigVO;
     }
 
 }

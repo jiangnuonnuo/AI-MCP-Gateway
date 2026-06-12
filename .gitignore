@@ -42,3 +42,4 @@ build/
 /.mvn/
 /.trae/
 /.walicode/output.json
+/.walicode/memory/core_memory.json

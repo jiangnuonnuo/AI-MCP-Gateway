@@ -34,11 +34,10 @@ public class EndNode extends AbstractMcpSSESessionSupport {
 
         return sink.asFlux()
                 .mergeWith(
-                        // 心跳机制 - 防止连接超时，延长间隔避免干扰正常通信
+                        // 心跳机制 - SSE 注释行（: 开头），客户端自动忽略，不会触发事件处理
                         Flux.interval(Duration.ofSeconds(60))
                                 .map(i -> ServerSentEvent.<String>builder()
-                                        .event("ping")
-                                        .data("ping")
+                                        .comment("ping")
                                         .build())
                 )
                 // 连接取消时的清理逻辑
