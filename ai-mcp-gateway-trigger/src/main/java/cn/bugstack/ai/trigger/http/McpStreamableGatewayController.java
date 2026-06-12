@@ -3,7 +3,6 @@ package cn.bugstack.ai.trigger.http;
 import cn.bugstack.ai.api.IMcpStreamableService;
 import cn.bugstack.ai.cases.mcp.IMcpMessageService;
 import cn.bugstack.ai.cases.mcp.IMcpSessionService;
-import cn.bugstack.ai.cases.mcp.streamable.session.McpStreamableSessionService;
 import cn.bugstack.ai.domain.session.model.entity.HandleMessageCommandEntity;
 import com.alibaba.fastjson.JSON;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +29,7 @@ import java.util.UUID;
 @RestController
 @CrossOrigin(origins = "*", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS})
 @RequestMapping("/{gatewayId}/mcp")
-public class McpStreamableController implements IMcpStreamableService {
+public class McpStreamableGatewayController implements IMcpStreamableService {
 
     @Resource(name = "mcpStreamableSessionService")
     private IMcpSessionService mcpStreamableSessionService;

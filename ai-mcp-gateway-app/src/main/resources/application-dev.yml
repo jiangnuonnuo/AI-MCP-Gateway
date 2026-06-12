@@ -1,5 +1,5 @@
 server:
-  port: 8777
+  port: 8778
   servlet:
     context-path: /api-gateway
 
