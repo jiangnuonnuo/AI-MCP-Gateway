@@ -1,6 +1,7 @@
 // js/config.js
 
-const API_BASE_URL = "http://140.143.183.225:8777/api-gateway"; // 替换为实际的服务端IP和端口
+// 使用相对路径，通过 Nginx 反向代理避免 CORS 跨域问题
+const API_BASE_URL = "/api-gateway";
 
 const API_ENDPOINTS = {
     // 获取网关列表

@@ -7,7 +7,7 @@ set -e
 
 # Define variables for the registry and image
 ALIYUN_REGISTRY="registry.cn-hangzhou.aliyuncs.com"
-NAMESPACE="system"
+NAMESPACE="fuzhengwei"
 IMAGE_NAME="ai-mcp-gateway-app"
 IMAGE_TAG="1.0.0"
 
