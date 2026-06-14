@@ -1,5 +1,5 @@
 # 基础镜像，可以先执行 docker pull openjdk:17-jdk-slim
-FROM openjdk:17-jdk-slim
+FROM registry.cn-hangzhou.aliyuncs.com/xfg-studio/openjdk:17-jdk-slim
 
 # 作者
 MAINTAINER xiaofuge
