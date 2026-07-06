@@ -33,6 +33,14 @@ public class SessionConfigVO {
     private Sinks.Many<ServerSentEvent<String>> sink;
 
     /**
+     * 节点标识，标记该 Session 由哪个节点创建
+     * <p>
+     * 用于分布式清理时，每个节点只清理自己创建的 Session，
+     * 避免误删其他节点上仍在活跃的 Session。
+     */
+    private String nodeId;
+
+    /**
      * 会话时间
      */
     private Instant createTime;
@@ -48,8 +56,13 @@ public class SessionConfigVO {
     private volatile boolean active;
 
     public SessionConfigVO(String sessionId, Sinks.Many<ServerSentEvent<String>> sink) {
+        this(sessionId, sink, null);
+    }
+
+    public SessionConfigVO(String sessionId, Sinks.Many<ServerSentEvent<String>> sink, String nodeId) {
         this.sessionId = sessionId;
         this.sink = sink;
+        this.nodeId = nodeId;
         this.createTime = Instant.now();
         this.lastAccessedTime = Instant.now();
         this.active = true;

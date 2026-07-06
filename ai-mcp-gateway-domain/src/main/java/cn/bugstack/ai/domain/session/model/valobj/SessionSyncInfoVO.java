@@ -48,6 +48,14 @@ public class SessionSyncInfoVO {
     private long lastAccessedTime;
 
     /**
+     * 节点标识，标记该 Session 由哪个节点创建
+     * <p>
+     * 用于分布式清理时，每个节点只清理自己创建的 Session，
+     * 避免误删其他节点上仍在活跃的 Session。
+     */
+    private String nodeId;
+
+    /**
      * 是否活跃
      */
     private boolean active;
