@@ -158,6 +158,20 @@ public class SessionPort implements ISessionPort {
     }
 
     /**
+     * 从 Redis Map 删除会话元数据，不发布 REMOVE 事件
+     * <p>
+     * 用于本节点清理自己创建的过期 Session。
+     * 仅从 Redis Map 移除元数据，不广播 REMOVE 事件，
+     * 避免其他节点在清理广播中误删仍在活跃的同名 Session。
+     *
+     * @param sessionId 待删除的会话ID
+     */
+    @Override
+    public void removeSessionSyncInfoSilently(String sessionId) {
+        redisService.<String, SessionSyncInfoVO>getMap(SESSION_SYNC_MAP).remove(sessionId);
+    }
+
+    /**
      * 从 Redis Map 全量加载当前所有有效会话
      * <p>
      * 服务启动时调用，读取 Redis Map 中的全部会话元数据，
@@ -200,6 +214,34 @@ public class SessionPort implements ISessionPort {
     public int subscribeSessionSyncEvent(Consumer<SessionSyncEventVO> consumer) {
         RTopic topic = redisService.getTopic(SESSION_SYNC_TOPIC);
         return topic.addListener(SessionSyncEventVO.class, (channel, msg) -> consumer.accept(msg));
+    }
+
+    /**
+     * 更新 Redis 中会话的最后访问时间
+     * <p>
+     * 读取 Redis Map 中的 SessionSyncInfoVO，更新 lastAccessedTime 字段后写回。
+     * 不发布 Topic 事件，避免频繁广播造成性能问题。
+     *
+     * @param sessionId        会话ID
+     * @param lastAccessedTime 最后访问时间（毫秒时间戳）
+     */
+    @Override
+    public void updateSessionLastAccessedTime(String sessionId, long lastAccessedTime) {
+        RMap<String, SessionSyncInfoVO> sessionMap = redisService.getMap(SESSION_SYNC_MAP);
+        SessionSyncInfoVO existing = sessionMap.get(sessionId);
+        if (existing != null) {
+            SessionSyncInfoVO updated = SessionSyncInfoVO.builder()
+                    .sessionId(existing.getSessionId())
+                    .gatewayId(existing.getGatewayId())
+                    .apiKey(existing.getApiKey())
+                    .transportType(existing.getTransportType())
+                    .nodeId(existing.getNodeId())
+                    .createTime(existing.getCreateTime())
+                    .lastAccessedTime(lastAccessedTime)
+                    .active(existing.isActive())
+                    .build();
+            sessionMap.put(sessionId, updated);
+        }
     }
 
 }

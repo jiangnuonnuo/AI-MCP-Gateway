@@ -26,8 +26,10 @@ import java.util.function.Consumer;
  * <br/>2. rebuildLocalSession   — 从 Redis 元数据重建本地 SessionConfigVO（long → Instant）
  * <br/>3. saveSession           — 保存会话元数据到 Redis Map，并发布 CREATE 事件
  * <br/>4. removeSession         — 从 Redis Map 删除元数据，并发布 REMOVE 事件
- * <br/>5. loadActiveSessions    — 全量加载 Redis 中有效会话（服务启动恢复用）
- * <br/>6. subscribeSessionSyncEvent — 订阅 Redis Topic，接收其他实例的会话变更事件
+ * <br/>5. removeSessionSilently — 从 Redis Map 删除元数据，不发布 REMOVE 事件（用于本节点清理过期 Session）
+ * <br/>6. loadActiveSessions    — 全量加载 Redis 中有效会话（服务启动恢复用）
+ * <br/>7. subscribeSessionSyncEvent — 订阅 Redis Topic，接收其他实例的会话变更事件
+ * <br/>8. updateSessionLastAccessedTime — 更新 Redis 中会话的最后访问时间
  * <p>
  * 调用链路：SessionManagementService → ISessionDistributedService → ISessionPort → SessionPort → IRedisService
  *
@@ -49,15 +51,17 @@ public class SessionDistributedService implements ISessionDistributedService {
      * @param gatewayId     网关ID
      * @param apiKey        API 密钥
      * @param transportType 传输协议类型（SSE / Streamable HTTP）
+     * @param nodeId        节点标识，标记该 Session 由哪个节点创建
      * @return 可持久化到 Redis 的会话同步信息
      */
-    public SessionSyncInfoVO buildSessionSyncInfo(String sessionId, String gatewayId, String apiKey, SessionTransportTypeEnumVO transportType) {
+    public SessionSyncInfoVO buildSessionSyncInfo(String sessionId, String gatewayId, String apiKey, SessionTransportTypeEnumVO transportType, String nodeId) {
         long now = System.currentTimeMillis();
         return SessionSyncInfoVO.builder()
                 .sessionId(sessionId)
                 .gatewayId(gatewayId)
                 .apiKey(apiKey)
                 .transportType(transportType)
+                .nodeId(nodeId)
                 .createTime(now)
                 .lastAccessedTime(now)
                 .active(true)
@@ -83,6 +87,7 @@ public class SessionDistributedService implements ISessionDistributedService {
         return SessionConfigVO.builder()
                 .sessionId(sessionSyncInfoVO.getSessionId())
                 .sink(sink)
+                .nodeId(sessionSyncInfoVO.getNodeId())
                 .createTime(Instant.ofEpochMilli(sessionSyncInfoVO.getCreateTime()))
                 .lastAccessedTime(Instant.ofEpochMilli(sessionSyncInfoVO.getLastAccessedTime()))
                 .active(sessionSyncInfoVO.isActive())
@@ -102,7 +107,7 @@ public class SessionDistributedService implements ISessionDistributedService {
     }
 
     /**
-     * 从 Redis 删除会话同步信息
+     * 从 Redis 删除会话同步信息，并发布 REMOVE 事件
      * <p>
      * 从 Redis Map 移除元数据，同时通过 ISessionPort 发布 REMOVE 事件到 Redis Topic，
      * 通知其他应用实例清理本地的对应会话。
@@ -111,6 +116,22 @@ public class SessionDistributedService implements ISessionDistributedService {
      */
     public void removeSession(String sessionId) {
         sessionPort.removeSessionSyncInfo(sessionId);
+    }
+
+    /**
+     * 从 Redis 删除会话元数据，不发布 REMOVE 事件
+     * <p>
+     * 用于本节点清理自己创建的过期 Session 时调用。
+     * 仅从 Redis Map 移除元数据，不广播 REMOVE 事件，
+     * 避免其他节点误删仍在活跃的 Session。
+     * <p>
+     * 清理完成后，本节点单独发布 REMOVE 事件通知其他节点清理本地缓存。
+     *
+     * @param sessionId 会话ID
+     */
+    @Override
+    public void removeSessionSilently(String sessionId) {
+        sessionPort.removeSessionSyncInfoSilently(sessionId);
     }
 
     /**
@@ -136,6 +157,33 @@ public class SessionDistributedService implements ISessionDistributedService {
      */
     public void subscribeSessionSyncEvent(Consumer<SessionSyncEventVO> consumer) {
         sessionPort.subscribeSessionSyncEvent(consumer);
+    }
+
+    /**
+     * 更新 Redis 中会话的最后访问时间
+     * <p>
+     * 客户端每次访问时同步更新 Redis 中的 lastAccessedTime，
+     * 确保其他节点重建 Session 时拿到正确的时间戳，
+     * 避免因时间不同步导致误删活跃 Session。
+     *
+     * @param sessionId        会话ID
+     * @param lastAccessedTime 最后访问时间（毫秒时间戳）
+     */
+    @Override
+    public void updateSessionLastAccessedTime(String sessionId, long lastAccessedTime) {
+        sessionPort.updateSessionLastAccessedTime(sessionId, lastAccessedTime);
+    }
+
+    /**
+     * 发布会话同步事件到 Redis Topic
+     * <p>
+     * 用于定时清理过期 Session 后，手动广播 REMOVE 事件通知其他节点清理本地缓存。
+     *
+     * @param event 会话同步事件
+     */
+    @Override
+    public void publishSessionSyncEvent(SessionSyncEventVO event) {
+        sessionPort.publishSessionSyncEvent(event);
     }
 
 }

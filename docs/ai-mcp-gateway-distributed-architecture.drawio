@@ -1,0 +1,277 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/28.2.5 Chrome/138.0.7204.251 Electron/37.6.1 Safari/537.36" version="28.2.5">
+  <diagram id="distributed-arch" name="分布式部署架构图">
+    <mxGraphModel dx="1692" dy="843" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="&lt;b&gt;AI MCP Gateway 分布式部署架构图&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=22;fontColor=#1a1a2e;" parent="1" vertex="1">
+          <mxGeometry x="470" y="15" width="460" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="user-group" value="用户 / 客户端" style="swimlane;startSize=28;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontStyle=1;fontSize=13;rounded=1;arcSize=12;shadow=0;swimlaneLine=1;" parent="1" vertex="1">
+          <mxGeometry x="340" y="65" width="720" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="user-browser" value="🖥️ 浏览器（管理后台）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;shadow=1;" parent="user-group" vertex="1">
+          <mxGeometry x="60" y="35" width="170" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="user-api" value="🔗 API 客户端（MCP/SSE）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;shadow=1;" parent="user-group" vertex="1">
+          <mxGeometry x="280" y="35" width="190" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="user-llm" value="🤖 LLM 应用（Cursor/Cline）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;shadow=1;" parent="user-group" vertex="1">
+          <mxGeometry x="520" y="35" width="200" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="gateway-group" value="接入层（Nginx 反向代理 + 负载均衡）" style="swimlane;startSize=28;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#7a5c00;fontStyle=1;fontSize=13;rounded=1;arcSize=12;shadow=0;" parent="1" vertex="1">
+          <mxGeometry x="170" y="180" width="1060" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="nginx-admin-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9e6;strokeColor=#d6b656;strokeWidth=2;dashed=0;shadow=1;" parent="gateway-group" vertex="1">
+          <mxGeometry x="20" y="35" width="360" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="nginx-admin-icon" value="🛡️" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=18;" parent="gateway-group" vertex="1">
+          <mxGeometry x="30" y="48" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nginx-admin-title" value="&lt;b&gt;Nginx Admin&lt;/b&gt;  (nginx-admin)" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=12;fontColor=#7a5c00;" parent="gateway-group" vertex="1">
+          <mxGeometry x="65" y="42" width="200" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="nginx-admin-detail" value="端口: 8000(HTTP) / 8443(HTTPS)&lt;br&gt;静态资源: / → admin.html&lt;br&gt;API 代理: /api-gateway/ → upstream" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#666666;" parent="gateway-group" vertex="1">
+          <mxGeometry x="65" y="62" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nginx-admin-badge" value="管理后台入口" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6b800;strokeColor=none;fontColor=#ffffff;fontSize=9;fontStyle=1;shadow=0;" parent="gateway-group" vertex="1">
+          <mxGeometry x="280" y="45" width="80" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="nginx-lb-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9e6;strokeColor=#d6b656;strokeWidth=2;dashed=0;shadow=1;" parent="gateway-group" vertex="1">
+          <mxGeometry x="410" y="35" width="360" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="nginx-lb-icon" value="⚖️" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=18;" parent="gateway-group" vertex="1">
+          <mxGeometry x="420" y="48" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nginx-lb-title" value="&lt;b&gt;Nginx Load Balancer&lt;/b&gt;  (ai-mcp-gateway-distributed)" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=12;fontColor=#7a5c00;" parent="gateway-group" vertex="1">
+          <mxGeometry x="455" y="42" width="300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="nginx-lb-detail" value="端口: 8777(HTTP) / 7443(HTTPS)&lt;br&gt;策略: 轮询 (Round Robin)&lt;br&gt;全部请求: / → upstream" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#666666;" parent="gateway-group" vertex="1">
+          <mxGeometry x="455" y="62" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nginx-lb-badge" value="API 负载均衡" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6b800;strokeColor=none;fontColor=#ffffff;fontSize=9;fontStyle=1;shadow=0;" parent="gateway-group" vertex="1">
+          <mxGeometry x="680" y="45" width="80" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="nginx-demo-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9e6;strokeColor=#d6b656;strokeWidth=2;dashed=0;shadow=1;" parent="gateway-group" vertex="1">
+          <mxGeometry x="800" y="35" width="230" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="nginx-demo-icon" value="🔧" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=18;" parent="gateway-group" vertex="1">
+          <mxGeometry x="810" y="48" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nginx-demo-title" value="&lt;b&gt;Demo MCP Server&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=12;fontColor=#7a5c00;" parent="gateway-group" vertex="1">
+          <mxGeometry x="845" y="42" width="150" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="nginx-demo-detail" value="端口: 8701&lt;br&gt;MCP Server 测试服务" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#666666;" parent="gateway-group" vertex="1">
+          <mxGeometry x="845" y="62" width="150" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="nginx-demo-badge" value="测试服务" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6b800;strokeColor=none;fontColor=#ffffff;fontSize=9;fontStyle=1;shadow=0;" parent="gateway-group" vertex="1">
+          <mxGeometry x="940" y="45" width="70" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="app-group" value="应用层（Spring Boot 微服务）" style="swimlane;startSize=28;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#2d6e2d;fontStyle=1;fontSize=13;rounded=1;arcSize=12;shadow=0;" parent="1" vertex="1">
+          <mxGeometry x="170" y="325" width="1060" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="app-01" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6f4ea;strokeColor=#82b366;strokeWidth=2;shadow=1;" parent="app-group" vertex="1">
+          <mxGeometry x="50" y="35" width="300" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="app-01-icon" value="🚀" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=22;" parent="app-group" vertex="1">
+          <mxGeometry x="60" y="50" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="app-01-title" value="&lt;b&gt;App 实例 01&lt;/b&gt;  (ai-mcp-gateway-app-01)" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=12;fontColor=#2d6e2d;" parent="app-group" vertex="1">
+          <mxGeometry x="95" y="42" width="250" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="app-01-detail" value="端口: 8771→8777  |  context-path: /api-gateway&lt;br&gt;Spring Boot + MCP Server + AI Gateway" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#666666;" parent="app-group" vertex="1">
+          <mxGeometry x="95" y="66" width="250" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="app-02" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6f4ea;strokeColor=#82b366;strokeWidth=2;shadow=1;" parent="app-group" vertex="1">
+          <mxGeometry x="390" y="35" width="300" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="app-02-icon" value="🚀" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=22;" parent="app-group" vertex="1">
+          <mxGeometry x="400" y="50" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="app-02-title" value="&lt;b&gt;App 实例 02&lt;/b&gt;  (ai-mcp-gateway-app-02)" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=12;fontColor=#2d6e2d;" parent="app-group" vertex="1">
+          <mxGeometry x="435" y="42" width="250" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="app-02-detail" value="端口: 8772→8777  |  context-path: /api-gateway&lt;br&gt;Spring Boot + MCP Server + AI Gateway" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#666666;" parent="app-group" vertex="1">
+          <mxGeometry x="435" y="66" width="250" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="upstream-label" value="&lt;b&gt;⬆ upstream: ai-mcp-gateway-backend&lt;/b&gt;&lt;br&gt;轮询策略: weight=1 (均分流量)" style="shape=callout;whiteSpace=wrap;html=1;perimeter=calloutPerimeter;size=20;position=0.5;position2=1;base=30;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;fontColor=#8b0000;rounded=1;shadow=1;" parent="app-group" vertex="1">
+          <mxGeometry x="743" y="42" width="280" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="infra-group" value="基础设施层（数据存储 + 管理工具）" style="swimlane;startSize=28;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#4a2d6e;fontStyle=1;fontSize=13;rounded=1;arcSize=12;shadow=0;" parent="1" vertex="1">
+          <mxGeometry x="170" y="480" width="1060" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="mysql-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e8fd;strokeColor=#9673a6;strokeWidth=2;shadow=1;" parent="infra-group" vertex="1">
+          <mxGeometry x="40" y="35" width="240" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="mysql-icon" value="🗄️" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=22;" parent="infra-group" vertex="1">
+          <mxGeometry x="50" y="50" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="mysql-title" value="&lt;b&gt;MySQL 8.0&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=12;fontColor=#4a2d6e;" parent="infra-group" vertex="1">
+          <mxGeometry x="85" y="42" width="100" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="mysql-detail" value="端口: 13306→3306&lt;br&gt;数据库: ai_mcp_gateway_v2&lt;br&gt;容器: mysql" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#666666;" parent="infra-group" vertex="1">
+          <mxGeometry x="85" y="62" width="170" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="redis-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e8fd;strokeColor=#9673a6;strokeWidth=2;shadow=1;" parent="infra-group" vertex="1">
+          <mxGeometry x="320" y="35" width="240" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="redis-icon" value="⚡" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=22;" parent="infra-group" vertex="1">
+          <mxGeometry x="330" y="50" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="redis-title" value="&lt;b&gt;Redis 6.2&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=12;fontColor=#4a2d6e;" parent="infra-group" vertex="1">
+          <mxGeometry x="365" y="42" width="100" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="redis-detail" value="端口: 16379→6379&lt;br&gt;用途: 会话管理 + 缓存&lt;br&gt;容器: redis" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#666666;" parent="infra-group" vertex="1">
+          <mxGeometry x="365" y="62" width="170" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="pma-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e8fd;strokeColor=#9673a6;strokeWidth=1;shadow=0;dashed=1;" parent="infra-group" vertex="1">
+          <mxGeometry x="600" y="35" width="200" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="pma-icon" value="📊" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=22;" parent="infra-group" vertex="1">
+          <mxGeometry x="610" y="50" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="pma-title" value="&lt;b&gt;phpMyAdmin&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=12;fontColor=#4a2d6e;" parent="infra-group" vertex="1">
+          <mxGeometry x="645" y="42" width="120" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="pma-detail" value="端口: 8899&lt;br&gt;MySQL Web 管理界面" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#666666;" parent="infra-group" vertex="1">
+          <mxGeometry x="645" y="66" width="150" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="rc-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e8fd;strokeColor=#9673a6;strokeWidth=1;shadow=0;dashed=1;" parent="infra-group" vertex="1">
+          <mxGeometry x="830" y="35" width="200" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="rc-icon" value="📋" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=22;" parent="infra-group" vertex="1">
+          <mxGeometry x="840" y="50" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="rc-title" value="&lt;b&gt;Redis Commander&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=12;fontColor=#4a2d6e;" parent="infra-group" vertex="1">
+          <mxGeometry x="875" y="42" width="140" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="rc-detail" value="端口: 8081  |  账密: admin/admin&lt;br&gt;Redis Web 管理界面" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#666666;" parent="infra-group" vertex="1">
+          <mxGeometry x="875" y="66" width="150" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="network-group" value="Docker 网络" style="swimlane;startSize=28;fillColor=#f0f0f0;strokeColor=#999999;fontColor=#555555;fontStyle=1;fontSize=13;rounded=1;arcSize=12;shadow=0;" parent="1" vertex="1">
+          <mxGeometry x="170" y="635" width="1060" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="net-app" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f0fe;strokeColor=#4285f4;strokeWidth=2;shadow=1;" parent="network-group" vertex="1">
+          <mxGeometry x="40" y="35" width="470" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="net-app-title" value="&lt;b&gt;🔵 distributed_my-network&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=13;fontColor=#1a56db;" parent="network-group" vertex="1">
+          <mxGeometry x="55" y="38" width="220" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="net-app-detail" value="应用网络：Nginx + App 实例 + Demo Server&lt;br&gt;容器间通过容器名互相访问（如 ai-mcp-gateway-app-01:8777）" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#666666;" parent="network-group" vertex="1">
+          <mxGeometry x="55" y="60" width="350" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="net-infra" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce8e6;strokeColor=#ea4335;strokeWidth=2;shadow=1;" parent="network-group" vertex="1">
+          <mxGeometry x="545" y="35" width="470" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="net-infra-title" value="&lt;b&gt;🔴 devops_my-network&lt;/b&gt;  (infra-network 外部网络)" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=13;fontColor=#c5221f;" parent="network-group" vertex="1">
+          <mxGeometry x="560" y="38" width="350" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="net-infra-detail" value="基础设施网络：MySQL + Redis + 管理工具&lt;br&gt;App 通过 external network 加入，访问 mysql:3306 / redis:6379" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#666666;" parent="network-group" vertex="1">
+          <mxGeometry x="560" y="60" width="350" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-browser-admin" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;strokeColor=#6c8ebf;strokeWidth=2;fontColor=#6c8ebf;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="user-browser" target="gateway-group" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-browser-admin-label" value=":8000/admin.html" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#6c8ebf;" parent="edge-browser-admin" vertex="1" connectable="0">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-api-lb" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.55;entryY=0;entryDx=0;entryDy=0;strokeColor=#6c8ebf;strokeWidth=2;fontColor=#6c8ebf;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="user-api" target="gateway-group" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-api-lb-label" value=":8777/{gatewayId}/mcp/sse" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#6c8ebf;" parent="edge-api-lb" vertex="1" connectable="0">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-llm-lb" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;strokeColor=#6c8ebf;strokeWidth=2;fontColor=#6c8ebf;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="user-llm" target="gateway-group" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-llm-lb-label" value=":8777/{gatewayId}/mcp" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#6c8ebf;" parent="edge-llm-lb" vertex="1" connectable="0">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-admin-app" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;strokeColor=#d6b656;strokeWidth=2;fontColor=#d6b656;fontSize=10;labelBackgroundColor=#ffffff;dashed=1;dashPattern=8 4;" parent="1" source="gateway-group" target="app-group" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-admin-app-label" value="/api-gateway/* → upstream" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#d6b656;" parent="edge-admin-app" vertex="1" connectable="0">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-lb-app" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=0.55;exitY=1;exitDx=0;exitDy=0;entryX=0.6;entryY=0;entryDx=0;entryDy=0;strokeColor=#d6b656;strokeWidth=2;fontColor=#d6b656;fontSize=10;labelBackgroundColor=#ffffff;dashed=1;dashPattern=8 4;" parent="1" source="gateway-group" target="app-group" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-lb-app-label" value="/* → upstream (Round Robin)" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#d6b656;" parent="edge-lb-app" vertex="1" connectable="0">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-app-mysql" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.15;entryY=0;entryDx=0;entryDy=0;strokeColor=#9673a6;strokeWidth=2;fontColor=#9673a6;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="app-group" target="infra-group" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-app-mysql-label" value="JDBC: mysql:3306" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#9673a6;" parent="edge-app-mysql" vertex="1" connectable="0">
+          <mxGeometry x="-0.3" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-app-redis" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=0.55;exitY=1;exitDx=0;exitDy=0;entryX=0.45;entryY=0;entryDx=0;entryDy=0;strokeColor=#9673a6;strokeWidth=2;fontColor=#9673a6;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="app-group" target="infra-group" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-app-redis-label" value="Redisson: redis:6379" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#9673a6;" parent="edge-app-redis" vertex="1" connectable="0">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-app-openai" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;strokeColor=#82b366;strokeWidth=2;fontColor=#82b366;fontSize=10;labelBackgroundColor=#ffffff;dashed=1;dashPattern=8 4;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1230" y="385" as="sourcePoint" />
+            <mxPoint x="1370" y="385" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-app-openai-label" value="Spring AI OpenAI" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#82b366;" parent="edge-app-openai" vertex="1" connectable="0">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="openai-cloud" value="☁️&lt;br&gt;&lt;b&gt;OpenAI API&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;gpt-4o&lt;br&gt;apis.itedus.cn&lt;/font&gt;" style="shape=cloud;whiteSpace=wrap;html=1;fillColor=#e6f4ea;strokeColor=#82b366;fontSize=12;shadow=1;" parent="1" vertex="1">
+          <mxGeometry x="1340" y="345" width="150" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-note" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#cccccc;strokeWidth=1;shadow=0;" parent="1" vertex="1">
+          <mxGeometry x="1290" y="65" width="280" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-note-title" value="&lt;b&gt;📋 请求路由说明&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=12;fontColor=#1a1a2e;" parent="1" vertex="1">
+          <mxGeometry x="1305" y="72" width="130" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-note-1" value="&lt;font color=&quot;#e6b800&quot;&gt;①&lt;/font&gt; 浏览器访问 &lt;b&gt;:8000&lt;/b&gt;&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;→ Nginx Admin&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;→ 静态页面 + /api-gateway/* 代理" style="text;html=1;align=left;verticalAlign=top;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#444444;" parent="1" vertex="1">
+          <mxGeometry x="1305" y="100" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-note-2" value="&lt;font color=&quot;#e6b800&quot;&gt;②&lt;/font&gt; MCP 客户端访问 &lt;b&gt;:8777&lt;/b&gt;&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;→ Nginx Load Balancer&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;→ 轮询分发到 App-01/02" style="text;html=1;align=left;verticalAlign=top;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#444444;" parent="1" vertex="1">
+          <mxGeometry x="1305" y="150" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-note-3" value="&lt;font color=&quot;#9673a6&quot;&gt;③&lt;/font&gt; App 连接基础设施&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;→ MySQL: mysql:3306&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;→ Redis: redis:6379&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;（通过 infra-network 跨网络）" style="text;html=1;align=left;verticalAlign=top;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#444444;" parent="1" vertex="1">
+          <mxGeometry x="1305" y="200" width="220" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-cross-net" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#ea4335;strokeWidth=2;fontColor=#ea4335;fontSize=10;labelBackgroundColor=#ffffff;dashed=1;dashPattern=4 4;" parent="1" source="net-app" target="net-infra" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-cross-net-label" value="App 容器加入双网络" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#ea4335;fontStyle=1;" parent="edge-cross-net" vertex="1" connectable="0">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="port-table-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#cccccc;strokeWidth=1;shadow=0;" parent="1" vertex="1">
+          <mxGeometry x="1290" y="480" width="280" height="265" as="geometry" />
+        </mxCell>
+        <mxCell id="port-table-title" value="&lt;b&gt;🔌 端口映射表&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=12;fontColor=#1a1a2e;" parent="1" vertex="1">
+          <mxGeometry x="1305" y="487" width="120" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="port-table-content" value="&lt;table style=&quot;font-size:10px;border-collapse:collapse;width:100%&quot;&gt;&lt;tr style=&quot;background:#e8f0fe&quot;&gt;&lt;th style=&quot;border:1px solid #ccc;padding:4px;text-align:left&quot;&gt;容器&lt;/th&gt;&lt;th style=&quot;border:1px solid #ccc;padding:4px;text-align:left&quot;&gt;宿主端口&lt;/th&gt;&lt;th style=&quot;border:1px solid #ccc;padding:4px;text-align:left&quot;&gt;容器端口&lt;/th&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #ccc;padding:4px&quot;&gt;nginx-admin&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:4px&quot;&gt;8000&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:4px&quot;&gt;80&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #ccc;padding:4px&quot;&gt;nginx-lb&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:4px&quot;&gt;8777&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:4px&quot;&gt;80&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #ccc;padding:4px&quot;&gt;app-01&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:4px&quot;&gt;8771&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:4px&quot;&gt;8777&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #ccc;padding:4px&quot;&gt;app-02&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:4px&quot;&gt;8772&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:4px&quot;&gt;8777&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #ccc;padding:4px&quot;&gt;demo-mcp&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:4px&quot;&gt;8701&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:4px&quot;&gt;8701&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #ccc;padding:4px&quot;&gt;mysql&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:4px&quot;&gt;13306&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:4px&quot;&gt;3306&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #ccc;padding:4px&quot;&gt;redis&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:4px&quot;&gt;16379&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:4px&quot;&gt;6379&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #ccc;padding:4px&quot;&gt;phpmyadmin&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:4px&quot;&gt;8899&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:4px&quot;&gt;80&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #ccc;padding:4px&quot;&gt;redis-admin&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:4px&quot;&gt;8081&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:4px&quot;&gt;8081&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;" style="text;html=1;align=left;verticalAlign=top;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
+          <mxGeometry x="1300" y="512" width="260" height="225" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

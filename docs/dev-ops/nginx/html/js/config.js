@@ -1,6 +1,6 @@
 // js/config.js
 
-const API_BASE_URL = "http://140.143.183.225:8777/api-gateway"; // 替换为实际的服务端IP和端口
+const API_BASE_URL = "http://127.0.0.1:8777/api-gateway"; // 替换为实际的服务端IP和端口
 
 const API_ENDPOINTS = {
     // 获取网关列表
