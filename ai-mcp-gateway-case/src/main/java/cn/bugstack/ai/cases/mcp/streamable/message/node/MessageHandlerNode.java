@@ -4,13 +4,12 @@ import cn.bugstack.ai.cases.mcp.streamable.message.AbstractMcpStreamableMessageS
 import cn.bugstack.ai.cases.mcp.streamable.message.factory.DefaultMcpStreamableMessageFactory;
 import cn.bugstack.ai.domain.session.model.entity.HandleMessageCommandEntity;
 import cn.bugstack.ai.domain.session.model.valobj.McpSchemaVO;
-import cn.bugstack.ai.domain.session.model.valobj.SessionConfigVO;
 import cn.bugstack.wrench.design.framework.tree.StrategyHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 
 /**
@@ -31,17 +30,17 @@ public class MessageHandlerNode extends AbstractMcpStreamableMessageServiceSuppo
         log.info("Streamable 消息处理 MessageHandlerNode:{}", requestParameter);
 
         McpSchemaVO.JSONRPCResponse jsonrpcResponse = serviceMessageService.processHandlerMessage(requestParameter);
-        if (null != jsonrpcResponse) {
-            String responseJson = objectMapper.writeValueAsString(jsonrpcResponse);
 
-            SessionConfigVO sessionConfigVO = dynamicContext.getSessionConfigVO();
-            sessionConfigVO.getSink().tryEmitNext(ServerSentEvent.<String>builder()
-                    .id(sessionConfigVO.getSessionId())
-                    .event("message")
-                    .data(responseJson)
-                    .build());
+        if (null != jsonrpcResponse) {
+            // JSON-RPC Request 的响应：按照 Streamable HTTP 规范，
+            // 直接通过当前 POST 响应以 application/json 返回 JSON-RPC response
+            String responseJson = objectMapper.writeValueAsString(jsonrpcResponse);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(responseJson);
         }
 
+        // JSON-RPC Notification 或 Response：服务端接受后返回 202 Accepted 无 body
         return ResponseEntity.accepted().build();
     }
 
