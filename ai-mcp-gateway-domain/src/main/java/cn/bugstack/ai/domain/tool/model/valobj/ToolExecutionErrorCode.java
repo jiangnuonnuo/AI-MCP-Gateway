@@ -1,0 +1,31 @@
+package cn.bugstack.ai.domain.tool.model.valobj;
+
+/**
+ * Tool 执行的稳定错误语义。
+ *
+ * <p>错误码会进入 MCP 结果和审计记录，调用方不应依赖底层异常消息或堆栈。</p>
+ */
+public enum ToolExecutionErrorCode {
+
+    NONE,
+    INVALID_ARGUMENT,
+    TOOL_NOT_FOUND,
+    TOOL_DISABLED,
+    MISSING_CONFIGURATION,
+    TEMPLATE_NOT_PUBLISHED,
+    UNKNOWN_BACKEND_TYPE,
+    UNKNOWN_EXECUTION_MODE,
+    BACKEND_UNAVAILABLE,
+    DATASOURCE_UNAVAILABLE,
+    ACCESS_DENIED,
+    SQL_POLICY_REJECTED,
+    SQL_POLICY_NOT_CONFIGURED,
+    SQL_PARAMETER_ERROR,
+    SQL_SYNTAX_ERROR,
+    QUERY_TIMEOUT,
+    QUERY_CANCELLED,
+    RESOURCE_LIMIT_EXCEEDED,
+    RESULT_LIMIT_EXCEEDED,
+    BACKEND_ERROR,
+    INTERNAL_ERROR
+}
