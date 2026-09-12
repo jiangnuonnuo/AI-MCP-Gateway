@@ -1,5 +1,7 @@
 package cn.bugstack.ai.domain.session.model.valobj.gateway;
 
+import cn.bugstack.ai.domain.tool.model.valobj.ToolBackendType;
+import cn.bugstack.ai.domain.tool.model.valobj.ToolExecutionMode;
 import lombok.*;
 
 import java.util.List;
@@ -17,6 +19,21 @@ import java.util.List;
 public class McpToolProtocolConfigVO {
 
     /**
+     * Tool 的后端执行类型。旧 HTTP 配置为空时由执行上下文兼容推断为 HTTP。
+     */
+    private ToolBackendType backendType;
+
+    /**
+     * Tool 的执行模式。后端类型和执行模式共同决定执行器路由。
+     */
+    private ToolExecutionMode executionMode;
+
+    /**
+     * MySQL 只读模板引用。只暴露引用和版本，SQL 正文及数据源凭证始终保留在服务端 Registry。
+     */
+    private MysqlTemplateConfig mysqlTemplateConfig;
+
+    /**
      * 请求协议配置
      */
     private HTTPConfig httpConfig;
@@ -25,6 +42,20 @@ public class McpToolProtocolConfigVO {
      * 请求协议映射
      */
     private List<ProtocolMapping> requestProtocolMappings;
+
+    /**
+     * 响应映射只用于后端结果转换，不参与 MCP 输入 Schema 构建。
+     */
+    private List<ProtocolMapping> responseProtocolMappings;
+
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class MysqlTemplateConfig {
+        private String templateRef;
+        private String templateVersion;
+    }
 
     @Data
     public static class HTTPConfig {

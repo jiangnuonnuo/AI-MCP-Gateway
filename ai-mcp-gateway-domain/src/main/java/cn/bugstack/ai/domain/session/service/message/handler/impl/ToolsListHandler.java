@@ -4,6 +4,10 @@ import cn.bugstack.ai.domain.session.adapter.repository.ISessionRepository;
 import cn.bugstack.ai.domain.session.model.valobj.McpSchemaVO;
 import cn.bugstack.ai.domain.session.model.valobj.gateway.McpToolConfigVO;
 import cn.bugstack.ai.domain.session.model.valobj.gateway.McpToolProtocolConfigVO;
+import cn.bugstack.ai.domain.mysql.adapter.port.IMysqlTemplateRegistry;
+import cn.bugstack.ai.domain.mysql.model.valobj.MysqlParameterType;
+import cn.bugstack.ai.domain.mysql.model.valobj.MysqlTemplate;
+import cn.bugstack.ai.domain.tool.adapter.port.IToolAccessPolicyPort;
 import cn.bugstack.ai.domain.session.service.message.handler.IRequestHandler;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +30,12 @@ public class ToolsListHandler implements IRequestHandler {
 
     @Resource
     private ISessionRepository repository;
+
+    @Resource
+    private IMysqlTemplateRegistry mysqlTemplateRegistry;
+
+    @Resource
+    private IToolAccessPolicyPort accessPolicy;
 
     /**
      * {
@@ -98,6 +108,13 @@ public class ToolsListHandler implements IRequestHandler {
 
         // 2. 构建工具列表
         List<McpSchemaVO.Tool> tools = buildTools(mcpToolConfigVOS);
+        if (mysqlTemplateRegistry != null) {
+            List<MysqlTemplate> visibleTemplates = mysqlTemplateRegistry.listPublished().stream()
+                    .filter(template -> accessPolicy == null
+                            || accessPolicy.isAllowed(gatewayId, template.getId()))
+                    .toList();
+            tools.addAll(buildMysqlTools(visibleTemplates));
+        }
 
         return new McpSchemaVO.JSONRPCResponse("2.0", message.id(), Map.of(
                 "tools", tools
@@ -109,7 +126,9 @@ public class ToolsListHandler implements IRequestHandler {
 
         for (McpToolConfigVO toolConfigVO : toolConfigs) {
             McpToolProtocolConfigVO mcpToolProtocolConfigVO = toolConfigVO.getMcpToolProtocolConfigVO();
-            List<McpToolProtocolConfigVO.ProtocolMapping> configs = mcpToolProtocolConfigVO.getRequestProtocolMappings();
+            List<McpToolProtocolConfigVO.ProtocolMapping> configs = mcpToolProtocolConfigVO == null
+                    || mcpToolProtocolConfigVO.getRequestProtocolMappings() == null
+                    ? new ArrayList<>() : new ArrayList<>(mcpToolProtocolConfigVO.getRequestProtocolMappings());
 
             // 排序
             configs.sort((o1, o2) -> {
@@ -167,6 +186,35 @@ public class ToolsListHandler implements IRequestHandler {
         }
 
         return tools;
+    }
+
+    private List<McpSchemaVO.Tool> buildMysqlTools(List<MysqlTemplate> templates) {
+        List<McpSchemaVO.Tool> tools = new ArrayList<>();
+        if (templates == null) return tools;
+        for (MysqlTemplate template : templates) {
+            Map<String, Object> properties = new HashMap<>();
+            List<String> required = new ArrayList<>();
+            for (var parameter : template.getParameters()) {
+                Map<String, Object> property = new HashMap<>();
+                property.put("type", schemaType(parameter.getType()));
+                if (parameter.getDescription() != null) property.put("description", parameter.getDescription());
+                properties.put(parameter.getName(), property);
+                if (parameter.isRequired()) required.add(parameter.getName());
+            }
+            McpSchemaVO.JsonSchema schema = new McpSchemaVO.JsonSchema(
+                    "object", properties, required.isEmpty() ? null : required, false, null, null);
+            tools.add(new McpSchemaVO.Tool(template.getId(), template.getDescription(), schema));
+        }
+        return tools;
+    }
+
+    private String schemaType(MysqlParameterType type) {
+        if (type == null) return "string";
+        return switch (type) {
+            case INTEGER, LONG, DECIMAL -> "number";
+            case BOOLEAN -> "boolean";
+            default -> "string";
+        };
     }
 
     private Map<String, Object> buildProperty(McpToolProtocolConfigVO.ProtocolMapping current, Map<String, List<McpToolProtocolConfigVO.ProtocolMapping>> childrenMap) {

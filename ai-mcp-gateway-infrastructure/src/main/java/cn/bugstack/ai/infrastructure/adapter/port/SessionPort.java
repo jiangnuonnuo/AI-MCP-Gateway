@@ -3,29 +3,15 @@ package cn.bugstack.ai.infrastructure.adapter.port;
 import cn.bugstack.ai.domain.session.adapter.port.ISessionPort;
 import cn.bugstack.ai.domain.session.model.valobj.SessionSyncEventVO;
 import cn.bugstack.ai.domain.session.model.valobj.SessionSyncInfoVO;
-import cn.bugstack.ai.domain.session.model.valobj.gateway.McpToolProtocolConfigVO;
-import cn.bugstack.ai.infrastructure.gateway.GenericHttpGateway;
 import cn.bugstack.ai.infrastructure.redis.IRedisService;
-import cn.bugstack.ai.types.enums.ResponseCode;
-import cn.bugstack.ai.types.exception.AppException;
-import com.alibaba.fastjson.JSON;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
-import okhttp3.MediaType;
-import okhttp3.RequestBody;
-import okhttp3.ResponseBody;
 import org.redisson.api.RMap;
 import org.redisson.api.RTopic;
 import org.springframework.stereotype.Component;
-import retrofit2.Call;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * 会话端口服务（Infrastructure 层）
@@ -63,61 +49,7 @@ public class SessionPort implements ISessionPort {
     private static final String SESSION_SYNC_MAP = "ai:mcp:gateway:session:active";
 
     @Resource
-    private GenericHttpGateway gateway;
-
-    @Resource
     private IRedisService redisService;
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
-
-    /**
-     * MCP 工具 HTTP 调用
-     * <p>
-     * 根据 HTTP 配置发起 GET/POST 请求，调用外部 MCP 工具服务。
-     */
-    @Override
-    public Object toolCall(McpToolProtocolConfigVO.HTTPConfig httpConfig, Object params) throws IOException {
-        String httpHeadersJson = httpConfig.getHttpHeaders();
-        Map<String, Object> headers = objectMapper.readValue(httpHeadersJson, Map.class);
-        String httpMethod = httpConfig.getHttpMethod().toLowerCase();
-
-        if (!(params instanceof Map<?, ?> arguments)) {
-            throw new AppException(ResponseCode.ILLEGAL_PARAMETER.getCode(), ResponseCode.ILLEGAL_PARAMETER.getInfo());
-        }
-
-        switch (httpMethod) {
-            case "post": {
-                RequestBody requestBody = RequestBody.create(JSON.toJSONString(arguments.values().toArray()[0]),
-                        MediaType.parse("application/json"));
-
-                Call<ResponseBody> call = gateway.post(httpConfig.getHttpUrl(), headers, requestBody);
-                ResponseBody responseBody = call.execute().body();
-                assert responseBody != null;
-                return responseBody.string();
-            }
-            case "get": {
-                Map<String, Object> objMapRequest = new java.util.HashMap<>((Map<String, Object>) arguments.values().toArray()[0]);
-
-                String url = httpConfig.getHttpUrl();
-                Matcher matcher = Pattern.compile("\\{([^}]+)\\}").matcher(url);
-                while (matcher.find()) {
-                    String name = matcher.group(1);
-                    if (objMapRequest.containsKey(name)) {
-                        url = url.replace("{" + name + "}", String.valueOf(objMapRequest.get(name)));
-                        objMapRequest.remove(name);
-                    }
-                }
-
-                Call<ResponseBody> call = gateway.get(url, headers, objMapRequest);
-                ResponseBody responseBody = call.execute().body();
-                assert responseBody != null;
-                return responseBody.string();
-            }
-        }
-
-        throw new AppException(ResponseCode.METHOD_NOT_FOUND.getCode(), ResponseCode.METHOD_NOT_FOUND.getInfo());
-    }
-
     /**
      * 保存会话同步信息到 Redis Map
      * <p>

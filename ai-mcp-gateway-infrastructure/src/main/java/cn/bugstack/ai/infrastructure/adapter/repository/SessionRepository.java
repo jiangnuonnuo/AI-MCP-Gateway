@@ -4,6 +4,8 @@ import cn.bugstack.ai.domain.session.adapter.repository.ISessionRepository;
 import cn.bugstack.ai.domain.session.model.valobj.gateway.McpGatewayConfigVO;
 import cn.bugstack.ai.domain.session.model.valobj.gateway.McpToolProtocolConfigVO;
 import cn.bugstack.ai.domain.session.model.valobj.gateway.McpToolConfigVO;
+import cn.bugstack.ai.domain.tool.model.valobj.ToolBackendType;
+import cn.bugstack.ai.domain.tool.model.valobj.ToolExecutionMode;
 import cn.bugstack.ai.infrastructure.dao.IMcpGatewayDao;
 import cn.bugstack.ai.infrastructure.dao.IMcpGatewayToolDao;
 import cn.bugstack.ai.infrastructure.dao.IMcpProtocolMappingDao;
@@ -68,6 +70,7 @@ public class SessionRepository implements ISessionRepository {
             List<McpProtocolMappingPO> mappingPOList = mcpProtocolMappingDao.queryMcpGatewayToolConfigListByProtocolId(tool.getProtocolId());
 
             List<McpToolProtocolConfigVO.ProtocolMapping> requestProtocolMappings = new ArrayList<>();
+            List<McpToolProtocolConfigVO.ProtocolMapping> responseProtocolMappings = new ArrayList<>();
 
             // 协议信息
             for (McpProtocolMappingPO mcpProtocolMappingPO : mappingPOList) {
@@ -81,7 +84,11 @@ public class SessionRepository implements ISessionRepository {
                         .isRequired(mcpProtocolMappingPO.getIsRequired())
                         .sortOrder(mcpProtocolMappingPO.getSortOrder())
                         .build();
-                requestProtocolMappings.add(protocolMapping);
+                if ("request".equalsIgnoreCase(mcpProtocolMappingPO.getMappingType())) {
+                    requestProtocolMappings.add(protocolMapping);
+                } else if ("response".equalsIgnoreCase(mcpProtocolMappingPO.getMappingType())) {
+                    responseProtocolMappings.add(protocolMapping);
+                }
             }
 
             // 组装数据
@@ -92,7 +99,10 @@ public class SessionRepository implements ISessionRepository {
                     .toolDescription(tool.getToolDescription())
                     .toolVersion(tool.getToolVersion())
                     .mcpToolProtocolConfigVO(McpToolProtocolConfigVO.builder()
+                            .backendType(ToolBackendType.HTTP)
+                            .executionMode(ToolExecutionMode.HTTP_REQUEST)
                             .requestProtocolMappings(requestProtocolMappings)
+                            .responseProtocolMappings(responseProtocolMappings)
                             .build())
                     .build();
 
@@ -121,7 +131,32 @@ public class SessionRepository implements ISessionRepository {
         httpConfig.setHttpMethod(mcpProtocolHttpPO.getHttpMethod());
         httpConfig.setTimeout(mcpProtocolHttpPO.getTimeout());
 
-        return McpToolProtocolConfigVO.builder().httpConfig(httpConfig).build();
+        List<McpToolProtocolConfigVO.ProtocolMapping> requestMappings = new ArrayList<>();
+        List<McpToolProtocolConfigVO.ProtocolMapping> responseMappings = new ArrayList<>();
+        List<McpProtocolMappingPO> mappingPOList = mcpProtocolMappingDao
+                .queryMcpGatewayToolConfigListByProtocolId(protocolId);
+        for (McpProtocolMappingPO mappingPO : mappingPOList) {
+            McpToolProtocolConfigVO.ProtocolMapping mapping = McpToolProtocolConfigVO.ProtocolMapping.builder()
+                    .mappingType(mappingPO.getMappingType())
+                    .parentPath(mappingPO.getParentPath())
+                    .fieldName(mappingPO.getFieldName())
+                    .mcpPath(mappingPO.getMcpPath())
+                    .mcpType(mappingPO.getMcpType())
+                    .mcpDesc(mappingPO.getMcpDesc())
+                    .isRequired(mappingPO.getIsRequired())
+                    .sortOrder(mappingPO.getSortOrder())
+                    .build();
+            if ("request".equalsIgnoreCase(mappingPO.getMappingType())) requestMappings.add(mapping);
+            if ("response".equalsIgnoreCase(mappingPO.getMappingType())) responseMappings.add(mapping);
+        }
+
+        return McpToolProtocolConfigVO.builder()
+                .backendType(ToolBackendType.HTTP)
+                .executionMode(ToolExecutionMode.HTTP_REQUEST)
+                .httpConfig(httpConfig)
+                .requestProtocolMappings(requestMappings)
+                .responseProtocolMappings(responseMappings)
+                .build();
     }
 
 }
