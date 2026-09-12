@@ -50,6 +50,27 @@ Trigger ──> API ──> Case ──> Domain <── Infrastructure
 - Repository 负责调用 `dao`、`redis` 并完成数据映射；Port 负责调用 `gateway` 并完成外部 DTO 转换。
 - `config` 只承载技术配置，基础设施不承载领域规则，不绕过 adapter 与 Domain 通信。
 
+## 工程实现规范
+
+### 测试目录
+
+- 所有测试源文件统一放在 `ai-mcp-gateway-app/src/test/java/cn/bugstack/ai/test` 下，按 `domain`、`infrastructure`、`trigger` 等职责继续分包。
+- 所有测试资源统一放在 `ai-mcp-gateway-app/src/test/resources` 下；Domain、Infrastructure 等业务模块不得新增独立 `src/test` 测试目录。
+- 新增或迁移测试时必须同步修正 `package` 声明和跨模块导入，确保测试通过应用模块依赖运行，不通过测试文件位置绕过模块边界。
+
+### 领域模型
+
+- Domain 的实体、值对象、Command、VO 及其嵌套数据对象优先采用项目统一的 Lombok 形式：`@Data`、`@Builder`、`@NoArgsConstructor`、`@AllArgsConstructor`；只有存在明确生命周期或框架约束时才保留手写构造器，并说明原因。
+- 普通领域模型不得默认使用 `record`、`final class` 或 `final` 字段表达不可变性；只有确有不可变、安全或并发语义时才允许使用，并在类注释中说明原因。
+- 每个领域模型必须有类级头注释；每个对象字段必须在字段声明前使用注释说明业务含义、单位、状态、是否必填或敏感性，禁止只依赖字段名猜测语义。
+- 模型注释不得描述“已修改”“新增”“已修复”“新版本”等过程信息，只描述稳定的业务约束和设计意图。
+
+### 编码与验证
+
+- Java、Markdown、YAML 和配置文件统一使用 UTF-8 编码；出现中文注释或文档时，修改后必须检查文件编码和乱码。
+- 提交前至少执行 `git diff --check`、全量 `mvn test`，并对新增或迁移的集成测试执行对应的运行时验证。
+- 测试目录、模型注解、字段注释和编码检查未通过时，不得提交实现结果。
+
 ## 领域拆分与增量开发
 
 当前代码按业务能力划分为 `gateway`、`protocol`、`auth`、`session`、`admin` 和 `llm` 等领域。新增需求先判断它是否属于已有领域的业务语言和生命周期：
