@@ -6,9 +6,9 @@ gateway:
   mysql:
     datasource:
       warehouse-test:
-        url: ${WAREHOUSE_MYSQL_URL:jdbc:mysql://127.0.0.1:3306/data_warehouse?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false}
+        jdbc-url: ${WAREHOUSE_MYSQL_URL:jdbc:mysql://127.0.0.1:3306/data_warehouse?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false}
         username: ${WAREHOUSE_MYSQL_USERNAME:}
-        password: ${WAREHOUSE_MYSQL_PASSWORD:}
+        password-secret-ref: env:WAREHOUSE_MYSQL_PASSWORD
 
 # 线程池配置
 thread:

@@ -12,7 +12,7 @@ import java.util.List;
  * @author xiaofuge bugstack.cn @小傅哥
  * 2026/1/30 20:24
  */
-@Getter
+@Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
@@ -53,19 +53,29 @@ public class McpToolProtocolConfigVO {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class MysqlTemplateConfig {
+        /** 已发布模板引用。 */
         private String templateRef;
+
+        /** 已发布模板版本。 */
         private String templateVersion;
     }
 
     @Data
     public static class HTTPConfig {
+        /** HTTP 后端地址。 */
         private String httpUrl;
+
+        /** JSON 格式的固定请求头。 */
         private String httpHeaders;
+
+        /** HTTP 方法。 */
         private String httpMethod;
+
+        /** HTTP 调用超时时间。 */
         private Integer timeout;
     }
 
-    @Getter
+    @Data
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor

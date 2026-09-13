@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /** MVP 授权适配器。默认不额外限制既有 HTTP Tool；可通过显式拒绝集合收紧访问。 */
 @Component
 public class InMemoryToolAccessPolicy implements IToolAccessPolicyPort {
-    private final Set<String> denied = ConcurrentHashMap.newKeySet();
+    private Set<String> denied = ConcurrentHashMap.newKeySet();
 
     @Override
     public boolean isAllowed(String gatewayId, String toolName) {

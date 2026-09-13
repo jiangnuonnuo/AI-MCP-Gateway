@@ -10,7 +10,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 /** MVP 审计适配器；正式环境可替换为日志或审计仓储，不保存 SQL 参数和值。 */
 @Component
 public class InMemoryToolExecutionAudit implements IToolExecutionAuditPort {
-    private final CopyOnWriteArrayList<ToolExecutionAuditRecord> records = new CopyOnWriteArrayList<>();
+    private CopyOnWriteArrayList<ToolExecutionAuditRecord> records = new CopyOnWriteArrayList<>();
 
     @Override
     public void record(ToolExecutionAuditRecord record) {

@@ -1,5 +1,10 @@
 package cn.bugstack.ai.domain.tool.model.valobj;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -11,51 +16,52 @@ import java.util.Map;
  *
  * <p>成功结果可以是兼容旧客户端的文本，也可以是结构化内容；失败结果只暴露稳定错误码和安全消息。</p>
  */
-public final class ToolExecutionResult {
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class ToolExecutionResult {
 
-    private final boolean success;
-    private final Object content;
-    private final ToolExecutionErrorCode errorCode;
-    private final String errorMessage;
-    private final String requestId;
-    private final String queryId;
-    private final List<Map<String, Object>> columns;
-    private final List<List<Object>> rows;
-    private final int rowCount;
-    private final boolean truncated;
-    private final long resultBytes;
+    /** 是否执行成功。 */
+    private boolean success;
 
-    private ToolExecutionResult(boolean success,
-                                Object content,
-                                ToolExecutionErrorCode errorCode,
-                                String errorMessage,
-                                String requestId,
-                                String queryId,
-                                List<Map<String, Object>> columns,
-                                List<List<Object>> rows,
-                                int rowCount,
-                                boolean truncated,
-                                long resultBytes) {
-        this.success = success;
-        this.content = content;
-        this.errorCode = errorCode == null ? ToolExecutionErrorCode.INTERNAL_ERROR : errorCode;
-        this.errorMessage = errorMessage;
-        this.requestId = requestId;
-        this.queryId = queryId;
-        this.columns = columns == null ? List.of() : Collections.unmodifiableList(new ArrayList<>(columns));
-        this.rows = rows == null ? List.of() : Collections.unmodifiableList(new ArrayList<>(rows));
-        this.rowCount = rowCount;
-        this.truncated = truncated;
-        this.resultBytes = resultBytes;
-    }
+    /** 成功时的文本或结构化内容。 */
+    private Object content;
+
+    /** 稳定错误码，成功时为 NONE。 */
+    private ToolExecutionErrorCode errorCode;
+
+    /** 面向 MCP Client 的安全错误消息。 */
+    private String errorMessage;
+
+    /** 调用请求标识。 */
+    private String requestId;
+
+    /** MySQL 查询关联标识。 */
+    private String queryId;
+
+    /** 结构化结果列信息。 */
+    private List<Map<String, Object>> columns;
+
+    /** 结构化结果行数据。 */
+    private List<List<Object>> rows;
+
+    /** 返回行数。 */
+    private int rowCount;
+
+    /** 结果是否被资源上限截断。 */
+    private boolean truncated;
+
+    /** 结果估算字节数。 */
+    private long resultBytes;
 
     public static ToolExecutionResult success(Object content) {
         return success(null, content);
     }
 
     public static ToolExecutionResult success(String requestId, Object content) {
-        return new ToolExecutionResult(true, content, ToolExecutionErrorCode.NONE,
-                null, requestId, null, null, null, 0, false, 0L);
+        return create(true, content, ToolExecutionErrorCode.NONE, null,
+                requestId, null, null, null, 0, false, 0L);
     }
 
     public static ToolExecutionResult structured(String requestId,
@@ -82,8 +88,8 @@ public final class ToolExecutionResult {
         if (queryId != null) {
             structured.put("queryId", queryId);
         }
-        return new ToolExecutionResult(true, structured, ToolExecutionErrorCode.NONE,
-                null, requestId, queryId, safeColumns, safeRows, safeRows.size(), truncated, resultBytes);
+        return create(true, structured, ToolExecutionErrorCode.NONE, null,
+                requestId, queryId, safeColumns, safeRows, safeRows.size(), truncated, resultBytes);
     }
 
     public static ToolExecutionResult failure(ToolExecutionErrorCode errorCode, String errorMessage) {
@@ -93,56 +99,42 @@ public final class ToolExecutionResult {
     public static ToolExecutionResult failure(String requestId,
                                               ToolExecutionErrorCode errorCode,
                                               String errorMessage) {
-        return new ToolExecutionResult(false, null, errorCode, errorMessage, requestId,
-                null, null, null, 0, false, 0L);
+        return create(false, null, errorCode, errorMessage,
+                requestId, null, null, null, 0, false, 0L);
     }
 
-    public boolean isSuccess() {
-        return success;
+    private static ToolExecutionResult create(boolean success,
+                                              Object content,
+                                              ToolExecutionErrorCode errorCode,
+                                              String errorMessage,
+                                              String requestId,
+                                              String queryId,
+                                              List<Map<String, Object>> columns,
+                                              List<List<Object>> rows,
+                                              int rowCount,
+                                              boolean truncated,
+                                              long resultBytes) {
+        ToolExecutionResult result = new ToolExecutionResult(success, content, errorCode, errorMessage,
+                requestId, queryId, columns, rows, rowCount, truncated, resultBytes);
+        result.normalize();
+        return result;
+    }
+
+    /**
+     * 统一结果中的错误码和集合边界。
+     */
+    public void normalize() {
+        errorCode = errorCode == null ? ToolExecutionErrorCode.INTERNAL_ERROR : errorCode;
+        columns = columns == null
+                ? List.of()
+                : Collections.unmodifiableList(new ArrayList<>(columns));
+        rows = rows == null
+                ? List.of()
+                : Collections.unmodifiableList(new ArrayList<>(rows));
     }
 
     public boolean isError() {
         return !success;
-    }
-
-    public Object getContent() {
-        return content;
-    }
-
-    public ToolExecutionErrorCode getErrorCode() {
-        return errorCode;
-    }
-
-    public String getErrorMessage() {
-        return errorMessage;
-    }
-
-    public String getRequestId() {
-        return requestId;
-    }
-
-    public String getQueryId() {
-        return queryId;
-    }
-
-    public List<Map<String, Object>> getColumns() {
-        return columns;
-    }
-
-    public List<List<Object>> getRows() {
-        return rows;
-    }
-
-    public int getRowCount() {
-        return rowCount;
-    }
-
-    public boolean isTruncated() {
-        return truncated;
-    }
-
-    public long getResultBytes() {
-        return resultBytes;
     }
 
     /**
