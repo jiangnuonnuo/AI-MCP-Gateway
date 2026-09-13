@@ -52,7 +52,7 @@ IMysqlQueryPort.execute(MysqlQueryCommand)
 ISqlSafetyPort.validate(SqlStatement)
 ```
 
-Infrastructure 的 `adapter/port` 实现这些接口，调用 `gateway/` 下的 HTTP 客户端或 JDBC 客户端；Gateway 控制库的 Tool、数据源和模板元数据仍由 `adapter/repository` 调用 `dao/` 访问。
+Infrastructure 的 `adapter/port` 实现外部能力接口，调用 `gateway/` 下的 HTTP 客户端或 JDBC 客户端；Gateway 控制库的 Tool、数据源和模板元数据由 `adapter/repository` 调用 `dao/` 访问。MVP 内存模板/数据源 Registry 同样属于 `adapter/repository`，因为它们承担集合存取而非外部调用。
 
 ### 3. MVP 先使用本机真实数仓和测试 Registry 打通链路，再持久化管理配置
 

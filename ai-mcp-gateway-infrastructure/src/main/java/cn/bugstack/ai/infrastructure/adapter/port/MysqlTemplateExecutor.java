@@ -1,11 +1,10 @@
 package cn.bugstack.ai.infrastructure.adapter.port;
 
-import cn.bugstack.ai.domain.mysql.adapter.port.IMysqlQueryPort;
-import cn.bugstack.ai.domain.mysql.adapter.port.IMysqlTemplateRegistry;
-import cn.bugstack.ai.domain.tool.adapter.port.IMysqlExecutionMetricsPort;
-import cn.bugstack.ai.domain.mysql.model.command.MysqlQueryCommand;
+import cn.bugstack.ai.domain.mysql.service.MysqlTemplateQueryService;
+import cn.bugstack.ai.types.exception.MysqlDomainException;
+import cn.bugstack.ai.infrastructure.observability.IMysqlExecutionMetricsPort;
+import cn.bugstack.ai.types.exception.MysqlQueryException;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlQueryResult;
-import cn.bugstack.ai.domain.mysql.model.valobj.MysqlTemplate;
 import cn.bugstack.ai.domain.session.model.valobj.gateway.McpToolProtocolConfigVO;
 import cn.bugstack.ai.domain.tool.executor.ToolExecutor;
 import cn.bugstack.ai.domain.tool.model.valobj.ToolBackendType;
@@ -13,9 +12,8 @@ import cn.bugstack.ai.domain.tool.model.valobj.ToolExecutionContext;
 import cn.bugstack.ai.domain.tool.model.valobj.ToolExecutionErrorCode;
 import cn.bugstack.ai.domain.tool.model.valobj.ToolExecutionMode;
 import cn.bugstack.ai.domain.tool.model.valobj.ToolExecutionResult;
-import cn.bugstack.ai.infrastructure.adapter.port.MysqlQueryException;
+import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -28,21 +26,11 @@ import java.util.Map;
 @Component("mysqlTemplateExecutor")
 public class MysqlTemplateExecutor implements ToolExecutor {
 
-    private final IMysqlTemplateRegistry templateRegistry;
-    private final IMysqlQueryPort queryPort;
-    private final IMysqlExecutionMetricsPort metricsPort;
+    @Resource(name = "mysqlTemplateQueryService")
+    private MysqlTemplateQueryService queryService;
 
-    public MysqlTemplateExecutor(IMysqlTemplateRegistry templateRegistry, IMysqlQueryPort queryPort) {
-        this(templateRegistry, queryPort, (outcome, durationMs, rowCount, resultBytes) -> { });
-    }
-
-    @Autowired
-    public MysqlTemplateExecutor(IMysqlTemplateRegistry templateRegistry, IMysqlQueryPort queryPort,
-                                 IMysqlExecutionMetricsPort metricsPort) {
-        this.templateRegistry = templateRegistry;
-        this.queryPort = queryPort;
-        this.metricsPort = metricsPort;
-    }
+    @Resource
+    private IMysqlExecutionMetricsPort metricsPort;
 
     @Override
     public ToolBackendType backendType() {
@@ -68,22 +56,17 @@ public class MysqlTemplateExecutor implements ToolExecutor {
             }
             McpToolProtocolConfigVO.MysqlTemplateConfig reference =
                     context.getProtocolConfig().getMysqlTemplateConfig();
-            MysqlTemplate template = templateRegistry
-                    .findPublished(reference.getTemplateRef(), reference.getTemplateVersion())
-                    .orElse(null);
-            if (template == null) {
-                result = ToolExecutionResult.failure(context.getRequestId(),
-                        ToolExecutionErrorCode.TEMPLATE_NOT_PUBLISHED,
-                        "MySQL template is not published");
-                return result;
-            }
-            MysqlQueryResult queryResult = queryPort.execute(new MysqlQueryCommand(
-                    template, context.argumentsAsMap(), null, context.getRequestId()));
+            MysqlQueryResult queryResult = queryService.execute(reference.getTemplateRef(),
+                    reference.getTemplateVersion(), context.argumentsAsMap(), null, context.getRequestId());
             result = ToolExecutionResult.structured(context.getRequestId(), queryResult.getQueryId(),
                     columnMaps(queryResult.getColumns()), rowValues(queryResult), queryResult.isTruncated(),
                     queryResult.getResultBytes());
             return result;
         } catch (MysqlQueryException e) {
+            result = ToolExecutionResult.failure(context == null ? null : context.getRequestId(), mapError(e.getCode()),
+                    safeMessage(e.getCode()));
+            return result;
+        } catch (MysqlDomainException e) {
             result = ToolExecutionResult.failure(context == null ? null : context.getRequestId(), mapError(e.getCode()),
                     safeMessage(e.getCode()));
             return result;
@@ -96,7 +79,7 @@ public class MysqlTemplateExecutor implements ToolExecutor {
                     ToolExecutionErrorCode.BACKEND_ERROR, "MySQL backend execution failed");
             return result;
         } finally {
-            if (result != null) {
+            if (result != null && metricsPort != null) {
                 long durationMs = (System.nanoTime() - startedAt) / 1_000_000;
                 String outcome = result.isSuccess() ? "SUCCESS" : result.getErrorCode().name();
                 metricsPort.record(outcome, durationMs, result.getRowCount(), result.getResultBytes());
@@ -108,10 +91,9 @@ public class MysqlTemplateExecutor implements ToolExecutor {
         List<Map<String, Object>> result = new ArrayList<>();
         for (MysqlQueryResult.MysqlColumn column : columns) {
             Map<String, Object> value = new LinkedHashMap<>();
-            value.put("name", column.name());
-            value.put("label", column.label());
-            value.put("sqlType", column.sqlType());
-            value.put("typeName", column.typeName());
+            value.put("name", column.getName());
+            value.put("label", column.getLabel());
+            value.put("type", column.getType());
             result.add(value);
         }
         return result;
@@ -122,7 +104,7 @@ public class MysqlTemplateExecutor implements ToolExecutor {
         for (Map<String, Object> row : result.getRows()) {
             List<Object> values = new ArrayList<>();
             for (MysqlQueryResult.MysqlColumn column : result.getColumns()) {
-                values.add(row.get(column.label()));
+                values.add(row.get(column.getLabel()));
             }
             rows.add(values);
         }
@@ -136,6 +118,7 @@ public class MysqlTemplateExecutor implements ToolExecutor {
             case "TEMPLATE_NOT_PUBLISHED" -> ToolExecutionErrorCode.TEMPLATE_NOT_PUBLISHED;
             case "SQL_PARAMETER_ERROR" -> ToolExecutionErrorCode.SQL_PARAMETER_ERROR;
             case "SQL_POLICY_REJECTED" -> ToolExecutionErrorCode.SQL_POLICY_REJECTED;
+            case "SQL_SAFETY_FAILED" -> ToolExecutionErrorCode.SQL_POLICY_REJECTED;
             case "SQL_POLICY_NOT_CONFIGURED" -> ToolExecutionErrorCode.SQL_POLICY_NOT_CONFIGURED;
             case "SQL_SYNTAX_ERROR" -> ToolExecutionErrorCode.SQL_SYNTAX_ERROR;
             case "QUERY_TIMEOUT" -> ToolExecutionErrorCode.QUERY_TIMEOUT;

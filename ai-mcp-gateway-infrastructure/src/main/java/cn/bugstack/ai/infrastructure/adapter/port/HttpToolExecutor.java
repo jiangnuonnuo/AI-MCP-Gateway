@@ -11,6 +11,7 @@ import cn.bugstack.ai.infrastructure.gateway.GenericHttpGateway;
 import com.alibaba.fastjson.JSON;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.Resource;
 import okhttp3.MediaType;
 import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
@@ -34,17 +35,11 @@ public class HttpToolExecutor implements ToolExecutor {
 
     private static final Pattern URL_PLACEHOLDER = Pattern.compile("\\{([^}]+)}");
 
-    private final GenericHttpGateway gateway;
-    private final ObjectMapper objectMapper;
+    @Resource
+    private GenericHttpGateway gateway;
 
-    public HttpToolExecutor(GenericHttpGateway gateway) {
-        this(gateway, new ObjectMapper());
-    }
-
-    public HttpToolExecutor(GenericHttpGateway gateway, ObjectMapper objectMapper) {
-        this.gateway = gateway;
-        this.objectMapper = objectMapper;
-    }
+    @Resource
+    private ObjectMapper objectMapper;
 
     @Override
     public ToolBackendType backendType() {

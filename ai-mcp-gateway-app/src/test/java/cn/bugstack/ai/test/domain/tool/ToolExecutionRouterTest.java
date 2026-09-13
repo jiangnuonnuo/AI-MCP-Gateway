@@ -1,7 +1,6 @@
 package cn.bugstack.ai.test.domain.tool;
 
 import cn.bugstack.ai.domain.session.model.valobj.gateway.McpToolProtocolConfigVO;
-import cn.bugstack.ai.domain.tool.adapter.port.IToolExecutionPort;
 import cn.bugstack.ai.domain.tool.executor.ToolExecutor;
 import cn.bugstack.ai.domain.tool.executor.ToolExecutorRouter;
 import cn.bugstack.ai.domain.tool.model.valobj.ToolBackendType;
@@ -11,8 +10,11 @@ import cn.bugstack.ai.domain.tool.model.valobj.ToolExecutionMode;
 import cn.bugstack.ai.domain.tool.model.valobj.ToolExecutionResult;
 import cn.bugstack.ai.infrastructure.adapter.port.HttpToolExecutor;
 import cn.bugstack.ai.infrastructure.gateway.GenericHttpGateway;
+import cn.bugstack.ai.infrastructure.adapter.port.InMemoryToolExecutionAudit;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.ResponseBody;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 import retrofit2.Call;
 import retrofit2.Response;
 
@@ -36,7 +38,9 @@ class ToolExecutionRouterTest {
     void routesHttpAndMysqlByBackendAndMode() {
         RecordingExecutor http = new RecordingExecutor(ToolBackendType.HTTP, ToolExecutionMode.HTTP_REQUEST);
         RecordingExecutor mysql = new RecordingExecutor(ToolBackendType.MYSQL, ToolExecutionMode.MYSQL_TEMPLATE);
-        IToolExecutionPort router = new ToolExecutorRouter(List.of(http, mysql));
+        ToolExecutorRouter router = new ToolExecutorRouter();
+        ReflectionTestUtils.setField(router, "executors", List.of(http, mysql));
+        ReflectionTestUtils.setField(router, "auditPort", new InMemoryToolExecutionAudit());
 
         ToolExecutionResult httpResult = router.execute(ToolExecutionContext.builder()
                 .requestId("http-1")
@@ -59,7 +63,9 @@ class ToolExecutionRouterTest {
 
     @Test
     void rejectsUnknownBackendAndMissingConfiguration() {
-        ToolExecutorRouter router = new ToolExecutorRouter(List.of());
+        ToolExecutorRouter router = new ToolExecutorRouter();
+        ReflectionTestUtils.setField(router, "executors", List.of());
+        ReflectionTestUtils.setField(router, "auditPort", new InMemoryToolExecutionAudit());
 
         ToolExecutionResult unknown = router.execute(ToolExecutionContext.builder()
                 .backendType(ToolBackendType.UNKNOWN)
@@ -81,7 +87,9 @@ class ToolExecutionRouterTest {
         when(gateway.get(eq("https://example.test/orders/42"), any(), any())).thenReturn(call);
         when(call.execute()).thenReturn(Response.success(ResponseBody.create("{}", null)));
 
-        HttpToolExecutor executor = new HttpToolExecutor(gateway);
+        HttpToolExecutor executor = new HttpToolExecutor();
+        ReflectionTestUtils.setField(executor, "gateway", gateway);
+        ReflectionTestUtils.setField(executor, "objectMapper", new ObjectMapper());
         McpToolProtocolConfigVO.HTTPConfig httpConfig = new McpToolProtocolConfigVO.HTTPConfig();
         httpConfig.setHttpUrl("https://example.test/orders/{id}");
         httpConfig.setHttpMethod("GET");

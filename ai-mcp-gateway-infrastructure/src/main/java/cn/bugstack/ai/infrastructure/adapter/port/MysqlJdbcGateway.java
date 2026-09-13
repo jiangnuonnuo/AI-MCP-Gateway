@@ -1,18 +1,18 @@
 package cn.bugstack.ai.infrastructure.adapter.port;
 
-import cn.bugstack.ai.domain.mysql.adapter.port.IMysqlDataSourceRegistry;
 import cn.bugstack.ai.domain.mysql.adapter.port.IMysqlQueryPort;
-import cn.bugstack.ai.domain.mysql.adapter.port.ISecretResolver;
-import cn.bugstack.ai.domain.mysql.adapter.port.ISqlSafetyPort;
 import cn.bugstack.ai.domain.mysql.model.command.MysqlQueryCommand;
-import cn.bugstack.ai.domain.mysql.model.valobj.MysqlDataSourceConfig;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlQueryPolicy;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlQueryResult;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlTemplate;
-import cn.bugstack.ai.domain.mysql.model.valobj.SqlSafetyDecision;
+import cn.bugstack.ai.types.config.MysqlConnectionSettings;
+import cn.bugstack.ai.types.config.MysqlConnectionSettingsRegistry;
+import cn.bugstack.ai.infrastructure.mysql.MysqlTemplateParameterBinder;
+import cn.bugstack.ai.types.exception.MysqlQueryException;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.HikariPoolMXBean;
+import jakarta.annotation.Resource;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
@@ -36,47 +36,31 @@ import java.util.concurrent.TimeUnit;
  * 均在成功、异常和超时路径通过 try-with-resources 释放。
  */
 public class MysqlJdbcGateway implements IMysqlQueryPort, AutoCloseable {
-    private final IMysqlDataSourceRegistry registry;
-    private final ISqlSafetyPort safetyPort;
-    private final ISecretResolver secretResolver;
-    private final MysqlTemplateParameterBinder parameterBinder;
-    private final Map<String, PoolHolder> pools = new ConcurrentHashMap<>();
+    @Resource
+    private MysqlConnectionSettingsRegistry connectionSettingsRegistry;
 
-    public MysqlJdbcGateway(IMysqlDataSourceRegistry registry, ISqlSafetyPort safetyPort) {
-        this(registry, safetyPort, MysqlJdbcGateway::resolveSecret, new MysqlTemplateParameterBinder());
-    }
+    @Resource
+    private cn.bugstack.ai.infrastructure.security.ISecretResolver secretResolver;
 
-    public MysqlJdbcGateway(IMysqlDataSourceRegistry registry, ISqlSafetyPort safetyPort,
-                            ISecretResolver secretResolver) {
-        this(registry, safetyPort, secretResolver, new MysqlTemplateParameterBinder());
-    }
-
-    public MysqlJdbcGateway(IMysqlDataSourceRegistry registry, ISqlSafetyPort safetyPort,
-                            ISecretResolver secretResolver, MysqlTemplateParameterBinder parameterBinder) {
-        this.registry = registry;
-        this.safetyPort = safetyPort;
-        this.secretResolver = secretResolver == null ? MysqlJdbcGateway::resolveSecret : secretResolver;
-        this.parameterBinder = parameterBinder == null ? new MysqlTemplateParameterBinder() : parameterBinder;
-    }
+    @Resource(name = "mysqlTemplateParameterBinder")
+    private MysqlTemplateParameterBinder parameterBinder;
+    private Map<String, PoolHolder> pools = new ConcurrentHashMap<>();
 
     @Override
     public MysqlQueryResult execute(MysqlQueryCommand command) {
+        if (command != null) command.normalize();
         MysqlTemplate template = command == null ? null : command.getTemplate();
         if (template == null) throw new MysqlQueryException("INVALID_ARGUMENT", "template is required");
-        if (!template.isPublished()) throw new MysqlQueryException("TEMPLATE_NOT_PUBLISHED", "template is not published");
-
-        MysqlDataSourceConfig dataSource = registry.find(template.getDatasourceRef())
-                .filter(MysqlDataSourceConfig::isEnabled)
+        MysqlConnectionSettings dataSource = connectionSettingsRegistry.find(template.getDatasourceRef())
                 .orElseThrow(() -> new MysqlQueryException("DATASOURCE_UNAVAILABLE", "data source is unavailable"));
-        MysqlQueryPolicy datasourcePolicy = new MysqlQueryPolicy(dataSource.getMaxSqlLength(), dataSource.getMaxRows(),
-                dataSource.getMaxResultBytes(), 128, dataSource.getMaxQueryTimeoutMs(), true);
-        MysqlQueryPolicy effectivePolicy = template.getPolicy().boundedBy(datasourcePolicy);
-        if (command.getRequestedPolicy() != null) {
-            effectivePolicy = command.getRequestedPolicy().boundedBy(effectivePolicy);
+        MysqlQueryPolicy effectivePolicy = command.getRequestedPolicy();
+        if (effectivePolicy == null) {
+            effectivePolicy = new MysqlQueryPolicy(dataSource.getMaxSqlLength(), dataSource.getMaxRows(),
+                    dataSource.getMaxResultBytes(), dataSource.getMaxColumns(), dataSource.getMaxQueryTimeoutMs(), true);
         }
-
-        SqlSafetyDecision safety = safetyPort.validate(template.getSql(), command.getParameters(), effectivePolicy);
-        if (!safety.isAllowed()) throw new MysqlQueryException(safety.getCode(), safety.getReason());
+        MysqlQueryPolicy technicalPolicy = new MysqlQueryPolicy(dataSource.getMaxSqlLength(), dataSource.getMaxRows(),
+                dataSource.getMaxResultBytes(), dataSource.getMaxColumns(), dataSource.getMaxQueryTimeoutMs(), true);
+        effectivePolicy = effectivePolicy.boundedBy(technicalPolicy);
         MysqlTemplateParameterBinder.BoundSql bound = parameterBinder.bind(template, command.getParameters());
 
         PoolHolder holder = poolFor(dataSource);
@@ -106,8 +90,7 @@ public class MysqlJdbcGateway implements IMysqlQueryPort, AutoCloseable {
     }
 
     public boolean health(String datasourceRef) {
-        MysqlDataSourceConfig config = registry.find(datasourceRef)
-                .filter(MysqlDataSourceConfig::isEnabled).orElse(null);
+        MysqlConnectionSettings config = connectionSettingsRegistry.find(datasourceRef).orElse(null);
         if (config == null) return false;
         PoolHolder holder = poolFor(config);
         try (Connection connection = holder.pool.getConnection()) {
@@ -144,7 +127,7 @@ public class MysqlJdbcGateway implements IMysqlQueryPort, AutoCloseable {
                     List<MysqlQueryResult.MysqlColumn> columns = new ArrayList<>();
                     for (int i = 1; i <= metadata.getColumnCount(); i++) {
                         columns.add(new MysqlQueryResult.MysqlColumn(metadata.getColumnName(i), metadata.getColumnLabel(i),
-                                metadata.getColumnType(i), metadata.getColumnTypeName(i)));
+                                logicalType(metadata.getColumnType(i), metadata.getColumnTypeName(i))));
                     }
                     List<Map<String, Object>> rows = new ArrayList<>();
                     long bytes = 0;
@@ -163,7 +146,9 @@ public class MysqlJdbcGateway implements IMysqlQueryPort, AutoCloseable {
                         rows.add(row);
                         bytes += rowBytes;
                     }
-                    return new MysqlQueryResult(queryId, columns, rows, truncated, bytes);
+                    MysqlQueryResult result = new MysqlQueryResult(queryId, columns, rows, truncated, bytes);
+                    result.normalize();
+                    return result;
                 }
             }
         }
@@ -177,7 +162,29 @@ public class MysqlJdbcGateway implements IMysqlQueryPort, AutoCloseable {
         }
     }
 
-    private PoolHolder poolFor(MysqlDataSourceConfig config) {
+    /** 将 JDBC 元数据收敛为稳定的逻辑类型，避免 Domain/MCP 暴露驱动编号。 */
+    private static String logicalType(int sqlType, String typeName) {
+        return switch (sqlType) {
+            case Types.BIT, Types.BOOLEAN -> "BOOLEAN";
+            case Types.TINYINT -> "TINYINT";
+            case Types.SMALLINT -> "SMALLINT";
+            case Types.INTEGER -> "INT";
+            case Types.BIGINT -> "BIGINT";
+            case Types.FLOAT, Types.REAL -> "FLOAT";
+            case Types.DOUBLE -> "DOUBLE";
+            case Types.NUMERIC, Types.DECIMAL -> "DECIMAL";
+            case Types.DATE -> "DATE";
+            case Types.TIME, Types.TIME_WITH_TIMEZONE -> "TIME";
+            case Types.TIMESTAMP, Types.TIMESTAMP_WITH_TIMEZONE -> "DATETIME";
+            case Types.BINARY, Types.VARBINARY, Types.LONGVARBINARY, Types.BLOB -> "BINARY";
+            case Types.CHAR, Types.VARCHAR, Types.LONGVARCHAR, Types.NCHAR, Types.NVARCHAR,
+                    Types.LONGNVARCHAR, Types.CLOB, Types.NCLOB -> "VARCHAR";
+            case Types.NULL -> "NULL";
+            default -> typeName == null || typeName.isBlank() ? "UNKNOWN" : typeName.toUpperCase();
+        };
+    }
+
+    private PoolHolder poolFor(MysqlConnectionSettings config) {
         return pools.compute(config.getId(), (id, existing) -> {
             if (existing != null && existing.matches(config)) return existing;
             if (existing != null) existing.pool.close();
@@ -205,15 +212,8 @@ public class MysqlJdbcGateway implements IMysqlQueryPort, AutoCloseable {
         pools.clear();
     }
 
-    private static String resolveSecret(String reference) {
-        if (reference == null || reference.isBlank()) return null;
-        if (reference.startsWith("env:")) return System.getenv(reference.substring("env:".length()));
-        if (reference.startsWith("sys:")) return System.getProperty(reference.substring("sys:".length()));
-        return System.getenv(reference);
-    }
-
-    private record PoolHolder(HikariDataSource pool, Semaphore concurrent, MysqlDataSourceConfig config) {
-        private boolean matches(MysqlDataSourceConfig other) {
+    private record PoolHolder(HikariDataSource pool, Semaphore concurrent, MysqlConnectionSettings config) {
+        private boolean matches(MysqlConnectionSettings other) {
             return config.getJdbcUrl().equals(other.getJdbcUrl()) && config.getUsername().equals(other.getUsername())
                     && config.getMaxPoolSize() == other.getMaxPoolSize();
         }

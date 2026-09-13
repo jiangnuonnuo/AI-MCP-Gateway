@@ -23,8 +23,8 @@
 ## 4. MySQL 数据源与模板 Registry
 
 - [x] 4.1 定义 MySQL 数据源配置和 Domain Repository/Port，仅允许 Tool 绑定固定数据源；验证方式：数据源解析测试证明客户端参数不能覆盖 datasourceRef。
-- [x] 4.2 在测试 profile 实现配置型或内存型数据源 Registry，不修改 Gateway 控制库 DDL；验证方式：启动测试上下文后可按 ID 获取数据源，停用数据源时调用被拒绝。
-- [x] 4.3 定义只读模板 Registry、模板版本和发布状态；验证方式：草稿、停用、不存在和已发布模板的状态测试通过。
+- [x] 4.2 在测试 profile 实现配置型或内存型数据源 Registry，并将存取适配器放入 `infrastructure/adapter/repository`，不修改 Gateway 控制库 DDL；验证方式：启动测试上下文后可按 ID 获取数据源，停用数据源时调用被拒绝。
+- [x] 4.3 定义只读模板 Registry、模板版本和发布状态，并将内存存取实现放入 `infrastructure/adapter/repository`；验证方式：草稿、停用、不存在和已发布模板的状态测试通过。
 - [x] 4.4 使用已确认的 `data_warehouse` 实际表结构注册一个固定只读模板及输入 Schema；验证方式：`tools/list` 返回名称、描述、参数类型和必填项，不返回 SQL 正文或凭证，模板不假设未确认的业务表名。
 
 ## 5. MySQL JDBC 执行器

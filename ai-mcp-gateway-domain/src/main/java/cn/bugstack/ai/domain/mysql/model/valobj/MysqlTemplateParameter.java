@@ -1,28 +1,44 @@
 package cn.bugstack.ai.domain.mysql.model.valobj;
 
-import java.util.Objects;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-/** 一个模板参数的公开 schema。 */
-public final class MysqlTemplateParameter {
-    private final String name;
-    private final MysqlParameterType type;
-    private final boolean required;
-    private final String description;
+/**
+ * 一个模板参数的公开 Schema。
+ */
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class MysqlTemplateParameter {
 
-    public MysqlTemplateParameter(String name, MysqlParameterType type, boolean required, String description) {
-        if (name == null || name.isBlank()) throw new IllegalArgumentException("parameter name must not be blank");
-        this.name = name;
-        this.type = Objects.requireNonNull(type, "type");
-        this.required = required;
-        this.description = description;
-    }
+    /** 参数名称，同时对应 SQL 命名占位符。 */
+    private String name;
+
+    /** 参数允许的数据类型。 */
+    private MysqlParameterType type;
+
+    /** 是否为必填参数。 */
+    private boolean required;
+
+    /** 面向 MCP Client 的参数说明。 */
+    private String description;
 
     public MysqlTemplateParameter(String name, MysqlParameterType type, boolean required) {
         this(name, type, required, null);
     }
 
-    public String getName() { return name; }
-    public MysqlParameterType getType() { return type; }
-    public boolean isRequired() { return required; }
-    public String getDescription() { return description; }
+    /**
+     * 校验模板参数定义。
+     */
+    public void validate() {
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("parameter name must not be blank");
+        }
+        if (type == null) {
+            throw new IllegalArgumentException("parameter type must not be null");
+        }
+    }
 }

@@ -1,8 +1,10 @@
 package cn.bugstack.ai.domain.tool.model.valobj;
 
 import cn.bugstack.ai.domain.session.model.valobj.gateway.McpToolProtocolConfigVO;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -13,41 +15,39 @@ import java.util.Map;
  *
  * <p>Context 只携带领域配置和调用数据，具体执行器不得要求 MCP Client 额外提供数据源地址或凭证。</p>
  */
-@Getter
+@Data
 @Builder(toBuilder = true)
+@NoArgsConstructor
+@AllArgsConstructor
 public class ToolExecutionContext {
 
-    private final String requestId;
-    private final String gatewayId;
-    private final String toolName;
-    private final ToolBackendType backendType;
-    private final ToolExecutionMode executionMode;
-    private final McpToolProtocolConfigVO protocolConfig;
-    private final Object arguments;
-    private final Object backendConfiguration;
-    private final Map<String, Object> attributes;
+    /** 调用请求标识。 */
+    private String requestId;
 
-    public ToolExecutionContext(String requestId,
-                                String gatewayId,
-                                String toolName,
-                                ToolBackendType backendType,
-                                ToolExecutionMode executionMode,
-                                McpToolProtocolConfigVO protocolConfig,
-                                Object arguments,
-                                Object backendConfiguration,
-                                Map<String, Object> attributes) {
-        this.requestId = requestId;
-        this.gatewayId = gatewayId;
-        this.toolName = toolName;
-        this.backendType = backendType;
-        this.executionMode = executionMode;
-        this.protocolConfig = protocolConfig;
-        this.arguments = arguments;
-        this.backendConfiguration = backendConfiguration;
-        this.attributes = attributes == null
-                ? Collections.emptyMap()
-                : Collections.unmodifiableMap(new LinkedHashMap<>(attributes));
-    }
+    /** Gateway 标识。 */
+    private String gatewayId;
+
+    /** Tool 名称。 */
+    private String toolName;
+
+    /** Tool 后端类型。 */
+    private ToolBackendType backendType;
+
+    /** Tool 执行模式。 */
+    private ToolExecutionMode executionMode;
+
+    /** 服务端解析后的协议配置。 */
+    private McpToolProtocolConfigVO protocolConfig;
+
+    /** MCP Client 传入的调用参数。 */
+    private Object arguments;
+
+    /** 已解析的后端配置，不接受客户端直接提供的地址或凭证。 */
+    private Object backendConfiguration;
+
+    /** 执行链路扩展属性。 */
+    @Builder.Default
+    private Map<String, Object> attributes = Collections.emptyMap();
 
     /**
      * 兼容已有 HTTP Tool 配置。旧配置未保存 backendType 时，只能依据已存在的 HTTP 配置推断。
@@ -87,7 +87,26 @@ public class ToolExecutionContext {
      * 后端配置是否已经由服务端解析。客户端 arguments 不计入配置判断。
      */
     public boolean hasBackendConfiguration() {
-        return protocolConfig != null || backendConfiguration != null || !attributes.isEmpty();
+        return protocolConfig != null || backendConfiguration != null || !getAttributes().isEmpty();
+    }
+
+    /**
+     * 返回不可变的扩展属性快照。
+     */
+    public Map<String, Object> getAttributes() {
+        if (attributes == null || attributes.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return Collections.unmodifiableMap(new LinkedHashMap<>(attributes));
+    }
+
+    /**
+     * 接收扩展属性时复制输入，避免调用方修改执行上下文。
+     */
+    public void setAttributes(Map<String, Object> attributes) {
+        this.attributes = attributes == null
+                ? Collections.emptyMap()
+                : Collections.unmodifiableMap(new LinkedHashMap<>(attributes));
     }
 
     @SuppressWarnings("unchecked")

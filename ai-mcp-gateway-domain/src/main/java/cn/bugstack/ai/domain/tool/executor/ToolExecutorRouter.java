@@ -7,7 +7,7 @@ import cn.bugstack.ai.domain.tool.model.valobj.ToolExecutionContext;
 import cn.bugstack.ai.domain.tool.model.valobj.ToolExecutionErrorCode;
 import cn.bugstack.ai.domain.tool.model.valobj.ToolExecutionMode;
 import cn.bugstack.ai.domain.tool.model.valobj.ToolExecutionResult;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -18,22 +18,11 @@ import java.util.List;
 @Component
 public class ToolExecutorRouter implements IToolExecutionPort {
 
-    private final List<ToolExecutor> executors;
-    private final IToolExecutionAuditPort auditPort;
+    @Resource
+    private List<ToolExecutor> executors;
 
-    public ToolExecutorRouter() {
-        this(List.of(), record -> { });
-    }
-
-    public ToolExecutorRouter(List<ToolExecutor> executors) {
-        this(executors, record -> { });
-    }
-
-    @Autowired
-    public ToolExecutorRouter(List<ToolExecutor> executors, IToolExecutionAuditPort auditPort) {
-        this.executors = executors == null ? List.of() : List.copyOf(executors);
-        this.auditPort = auditPort == null ? record -> { } : auditPort;
-    }
+    @Resource
+    private IToolExecutionAuditPort auditPort;
 
     @Override
     public ToolExecutionResult execute(ToolExecutionContext context) {
