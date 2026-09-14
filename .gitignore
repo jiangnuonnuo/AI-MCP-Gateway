@@ -45,3 +45,4 @@ build/
 /.walicode/memory/core_memory.json
 /ai-mcp-gateway-app/.local-config
 /.codegraph-cache/
+/docs/openspec/
