@@ -10,6 +10,8 @@
 - 缺失、额外和类型错误参数在 JDBC 前返回 `SQL_PARAMETER_ERROR`；资源限制和异常映射为稳定错误码。
 - 连接池健康检查、并发限制、查询超时、最大行数、最大列数、结果字节数和资源释放均由执行器治理。
 - 审计摘要包含 gatewayId、toolName、后端、requestId、策略结果、耗时、行数、结果字节数和错误码，不保存参数值或凭证。
+- `MysqlMcpRealIntegrationTest` 使用运行时凭证执行真实的 `tools/list -> tools/call -> JDBC -> MCP` 纵向链路并通过。
+- 只读测试账号的 `SHOW GRANTS` 和数据库层写操作拒绝验证通过，应用层 SQL 安全责任链同步拒绝同一写操作。
 
 验证命令：
 
@@ -19,6 +21,8 @@ docker run --rm -v "$PWD":/workspace -v "$HOME/.m2":/root/.m2 \
 ```
 
 本机数仓集成测试只有在显式注入 `WAREHOUSE_MYSQL_USERNAME` 和 `WAREHOUSE_MYSQL_PASSWORD` 时启用；未注入时默认跳过，不影响全量测试。
+
+真实 MySQL 调用和权限双重防线的具体命令与结果见 [real-mysql-call.md](real-mysql-call.md)。
 
 ## 未纳入能力
 

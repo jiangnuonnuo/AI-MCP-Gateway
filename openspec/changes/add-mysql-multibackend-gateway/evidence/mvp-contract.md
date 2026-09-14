@@ -15,7 +15,7 @@ HTTP Tool 保留兼容回归，但不属于本次 MySQL 首个验收链路；动
 | Tool 名称 | `warehouse_channel_sales` |
 | 执行模式 | `MYSQL_TEMPLATE` |
 | 数据源引用 | `warehouse-test`（固定绑定，客户端不可覆盖） |
-| 模板版本 | `channel-sales-v1`（只读、已发布） |
+| 模板版本 | `1`（只读、已发布） |
 | 查询范围 | `data_warehouse.fact_order` JOIN `data_warehouse.dim_channel` |
 | 查询能力 | 时间范围过滤、按渠道聚合订单数和支付金额 |
 
@@ -25,10 +25,11 @@ HTTP Tool 保留兼容回归，但不属于本次 MySQL 首个验收链路；动
 {
   "type": "object",
   "properties": {
-    "fromTime": { "type": "string", "format": "date-time" },
-    "toTime": { "type": "string", "format": "date-time" }
+    "fromTime": { "type": "string", "format": "date-time", "description": "起始时间（含）" },
+    "toTime": { "type": "string", "format": "date-time", "description": "结束时间（不含）" },
+    "orderStatus": { "type": "string", "description": "订单状态" }
   },
-  "required": ["fromTime", "toTime"],
+  "required": ["fromTime", "toTime", "orderStatus"],
   "additionalProperties": false
 }
 ```
