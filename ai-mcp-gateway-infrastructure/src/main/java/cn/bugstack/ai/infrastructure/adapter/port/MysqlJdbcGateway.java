@@ -5,8 +5,8 @@ import cn.bugstack.ai.domain.mysql.model.command.MysqlQueryCommand;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlQueryPolicy;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlQueryResult;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlTemplate;
-import cn.bugstack.ai.types.config.MysqlConnectionSettings;
-import cn.bugstack.ai.types.config.MysqlConnectionSettingsRegistry;
+import cn.bugstack.ai.infrastructure.mysql.MysqlConnectionSettings;
+import cn.bugstack.ai.infrastructure.mysql.MysqlConnectionSettingsRegistry;
 import cn.bugstack.ai.infrastructure.mysql.MysqlTemplateParameterBinder;
 import cn.bugstack.ai.types.exception.MysqlQueryException;
 import com.zaxxer.hikari.HikariConfig;
@@ -51,7 +51,7 @@ public class MysqlJdbcGateway implements IMysqlQueryPort, AutoCloseable {
         if (command != null) command.normalize();
         MysqlTemplate template = command == null ? null : command.getTemplate();
         if (template == null) throw new MysqlQueryException("INVALID_ARGUMENT", "template is required");
-        MysqlConnectionSettings dataSource = connectionSettingsRegistry.find(template.getDatasourceRef())
+        MysqlConnectionSettings dataSource = connectionSettingsRegistry.findSettings(template.getDatasourceRef())
                 .orElseThrow(() -> new MysqlQueryException("DATASOURCE_UNAVAILABLE", "data source is unavailable"));
         MysqlQueryPolicy effectivePolicy = command.getRequestedPolicy();
         if (effectivePolicy == null) {
@@ -90,7 +90,7 @@ public class MysqlJdbcGateway implements IMysqlQueryPort, AutoCloseable {
     }
 
     public boolean health(String datasourceRef) {
-        MysqlConnectionSettings config = connectionSettingsRegistry.find(datasourceRef).orElse(null);
+        MysqlConnectionSettings config = connectionSettingsRegistry.findSettings(datasourceRef).orElse(null);
         if (config == null) return false;
         PoolHolder holder = poolFor(config);
         try (Connection connection = holder.pool.getConnection()) {

@@ -5,6 +5,9 @@ import cn.bugstack.ai.types.exception.MysqlDomainException;
 import cn.bugstack.ai.infrastructure.observability.IMysqlExecutionMetricsPort;
 import cn.bugstack.ai.types.exception.MysqlQueryException;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlQueryResult;
+import cn.bugstack.ai.domain.mysql.model.valobj.MysqlTemplate;
+import cn.bugstack.ai.domain.mysql.model.valobj.MysqlTemplateStatus;
+import cn.bugstack.ai.domain.mysql.model.valobj.MysqlTemplateParameter;
 import cn.bugstack.ai.domain.session.model.valobj.gateway.McpToolProtocolConfigVO;
 import cn.bugstack.ai.domain.tool.executor.ToolExecutor;
 import cn.bugstack.ai.domain.tool.model.valobj.ToolBackendType;
@@ -20,9 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * 已发布 MySQL 只读模板的执行策略。模板和数据源均由服务端配置解析，客户端参数只能作为绑定值。
- */
+/** MySQL 只读协议的执行策略。协议和数据源均由服务端配置解析，客户端参数只能作为绑定值。 */
 @Component("mysqlTemplateExecutor")
 public class MysqlTemplateExecutor implements ToolExecutor {
 
@@ -56,8 +57,20 @@ public class MysqlTemplateExecutor implements ToolExecutor {
             }
             McpToolProtocolConfigVO.MysqlTemplateConfig reference =
                     context.getProtocolConfig().getMysqlTemplateConfig();
-            MysqlQueryResult queryResult = queryService.execute(reference.getTemplateRef(),
-                    reference.getTemplateVersion(), context.argumentsAsMap(), null, context.getRequestId());
+            MysqlTemplate template = MysqlTemplate.builder()
+                    .id(reference.getProtocolId() == null ? reference.getTemplateRef() : String.valueOf(reference.getProtocolId()))
+                    .version(reference.getTemplateVersion() == null ? "1" : reference.getTemplateVersion())
+                    .name(context.getToolName())
+                    .description(context.getToolName())
+                    .datasourceRef(reference.getDatasourceRef())
+                    .sql(reference.getSql())
+                    .parameters(reference.getParameters() == null ? List.<MysqlTemplateParameter>of() : reference.getParameters())
+                    .status(Integer.valueOf(1).equals(context.getProtocolConfig().getStatus())
+                            ? MysqlTemplateStatus.ENABLED : MysqlTemplateStatus.DISABLED)
+                    .policy(reference.getPolicy())
+                    .build();
+            MysqlQueryResult queryResult = queryService.execute(template, context.argumentsAsMap(),
+                    null, context.getRequestId());
             result = ToolExecutionResult.structured(context.getRequestId(), queryResult.getQueryId(),
                     columnMaps(queryResult.getColumns()), rowValues(queryResult), queryResult.isTruncated(),
                     queryResult.getResultBytes());
@@ -115,7 +128,7 @@ public class MysqlTemplateExecutor implements ToolExecutor {
         if (code == null) return ToolExecutionErrorCode.BACKEND_ERROR;
         return switch (code) {
             case "DATASOURCE_UNAVAILABLE" -> ToolExecutionErrorCode.DATASOURCE_UNAVAILABLE;
-            case "TEMPLATE_NOT_PUBLISHED" -> ToolExecutionErrorCode.TEMPLATE_NOT_PUBLISHED;
+            case "PROTOCOL_UNAVAILABLE" -> ToolExecutionErrorCode.PROTOCOL_UNAVAILABLE;
             case "SQL_PARAMETER_ERROR" -> ToolExecutionErrorCode.SQL_PARAMETER_ERROR;
             case "SQL_POLICY_REJECTED" -> ToolExecutionErrorCode.SQL_POLICY_REJECTED;
             case "SQL_SAFETY_FAILED" -> ToolExecutionErrorCode.SQL_POLICY_REJECTED;

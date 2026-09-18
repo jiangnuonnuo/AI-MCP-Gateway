@@ -1,9 +1,7 @@
 package cn.bugstack.ai.domain.mysql.model.valobj;
 
-/** 模板生命周期状态。只有 PUBLISHED 模板可以执行。 */
+/** MySQL 协议生命周期状态。控制面只允许启用和停用两态。 */
 public enum MysqlTemplateStatus {
-    DRAFT,
-    PUBLISHED,
-    DISABLED,
-    DEPRECATED
+    ENABLED,
+    DISABLED
 }

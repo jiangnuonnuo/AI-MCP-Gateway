@@ -4,11 +4,8 @@ import cn.bugstack.ai.domain.session.adapter.repository.ISessionRepository;
 import cn.bugstack.ai.domain.session.model.valobj.McpSchemaVO;
 import cn.bugstack.ai.domain.session.model.valobj.gateway.McpToolConfigVO;
 import cn.bugstack.ai.domain.session.model.valobj.gateway.McpToolProtocolConfigVO;
-import cn.bugstack.ai.domain.mysql.adapter.port.IMysqlTemplateRegistry;
-import cn.bugstack.ai.domain.mysql.model.valobj.MysqlParameterType;
-import cn.bugstack.ai.domain.mysql.model.valobj.MysqlTemplate;
-import cn.bugstack.ai.domain.tool.adapter.port.IToolAccessPolicyPort;
 import cn.bugstack.ai.domain.session.service.message.handler.IRequestHandler;
+import cn.bugstack.ai.types.exception.AppException;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -30,12 +27,6 @@ public class ToolsListHandler implements IRequestHandler {
 
     @Resource
     private ISessionRepository repository;
-
-    @Resource
-    private IMysqlTemplateRegistry mysqlTemplateRegistry;
-
-    @Resource
-    private IToolAccessPolicyPort accessPolicy;
 
     /**
      * {
@@ -104,21 +95,39 @@ public class ToolsListHandler implements IRequestHandler {
     public McpSchemaVO.JSONRPCResponse handle(String gatewayId, McpSchemaVO.JSONRPCRequest message) {
 
         // 1. 查询网关（gatewayId）下的工具列表配置
-        List<McpToolConfigVO> mcpToolConfigVOS = repository.queryMcpGatewayToolConfigListByGatewayId(gatewayId);
+        List<McpToolConfigVO> mcpToolConfigVOS;
+        try {
+            mcpToolConfigVOS = repository.queryMcpGatewayToolConfigListByGatewayId(gatewayId);
+        } catch (AppException e) {
+            log.warn("Tool discovery control-plane lookup failed, errorCode={}", e.getCode());
+            return new McpSchemaVO.JSONRPCResponse(McpSchemaVO.JSONRPC_VERSION, message.id(), null,
+                    new McpSchemaVO.JSONRPCResponse.JSONRPCError(-32603,
+                            "Gateway configuration is unavailable",
+                            Map.of("errorCode", "CONTROL_PLANE_UNAVAILABLE")));
+        }
 
         // 2. 构建工具列表
-        List<McpSchemaVO.Tool> tools = buildTools(mcpToolConfigVOS);
-        if (mysqlTemplateRegistry != null) {
-            List<MysqlTemplate> visibleTemplates = mysqlTemplateRegistry.listPublished().stream()
-                    .filter(template -> accessPolicy == null
-                            || accessPolicy.isAllowed(gatewayId, template.getId()))
-                    .toList();
-            tools.addAll(buildMysqlTools(visibleTemplates));
-        }
+        List<McpSchemaVO.Tool> tools = buildTools(mcpToolConfigVOS == null ? List.of() : mcpToolConfigVOS.stream()
+                .filter(McpToolConfigVO::isEnabled)
+                .filter(this::hasEnabledProtocol)
+                .toList());
 
         return new McpSchemaVO.JSONRPCResponse("2.0", message.id(), Map.of(
                 "tools", tools
         ), null);
+    }
+
+    /**
+     * Repository 应优先按协议和数据源状态过滤；该二次检查保证空配置或停用协议在边界处失败关闭，
+     * 同时不改变未携带状态的既有 HTTP 配置兼容语义。
+     */
+    private boolean hasEnabledProtocol(McpToolConfigVO toolConfig) {
+        if (toolConfig == null || toolConfig.getMcpToolProtocolConfigVO() == null) return false;
+        McpToolProtocolConfigVO protocol = toolConfig.getMcpToolProtocolConfigVO();
+        if (protocol.getStatus() != null && protocol.getStatus() != 1) return false;
+        if (protocol.getMysqlTemplateConfig() == null) return true;
+        Integer datasourceStatus = protocol.getMysqlTemplateConfig().getDatasourceStatus();
+        return datasourceStatus == null || datasourceStatus == 1;
     }
 
     private List<McpSchemaVO.Tool> buildTools(List<McpToolConfigVO> toolConfigs) {
@@ -186,35 +195,6 @@ public class ToolsListHandler implements IRequestHandler {
         }
 
         return tools;
-    }
-
-    private List<McpSchemaVO.Tool> buildMysqlTools(List<MysqlTemplate> templates) {
-        List<McpSchemaVO.Tool> tools = new ArrayList<>();
-        if (templates == null) return tools;
-        for (MysqlTemplate template : templates) {
-            Map<String, Object> properties = new HashMap<>();
-            List<String> required = new ArrayList<>();
-            for (var parameter : template.getParameters()) {
-                Map<String, Object> property = new HashMap<>();
-                property.put("type", schemaType(parameter.getType()));
-                if (parameter.getDescription() != null) property.put("description", parameter.getDescription());
-                properties.put(parameter.getName(), property);
-                if (parameter.isRequired()) required.add(parameter.getName());
-            }
-            McpSchemaVO.JsonSchema schema = new McpSchemaVO.JsonSchema(
-                    "object", properties, required.isEmpty() ? null : required, false, null, null);
-            tools.add(new McpSchemaVO.Tool(template.getId(), template.getDescription(), schema));
-        }
-        return tools;
-    }
-
-    private String schemaType(MysqlParameterType type) {
-        if (type == null) return "string";
-        return switch (type) {
-            case INTEGER, LONG, DECIMAL -> "number";
-            case BOOLEAN -> "boolean";
-            default -> "string";
-        };
     }
 
     private Map<String, Object> buildProperty(McpToolProtocolConfigVO.ProtocolMapping current, Map<String, List<McpToolProtocolConfigVO.ProtocolMapping>> childrenMap) {

@@ -41,9 +41,17 @@ public class McpToolConfigVO {
      */
     private String toolVersion;
 
+    /** Tool 业务状态：1 表示 ENABLED，0 表示 DISABLED。空值仅用于兼容未落库状态的 HTTP 旧配置。 */
+    private Integer status;
+
     /**
      * 协议配置
      */
     private McpToolProtocolConfigVO mcpToolProtocolConfigVO;
+
+    /** 判断当前 Gateway 绑定是否可对 MCP Client 暴露。 */
+    public boolean isEnabled() {
+        return status == null || status == 1;
+    }
 
 }

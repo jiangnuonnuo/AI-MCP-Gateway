@@ -18,7 +18,8 @@ thread:
 spring:
   datasource:
     username: root
-    password: 12345678
+    # 控制库使用本地 MySQL 的 root 账号；可通过环境变量覆盖本地默认凭证。
+    password: ${MCP_CONTROL_DB_PASSWORD:123456}
     url: jdbc:mysql://127.0.0.1:3306/ai_mcp_gateway_v2?useUnicode=true&characterEncoding=utf8&autoReconnect=true&zeroDateTimeBehavior=convertToNull&serverTimezone=UTC&useSSL=true
     driver-class-name: com.mysql.cj.jdbc.Driver
   hikari:

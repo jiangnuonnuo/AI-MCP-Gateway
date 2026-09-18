@@ -115,7 +115,8 @@ public class AdminRepository implements IAdminRepository {
     public List<GatewayProtocolConfigEntity> queryGatewayProtocolList() {
         List<McpProtocolHttpPO> pos = protocolHttpDao.queryAll();
         return pos.stream().map(po -> {
-            List<McpProtocolMappingPO> mappings = protocolMappingDao.queryMcpGatewayToolConfigListByProtocolId(po.getProtocolId());
+            List<McpProtocolMappingPO> mappings = protocolMappingDao.queryByProtocolKey(McpProtocolMappingPO.builder()
+                    .protocolType("http").protocolId(po.getProtocolId()).build());
             return GatewayProtocolConfigEntity.builder()
                     .protocolId(po.getProtocolId())
                     .httpUrl(po.getHttpUrl())

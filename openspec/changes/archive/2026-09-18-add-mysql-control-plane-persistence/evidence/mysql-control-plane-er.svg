@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 920" width="1400" height="920">
+  <style>
+    text { font-family: 'Helvetica Neue', Helvetica, Arial, 'PingFang SC', 'Microsoft YaHei', 'Microsoft JhengHei', 'SimHei', sans-serif; }
+    .title { font-size: 24px; font-weight: 600; fill: #111827; }
+    .subtitle { font-size: 13px; fill: #6b7280; }
+    .section { font-size: 13px; font-weight: 600; fill: #374151; }
+    .entity-title { font-size: 14px; font-weight: 600; fill: #111827; }
+    .attr { font-size: 12px; fill: #374151; }
+    .muted { font-size: 11px; fill: #6b7280; }
+    .relation { font-size: 11px; fill: #4b5563; }
+    .cardinality { font-size: 12px; font-weight: 600; fill: #111827; }
+    .note { font-size: 12px; fill: #92400e; }
+  </style>
+  <rect width="1400" height="920" fill="#ffffff"/>
+  <text x="60" y="42" class="title">MySQL 控制面持久化 ER 图 · 轻量方案 A</text>
+  <text x="60" y="68" class="subtitle">通用数据源 + MySQL 协议 SQL；Tool 和 Mapping 复用既有 MCP 链路，连接池运行参数保留在 App Config。</text>
+
+  <rect x="60" y="92" width="18" height="18" rx="4" fill="#dbeafe" stroke="#93c5fd"/>
+  <text x="86" y="106" class="relation">既有表</text>
+  <rect x="158" y="92" width="18" height="18" rx="4" fill="#dcfce7" stroke="#86efac"/>
+  <text x="184" y="106" class="relation">新增表</text>
+  <line x1="278" y1="101" x2="312" y2="101" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <text x="320" y="106" class="relation">逻辑关联</text>
+  <line x1="430" y1="101" x2="464" y2="101" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="472" y="106" class="relation">物理外键</text>
+
+  <g id="mcp-gateway-tool">
+    <rect x="60" y="160" width="360" height="270" rx="8" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+    <rect x="60" y="160" width="360" height="42" rx="8" fill="#dbeafe" stroke="#93c5fd" stroke-width="1.5"/>
+    <rect x="60" y="194" width="360" height="8" fill="#dbeafe"/>
+    <text x="78" y="186" class="entity-title">mcp_gateway_tool · 既有表</text>
+    <text x="78" y="226" class="attr" text-decoration="underline">id bigint unsigned · PK</text>
+    <text x="78" y="248" class="attr">gateway_id varchar(64)</text>
+    <text x="78" y="270" class="attr">tool_id bigint · gateway 级唯一</text>
+    <text x="78" y="292" class="attr">tool_name / description / version</text>
+    <text x="78" y="314" class="attr">protocol_id bigint</text>
+    <text x="78" y="336" class="attr">protocol_type varchar(32)</text>
+    <text x="78" y="358" class="attr">status tinyint(1) · 0/1</text>
+    <text x="78" y="390" class="muted">mysql：逻辑指向 mcp_protocol_mysql</text>
+    <text x="78" y="410" class="muted">http：逻辑指向 mcp_protocol_http</text>
+  </g>
+
+  <g id="mcp-protocol-mysql">
+    <rect x="500" y="150" width="380" height="300" rx="8" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5"/>
+    <rect x="500" y="150" width="380" height="42" rx="8" fill="#dcfce7" stroke="#86efac" stroke-width="1.5"/>
+    <rect x="500" y="184" width="380" height="8" fill="#dcfce7"/>
+    <text x="518" y="176" class="entity-title">mcp_protocol_mysql · 新增表</text>
+    <text x="518" y="216" class="attr" text-decoration="underline">id bigint unsigned · PK</text>
+    <text x="518" y="238" class="attr">protocol_id bigint unsigned · UQ</text>
+    <text x="518" y="260" class="attr" font-style="italic">datasource_id bigint unsigned · FK</text>
+    <text x="518" y="282" class="attr">sql_text mediumtext · Domain ≤ 64KB</text>
+    <text x="518" y="304" class="attr">max_rows / max_result_bytes</text>
+    <text x="518" y="326" class="attr">max_columns / timeout_ms</text>
+    <text x="518" y="348" class="attr">status tinyint(1) · 0/1</text>
+    <text x="518" y="378" class="muted">直接保存 SQL 模板和执行策略</text>
+    <text x="518" y="398" class="muted">不再存在 mcp_mysql_template</text>
+    <text x="518" y="420" class="muted">名称、描述、版本来自 mcp_gateway_tool</text>
+  </g>
+
+  <g id="mcp-datasource">
+    <rect x="970" y="160" width="380" height="280" rx="8" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5"/>
+    <rect x="970" y="160" width="380" height="42" rx="8" fill="#dcfce7" stroke="#86efac" stroke-width="1.5"/>
+    <rect x="970" y="194" width="380" height="8" fill="#dcfce7"/>
+    <text x="988" y="186" class="entity-title">mcp_datasource · 新增表</text>
+    <text x="988" y="226" class="attr" text-decoration="underline">id bigint unsigned · PK</text>
+    <text x="988" y="248" class="attr">datasource_ref varchar(64) · UQ</text>
+    <text x="988" y="270" class="attr">datasource_name / type varchar(128/32)</text>
+    <text x="988" y="292" class="attr">jdbc_url varchar(1024) / username</text>
+    <text x="988" y="314" class="attr">password_ciphertext text</text>
+    <text x="988" y="336" class="attr">password_nonce / encryption_key_ref</text>
+    <text x="988" y="358" class="attr">status tinyint(1) · 0/1</text>
+    <text x="988" y="388" class="muted">连接池和运行时参数不入库</text>
+    <text x="988" y="408" class="muted">密钥由 App Config/外部服务提供</text>
+  </g>
+
+  <rect x="60" y="540" width="595" height="220" rx="12" fill="#f9fafb" stroke="#d1d5db" stroke-width="1.5" stroke-dasharray="7,5"/>
+  <text x="80" y="568" class="section">Mapping · 协议类型参与关联</text>
+  <g id="mcp-protocol-mapping">
+    <rect x="80" y="595" width="535" height="135" rx="8" fill="#f3f4f6" stroke="#d1d5db" stroke-width="1.5"/>
+    <rect x="80" y="595" width="535" height="38" rx="8" fill="#e5e7eb" stroke="#d1d5db" stroke-width="1.5"/>
+    <rect x="80" y="625" width="535" height="8" fill="#e5e7eb"/>
+    <text x="96" y="619" class="entity-title">mcp_protocol_mapping · 既有表</text>
+    <text x="96" y="657" class="attr" text-decoration="underline">protocol_type varchar(32) + protocol_id bigint</text>
+    <text x="96" y="679" class="attr">mapping_type / field_name / mcp_path / sort_order</text>
+    <text x="96" y="701" class="muted">MySQL request mapping 必须与 SQL 命名参数一致</text>
+  </g>
+
+  <rect x="745" y="540" width="605" height="220" rx="12" fill="#f9fafb" stroke="#d1d5db" stroke-width="1.5" stroke-dasharray="7,5"/>
+  <text x="765" y="568" class="section">HTTP 兼容区 · 清库重建后重新导入既有测试数据</text>
+  <g id="mcp-protocol-http">
+    <rect x="765" y="595" width="565" height="135" rx="8" fill="#f3f4f6" stroke="#d1d5db" stroke-width="1.5"/>
+    <rect x="765" y="595" width="565" height="38" rx="8" fill="#e5e7eb" stroke="#d1d5db" stroke-width="1.5"/>
+    <rect x="765" y="625" width="565" height="8" fill="#e5e7eb"/>
+    <text x="781" y="619" class="entity-title">mcp_protocol_http · 既有表</text>
+    <text x="781" y="657" class="attr" text-decoration="underline">protocol_id bigint · UQ</text>
+    <text x="781" y="679" class="attr">http_url / method / headers / timeout / retry</text>
+    <text x="781" y="701" class="muted">继续使用现有 HTTP Tool 执行与映射链路</text>
+  </g>
+
+  <line x1="420" y1="285" x2="468" y2="285" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="6,4" data-graph-role="edge"/>
+  <polygon points="500,285 474,299 474,271" fill="#ffffff" stroke="#9ca3af" stroke-width="1.5"/>
+  <text x="431" y="272" class="cardinality">N</text>
+  <text x="505" y="272" class="cardinality">1</text>
+  <text x="448" y="320" class="relation">protocol_type=mysql</text>
+
+  <line x1="880" y1="285" x2="938" y2="285" stroke="#2563eb" stroke-width="1.5" data-graph-role="edge"/>
+  <polygon points="970,285 944,299 944,271" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="890" y="272" class="cardinality">N</text>
+  <text x="975" y="272" class="cardinality">1</text>
+  <text x="900" y="320" class="relation">datasource_id · 物理 FK</text>
+
+  <line x1="250" y1="430" x2="250" y2="504" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="6,4" data-graph-role="edge"/>
+  <polygon points="250,540 236,510 264,510" fill="#ffffff" stroke="#9ca3af" stroke-width="1.5"/>
+  <text x="230" y="478" class="relation">http/mysql</text>
+  <text x="262" y="482" class="cardinality">1</text>
+
+  <line x1="590" y1="450" x2="560" y2="502" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="6,4" data-graph-role="edge"/>
+  <polygon points="545,540 546,507 570,519" fill="#ffffff" stroke="#9ca3af" stroke-width="1.5"/>
+  <text x="570" y="486" class="relation">(protocol_type, protocol_id)</text>
+
+  <line x1="880" y1="450" x2="1020" y2="490" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="6,4" data-graph-role="edge"/>
+  <polygon points="1048,540 1018,521 1030,496" fill="#ffffff" stroke="#9ca3af" stroke-width="1.5"/>
+  <text x="900" y="486" class="relation">http protocol logical link</text>
+
+  <text x="60" y="820" class="note">凭证规则：控制库只保存密码密文和加密元数据；解密主密钥位于 App Config 或外部密钥服务。</text>
+  <text x="60" y="844" class="note">开发清理范围：只清空并重建 Gateway 控制库；真实 data_warehouse 保持不变并仅用于只读调用。</text>
+  <text x="60" y="868" class="subtitle">SQL 保存校验只使用 JSqlParser 和 Domain 安全责任链，不执行 EXPLAIN 或目标库元数据查询。</text>
+</svg>

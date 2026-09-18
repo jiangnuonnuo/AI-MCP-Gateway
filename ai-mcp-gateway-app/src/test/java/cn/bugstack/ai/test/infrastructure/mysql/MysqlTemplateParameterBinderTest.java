@@ -21,7 +21,7 @@ class MysqlTemplateParameterBinderTest {
             "SELECT * FROM fact_order WHERE order_time >= :fromTime AND channel_id = :channelId",
             List.of(new MysqlTemplateParameter("fromTime", MysqlParameterType.DATETIME, true),
                     new MysqlTemplateParameter("channelId", MysqlParameterType.INTEGER, true)),
-            MysqlTemplateStatus.PUBLISHED, null);
+            MysqlTemplateStatus.ENABLED, null);
 
     @Test
     void bindsNamedParametersWithoutStringConcatenation() {

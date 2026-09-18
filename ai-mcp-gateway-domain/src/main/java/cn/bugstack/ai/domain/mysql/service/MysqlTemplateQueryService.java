@@ -2,7 +2,7 @@ package cn.bugstack.ai.domain.mysql.service;
 
 import cn.bugstack.ai.domain.mysql.adapter.port.IMysqlDataSourceRegistry;
 import cn.bugstack.ai.domain.mysql.adapter.port.IMysqlQueryPort;
-import cn.bugstack.ai.domain.mysql.adapter.port.IMysqlTemplateRegistry;
+import cn.bugstack.ai.domain.mysql.adapter.port.IMysqlProtocolRepository;
 import cn.bugstack.ai.domain.mysql.adapter.port.ISqlSafetyPort;
 import cn.bugstack.ai.domain.mysql.model.command.MysqlQueryCommand;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlDataSourceRef;
@@ -28,8 +28,8 @@ import java.util.Map;
 @Service("mysqlTemplateQueryService")
 public class MysqlTemplateQueryService {
 
-    @Resource(name = "mysqlTemplateRegistry")
-    private IMysqlTemplateRegistry templateRegistry;
+    @Resource(name = "mysqlProtocolRepository")
+    private IMysqlProtocolRepository protocolRepository;
 
     @Resource(name = "mysqlDataSourceRegistry")
     private IMysqlDataSourceRegistry dataSourceRegistry;
@@ -52,7 +52,21 @@ public class MysqlTemplateQueryService {
      */
     public MysqlQueryResult execute(String templateRef, String version, Map<String, ?> arguments,
                                     MysqlQueryPolicy requestedPolicy, String queryId) {
-        MysqlTemplate template = requirePublishedTemplate(templateRef, version);
+        MysqlTemplate template = requireEnabledTemplate(templateRef, version);
+        return execute(template, arguments, requestedPolicy, queryId);
+    }
+
+    /**
+     * 执行已经由 Gateway 绑定解析出的协议记录。调用方不能通过参数覆盖 SQL、数据源或策略。
+     */
+    public MysqlQueryResult execute(MysqlTemplate template, Map<String, ?> arguments,
+                                    MysqlQueryPolicy requestedPolicy, String queryId) {
+        if (template == null) {
+            throw new MysqlDomainException("PROTOCOL_UNAVAILABLE", "MySQL protocol is unavailable");
+        }
+        if (!template.isEnabled()) {
+            throw new MysqlDomainException("PROTOCOL_UNAVAILABLE", "MySQL protocol is unavailable");
+        }
         MysqlDataSourceRef dataSource = requireEnabledDataSource(template.getDatasourceRef());
         Map<String, Object> parameters = normalizeArguments(arguments);
 
@@ -74,13 +88,14 @@ public class MysqlTemplateQueryService {
         return queryPort.execute(command);
     }
 
-    private MysqlTemplate requirePublishedTemplate(String templateRef, String version) {
-        if (templateRegistry == null) {
-            throw new MysqlDomainException("TEMPLATE_NOT_PUBLISHED", "MySQL template registry is unavailable");
+    private MysqlTemplate requireEnabledTemplate(String templateRef, String version) {
+        if (protocolRepository == null) {
+            throw new MysqlDomainException("PROTOCOL_UNAVAILABLE", "MySQL protocol is unavailable");
         }
-        MysqlTemplate template = templateRegistry.findPublished(templateRef, version).orElse(null);
+        MysqlTemplate template = protocolRepository.find(templateRef, version)
+                .filter(MysqlTemplate::isEnabled).orElse(null);
         if (template == null) {
-            throw new MysqlDomainException("TEMPLATE_NOT_PUBLISHED", "MySQL template is not published");
+            throw new MysqlDomainException("PROTOCOL_UNAVAILABLE", "MySQL protocol is unavailable");
         }
         try {
             template.validate();

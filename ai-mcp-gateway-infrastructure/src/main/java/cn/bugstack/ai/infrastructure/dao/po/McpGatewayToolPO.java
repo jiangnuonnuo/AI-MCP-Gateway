@@ -57,6 +57,10 @@ public class McpGatewayToolPO extends BasePagePO {
      */
     private String protocolType;
     /**
+     * 工具状态：0-禁用，1-启用；新绑定默认禁用，启用由领域流程显式完成。
+     */
+    private Integer status;
+    /**
      * 创建时间
      */
     private Date createTime;
