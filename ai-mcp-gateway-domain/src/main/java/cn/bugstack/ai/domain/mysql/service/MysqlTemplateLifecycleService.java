@@ -1,50 +1,39 @@
 package cn.bugstack.ai.domain.mysql.service;
 
-import cn.bugstack.ai.domain.mysql.adapter.port.IMysqlTemplateRegistry;
+import cn.bugstack.ai.domain.mysql.adapter.port.IMysqlProtocolRepository;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlTemplate;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlTemplateStatus;
 import cn.bugstack.ai.types.exception.MysqlDomainException;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
-/**
- * MySQL 模板生命周期领域服务，集中管理发布、停用和废弃规则。
- */
+/** MySQL 协议生命周期领域服务，统一使用 ENABLED/DISABLED 两态。 */
 @Service
 public class MysqlTemplateLifecycleService {
 
-    @Resource(name = "mysqlTemplateRegistry")
-    private IMysqlTemplateRegistry templateRegistry;
+    @Resource(name = "mysqlProtocolRepository")
+    private IMysqlProtocolRepository protocolRepository;
 
-    /** 发布草稿模板。 */
-    public void publish(String templateRef, String version) {
-        transition(templateRef, version, MysqlTemplateStatus.PUBLISHED);
+    /** 启用已经完成本地校验的协议记录。 */
+    public void enable(String templateRef, String version) {
+        transition(templateRef, version, MysqlTemplateStatus.ENABLED);
     }
 
-    /** 停用已发布模板。 */
+    /** 停用协议记录；停用不会删除其管理数据。 */
     public void disable(String templateRef, String version) {
         transition(templateRef, version, MysqlTemplateStatus.DISABLED);
     }
 
-    /** 废弃已发布或已停用模板。 */
-    public void deprecate(String templateRef, String version) {
-        transition(templateRef, version, MysqlTemplateStatus.DEPRECATED);
-    }
-
     private void transition(String templateRef, String version, MysqlTemplateStatus target) {
-        MysqlTemplate template = templateRegistry.find(templateRef, version)
+        MysqlTemplate template = protocolRepository.find(templateRef, version)
                 .orElseThrow(() -> new MysqlDomainException("TEMPLATE_NOT_FOUND", "template is not found"));
         MysqlTemplateStatus current = template.getStatus();
-        boolean allowed = switch (target) {
-            case PUBLISHED -> current == MysqlTemplateStatus.DRAFT;
-            case DISABLED -> current == MysqlTemplateStatus.PUBLISHED;
-            case DEPRECATED -> current == MysqlTemplateStatus.PUBLISHED || current == MysqlTemplateStatus.DISABLED;
-            case DRAFT -> false;
-        };
+        boolean allowed = (target == MysqlTemplateStatus.ENABLED || target == MysqlTemplateStatus.DISABLED)
+                && current != null;
         if (!allowed) {
             throw new MysqlDomainException("TEMPLATE_STATUS_INVALID", "template status transition is invalid");
         }
         template.setStatus(target);
-        templateRegistry.save(template);
+        protocolRepository.save(template);
     }
 }

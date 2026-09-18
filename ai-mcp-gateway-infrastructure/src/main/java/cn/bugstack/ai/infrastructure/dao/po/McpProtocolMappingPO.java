@@ -27,6 +27,10 @@ public class McpProtocolMappingPO extends BasePagePO {
      */
     private Long protocolId;
     /**
+     * 协议类型；与 protocolId 共同确定 HTTP 或 MySQL 协议上下文。
+     */
+    private String protocolType;
+    /**
      * 映射类型：request-请求参数映射，response-响应数据映射
      */
     private String mappingType;

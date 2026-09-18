@@ -12,13 +12,14 @@
         <result column="tool_version" property="toolVersion"/>
         <result column="protocol_id" property="protocolId"/>
         <result column="protocol_type" property="protocolType"/>
+        <result column="status" property="status"/>
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
     </resultMap>
 
     <insert id="insert" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpGatewayToolPO">
-        INSERT INTO mcp_gateway_tool (gateway_id, tool_id, tool_name, tool_type, tool_description, tool_version, protocol_id, protocol_type)
-        VALUES (#{gatewayId}, #{toolId}, #{toolName}, #{toolType}, #{toolDescription}, #{toolVersion}, #{protocolId}, #{protocolType})
+        INSERT INTO mcp_gateway_tool (gateway_id, tool_id, tool_name, tool_type, tool_description, tool_version, protocol_id, protocol_type, status)
+        VALUES (#{gatewayId}, #{toolId}, #{toolName}, #{toolType}, #{toolDescription}, #{toolVersion}, #{protocolId}, #{protocolType}, COALESCE(#{status}, 0))
         ON DUPLICATE KEY UPDATE
         gateway_id = #{gatewayId},
         tool_name = #{toolName},
@@ -27,6 +28,7 @@
         tool_version = #{toolVersion},
         protocol_id = #{protocolId},
         protocol_type = #{protocolType},
+        status = COALESCE(#{status}, status),
         update_time = NOW()
     </insert>
 
@@ -34,27 +36,48 @@
         UPDATE mcp_gateway_tool
         SET protocol_id = #{protocolId},
         protocol_type = #{protocolType},
+        status = COALESCE(#{status}, status),
         update_time = NOW()
         WHERE gateway_id = #{gatewayId}
+        <if test="toolId != null">
+            AND tool_id = #{toolId}
+        </if>
     </update>
 
     <select id="queryEffectiveTools" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpGatewayToolPO"
             resultMap="McpGatewayToolMap">
-        SELECT id, gateway_id, tool_id, tool_name, tool_type, tool_description, tool_version, protocol_id, protocol_type,
+        SELECT id, gateway_id, tool_id, tool_name, tool_type, tool_description, tool_version, protocol_id, protocol_type, status,
         create_time, update_time
         FROM mcp_gateway_tool
-        WHERE gateway_id = #{gatewayId}
+        WHERE gateway_id = #{gatewayId} AND status = 1
+    </select>
+
+    <select id="queryEnabledByGatewayId" parameterType="java.lang.String" resultMap="McpGatewayToolMap">
+        SELECT id, gateway_id, tool_id, tool_name, tool_type, tool_description, tool_version, protocol_id, protocol_type, status,
+               create_time, update_time
+        FROM mcp_gateway_tool
+        WHERE gateway_id = #{gatewayId} AND status = 1
+        ORDER BY id ASC
     </select>
 
     <select id="queryToolProtocolIdByToolName" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpGatewayToolPO" resultType="java.lang.Long">
         SELECT protocol_id FROM mcp_gateway_tool
-        WHERE gateway_id = #{gatewayId} and tool_name = #{toolName}
+        WHERE gateway_id = #{gatewayId} AND tool_name = #{toolName} AND status = 1
+    </select>
+
+    <select id="queryByGatewayIdAndToolName" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpGatewayToolPO"
+            resultMap="McpGatewayToolMap">
+        SELECT id, gateway_id, tool_id, tool_name, tool_type, tool_description, tool_version,
+               protocol_id, protocol_type, status, create_time, update_time
+        FROM mcp_gateway_tool
+        WHERE gateway_id = #{gatewayId} AND tool_name = #{toolName}
     </select>
 
     <update id="updateGatewayToolProtocol" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpGatewayToolPO">
         UPDATE mcp_gateway_tool
         SET protocol_id = #{protocolId},
         protocol_type = #{protocolType},
+        status = COALESCE(#{status}, status),
         update_time = NOW()
         WHERE gateway_id = #{gatewayId}
         <if test="toolId != null">
@@ -63,14 +86,14 @@
     </update>
 
     <select id="queryListByGatewayId" parameterType="java.lang.String" resultMap="McpGatewayToolMap">
-        SELECT id, gateway_id, tool_id, tool_name, tool_type, tool_description, tool_version, protocol_id, protocol_type,
+        SELECT id, gateway_id, tool_id, tool_name, tool_type, tool_description, tool_version, protocol_id, protocol_type, status,
                create_time, update_time
         FROM mcp_gateway_tool
         WHERE gateway_id = #{gatewayId}
     </select>
 
     <select id="queryToolList" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpGatewayToolPO" resultMap="McpGatewayToolMap">
-        SELECT id, gateway_id, tool_id, tool_name, tool_type, tool_description, tool_version, protocol_id, protocol_type,
+        SELECT id, gateway_id, tool_id, tool_name, tool_type, tool_description, tool_version, protocol_id, protocol_type, status,
                create_time, update_time
         FROM mcp_gateway_tool
         <where>
@@ -107,7 +130,7 @@
     </select>
 
     <select id="queryAll" resultMap="McpGatewayToolMap">
-        SELECT id, gateway_id, tool_id, tool_name, tool_type, tool_description, tool_version, protocol_id, protocol_type,
+        SELECT id, gateway_id, tool_id, tool_name, tool_type, tool_description, tool_version, protocol_id, protocol_type, status,
         create_time, update_time
         FROM mcp_gateway_tool
     </select>
@@ -117,4 +140,3 @@
     </delete>
 
 </mapper>
-

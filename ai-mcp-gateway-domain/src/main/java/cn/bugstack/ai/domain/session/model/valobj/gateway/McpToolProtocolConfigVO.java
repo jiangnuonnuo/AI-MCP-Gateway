@@ -2,6 +2,8 @@ package cn.bugstack.ai.domain.session.model.valobj.gateway;
 
 import cn.bugstack.ai.domain.tool.model.valobj.ToolBackendType;
 import cn.bugstack.ai.domain.tool.model.valobj.ToolExecutionMode;
+import cn.bugstack.ai.domain.mysql.model.valobj.MysqlQueryPolicy;
+import cn.bugstack.ai.domain.mysql.model.valobj.MysqlTemplateParameter;
 import lombok.*;
 
 import java.util.List;
@@ -18,6 +20,15 @@ import java.util.List;
 @NoArgsConstructor
 public class McpToolProtocolConfigVO {
 
+    /** 逻辑协议类型，用于隔离相同 protocol_id 的不同协议。 */
+    private String protocolType;
+
+    /** 持久化协议逻辑标识。 */
+    private Long protocolId;
+
+    /** 协议业务状态：1 表示 ENABLED，0 表示 DISABLED。 */
+    private Integer status;
+
     /**
      * Tool 的后端执行类型。旧 HTTP 配置为空时由执行上下文兼容推断为 HTTP。
      */
@@ -28,9 +39,7 @@ public class McpToolProtocolConfigVO {
      */
     private ToolExecutionMode executionMode;
 
-    /**
-     * MySQL 只读模板引用。只暴露引用和版本，SQL 正文及数据源凭证始终保留在服务端 Registry。
-     */
+    /** MySQL 只读协议的服务端执行配置；该内部对象不会直接序列化为 MCP discovery 响应。 */
     private MysqlTemplateConfig mysqlTemplateConfig;
 
     /**
@@ -53,11 +62,29 @@ public class McpToolProtocolConfigVO {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class MysqlTemplateConfig {
-        /** 已发布模板引用。 */
+        /** 协议引用的兼容别名。 */
         private String templateRef;
 
-        /** 已发布模板版本。 */
+        /** Gateway Tool 版本。 */
         private String templateVersion;
+
+        /** 持久化 MySQL 协议标识；模板引用仅保留为兼容旧执行器的别名。 */
+        private Long protocolId;
+
+        /** 固定绑定的数据源业务引用。 */
+        private String datasourceRef;
+
+        /** 绑定数据源状态：1 表示 ENABLED，0 表示 DISABLED。 */
+        private Integer datasourceStatus;
+
+        /** 服务端持久化的只读 SQL；不会进入 MCP discovery 响应。 */
+        private String sql;
+
+        /** 由 request mapping 转换的扁平参数契约。 */
+        private List<MysqlTemplateParameter> parameters;
+
+        /** 协议级查询上限。 */
+        private MysqlQueryPolicy policy;
     }
 
     @Data

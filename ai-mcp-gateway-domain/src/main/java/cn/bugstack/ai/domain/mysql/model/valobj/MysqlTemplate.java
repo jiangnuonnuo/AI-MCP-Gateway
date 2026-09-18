@@ -43,8 +43,9 @@ public class MysqlTemplate {
     /** 模板级只读和资源策略。 */
     private MysqlQueryPolicy policy;
 
-    public boolean isPublished() {
-        return status == MysqlTemplateStatus.PUBLISHED;
+    /** 判断协议是否处于可执行的两态 ENABLED。 */
+    public boolean isEnabled() {
+        return status == MysqlTemplateStatus.ENABLED;
     }
 
     /**

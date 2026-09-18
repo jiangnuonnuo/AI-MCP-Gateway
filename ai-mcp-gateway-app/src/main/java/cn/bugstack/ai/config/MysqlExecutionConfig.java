@@ -1,6 +1,7 @@
 package cn.bugstack.ai.config;
 
 import cn.bugstack.ai.domain.mysql.adapter.port.IMysqlQueryPort;
+import cn.bugstack.ai.domain.mysql.model.valobj.MysqlQueryPolicy;
 import cn.bugstack.ai.infrastructure.adapter.port.MysqlJdbcGateway;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -25,6 +26,15 @@ public class MysqlExecutionConfig {
     @Bean
     public IMysqlQueryPort mysqlQueryPort(MysqlJdbcGateway gateway) {
         return gateway;
+    }
+
+    /**
+     * 暴露 App Config 的技术上限，供持久化数据源/协议适配器在 Domain 编排时合并。
+     * 该 Bean 不包含 JDBC 地址、用户名、凭证或业务数据源状态。
+     */
+    @Bean("mysqlTechnicalPolicy")
+    public MysqlQueryPolicy mysqlTechnicalPolicy(MysqlConnectionProperties properties) {
+        return properties.technicalPolicy();
     }
 
     /** 为 Infrastructure 技术密钥解析器提供组合根查找函数。 */

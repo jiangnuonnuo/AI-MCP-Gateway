@@ -62,7 +62,8 @@ public class ProtocolRepository implements IProtocolRepository {
             
             if (isUpdate) {
                 protocolHttpDao.updateByProtocolId(mcpProtocolHttpPO);
-                protocolMappingDao.deleteByProtocolId(protocolId);
+                protocolMappingDao.deleteByProtocolKey(McpProtocolMappingPO.builder()
+                        .protocolType("http").protocolId(protocolId).build());
             } else {
                 protocolHttpDao.insert(mcpProtocolHttpPO);
             }
@@ -76,6 +77,7 @@ public class ProtocolRepository implements IProtocolRepository {
 
             for (HTTPProtocolVO.ProtocolMapping mapping : mappings) {
                 McpProtocolMappingPO mcpProtocolMappingPO = McpProtocolMappingPO.builder()
+                        .protocolType("http")
                         .protocolId(protocolId)
                         .mappingType(mapping.getMappingType())
                         .parentPath(mapping.getParentPath())
@@ -99,7 +101,8 @@ public class ProtocolRepository implements IProtocolRepository {
     @Override
     public void deleteGatewayProtocol(Long protocolId) {
         protocolHttpDao.deleteByProtocolId(protocolId);
-        protocolMappingDao.deleteByProtocolId(protocolId);
+        protocolMappingDao.deleteByProtocolKey(McpProtocolMappingPO.builder()
+                .protocolType("http").protocolId(protocolId).build());
     }
 
 }

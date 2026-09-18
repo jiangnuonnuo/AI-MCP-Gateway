@@ -22,7 +22,12 @@ public interface IMcpProtocolMappingDao {
 
     List<McpProtocolMappingPO> queryMcpGatewayToolConfigListByProtocolId(Long protocolId);
 
+    /** 按协议类型和逻辑协议 ID 查询 mapping，隔离同值的 HTTP/MySQL ID。 */
+    List<McpProtocolMappingPO> queryByProtocolKey(McpProtocolMappingPO query);
+
+    /** 按协议类型和逻辑协议 ID 删除 mapping。 */
+    int deleteByProtocolKey(McpProtocolMappingPO query);
+
     List<McpProtocolMappingPO> queryListByProtocolIds(List<Long> protocolIds);
 
 }
-

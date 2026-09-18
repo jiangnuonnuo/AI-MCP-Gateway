@@ -28,6 +28,27 @@ Trigger ──> API ──> Case ──> Domain <── Infrastructure
 | `ai-mcp-gateway-types` | 跨模块共享的基础类型 |
 | `ai-mcp-gateway-app` | 应用启动、模块装配和运行配置 |
 
+### 共享类型与基础设施技术契约的边界
+
+`ai-mcp-gateway-types` 只承载跨模块共享且不依赖框架的稳定契约，例如 App Config
+向 Infrastructure 提供应用级技术上限的接口。`@ConfigurationProperties`、`@Configuration`
+和 Bean 组装必须位于 `ai-mcp-gateway-app/.../config`；JDBC 地址、运行时凭证、数据源解析、
+连接池和驱动协作契约必须位于 `ai-mcp-gateway-infrastructure` 的技术包中。
+
+曾出现过将 `MysqlConnectionSettings` 和 `MysqlConnectionSettingsRegistry` 放入
+`types/config` 的架构错误：这两个接口只被 Infrastructure 使用，其中前者还携带 JDBC
+连接与运行时凭证语义，后者由 `MysqlDataSourceRepository` 实现而不是由 App Config 提供。
+该错误会把 Infrastructure 内部技术细节伪装成公共跨模块类型，并使 `Registry` 的职责注释
+误导为“应用启动配置适配”。它们应归入 `infrastructure/mysql`；只有
+`MysqlRuntimeSettings` 保留在 `types/config`，作为 `MysqlConnectionProperties` 与
+Infrastructure 之间的中立配置契约。
+
+判定规则如下：
+
+- 被 Domain、Case、Trigger 或多个独立模块共同依赖，且不包含框架、驱动、凭证和资源生命周期语义的稳定接口，才可以进入 `types`。
+- 只被 Infrastructure 使用，或包含 JDBC、HTTP、Redis、连接池、密钥、环境变量和技术资源语义的接口，必须留在 Infrastructure 技术包。
+- App Config 通过 `types` 中立契约或组合根 Bean 向 Infrastructure 提供启动参数；Infrastructure 不得反向依赖 App Config 类。
+
 ## 分层边界
 
 ### Domain
@@ -72,9 +93,18 @@ Trigger ──> API ──> Case ──> Domain <── Infrastructure
 ### App Config
 
 - `ai-mcp-gateway-app/src/main/java/cn/bugstack/ai/config` 是启动配置和组合根。
-- 连接地址、连接用户名、密钥引用、连接池参数、超时、并发、运行时开关和 `@ConfigurationProperties` 均归入 App Config。
+- 控制库连接地址、控制库凭证引用、解密主密钥引用、连接池参数、连接获取/校验超时、并发、运行时开关和 `@ConfigurationProperties` 归入 App Config；业务数据源的 JDBC 地址、用户名、加密凭证和数据源状态属于控制库持久化数据，不得写成固定 App Config 模板。
 - App Config 负责通过 `@Bean`、`@Resource` 和配置属性完成 Bean 组装，将配置适配给 Infrastructure；Infrastructure 不得反向依赖 App。
 - App Config 不承载领域流程和业务规则；配置对象是启动参数，不得被当作 Domain 聚合或业务实体。
+
+### 数据库模型与迁移
+
+- 引入新表或修改表、字段、索引、约束前，必须先输出 ER 图，明确现有表、拟新增表、主外键、逻辑关联、基数和不受影响的兼容链路。
+- 未经业务确认，不得编写或修改 DDL、DAO、PO、Mapper、Repository 及依赖新结构的业务代码；方案记录和 ER 图应先进入对应 OpenSpec 变更的证据目录。
+- 多协议共享字段（例如按 `protocol_type` 解释的 `protocol_id`）只能标注为逻辑关联，不得为了图上的连线强行增加互斥的物理外键；同类型新表之间优先使用物理外键和唯一约束。
+- 数据源注册表应保持通用，保存业务连接信息和加密凭证；具体协议表保存该协议的业务配置（例如 MySQL 的只读 SQL 和资源上限）。不得为每种数据库重复建立数据源表，也不得为已有 Tool 身份字段再复制一张“模板语义表”。
+- `tools/list` 与 `tools/call` 必须从当前 Gateway 的 Tool 绑定出发，禁止全局枚举协议/模板或以内存 Registry 作为持久化缺失时的兜底。
+- 表结构确认后，先落地最小只读路径并用真实数据库验证，再增加管理 API、审批、审计或复杂的规范化拆表。
 
 ### 通用业务边界
 

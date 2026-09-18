@@ -5,6 +5,7 @@
     <resultMap id="McpProtocolMappingMap" type="cn.bugstack.ai.infrastructure.dao.po.McpProtocolMappingPO">
         <id column="id" property="id"/>
         <result column="protocol_id" property="protocolId"/>
+        <result column="protocol_type" property="protocolType"/>
         <result column="mapping_type" property="mappingType"/>
         <result column="parent_path" property="parentPath"/>
         <result column="field_name" property="fieldName"/>
@@ -19,9 +20,9 @@
 
     <insert id="insert" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpProtocolMappingPO"
             useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO mcp_protocol_mapping (protocol_id, mapping_type, parent_path, field_name, mcp_path,
+        INSERT INTO mcp_protocol_mapping (protocol_type, protocol_id, mapping_type, parent_path, field_name, mcp_path,
         mcp_type, mcp_desc, is_required, sort_order)
-        VALUES (#{protocolId}, #{mappingType}, #{parentPath}, #{fieldName}, #{mcpPath}, #{mcpType},
+        VALUES (COALESCE(#{protocolType}, 'http'), #{protocolId}, #{mappingType}, #{parentPath}, #{fieldName}, #{mcpPath}, #{mcpType},
         #{mcpDesc}, #{isRequired}, #{sortOrder})
     </insert>
 
@@ -36,6 +37,7 @@
     <update id="updateById" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpProtocolMappingPO">
         UPDATE mcp_protocol_mapping
         SET
+        protocol_type = #{protocolType},
         protocol_id = #{protocolId},
         mapping_type = #{mappingType},
         parent_path = #{parentPath},
@@ -50,14 +52,14 @@
     </update>
 
     <select id="queryById" parameterType="java.lang.Long" resultMap="McpProtocolMappingMap">
-        SELECT id, protocol_id, mapping_type, parent_path, field_name, mcp_path, mcp_type, mcp_desc,
+        SELECT id, protocol_type, protocol_id, mapping_type, parent_path, field_name, mcp_path, mcp_type, mcp_desc,
         is_required, sort_order, create_time, update_time
         FROM mcp_protocol_mapping
         WHERE id = #{id}
     </select>
 
     <select id="queryAll" resultMap="McpProtocolMappingMap">
-        SELECT id, protocol_id, mapping_type, parent_path, field_name, mcp_path, mcp_type, mcp_desc,
+        SELECT id, protocol_type, protocol_id, mapping_type, parent_path, field_name, mcp_path, mcp_type, mcp_desc,
         is_required, sort_order, create_time, update_time
         FROM mcp_protocol_mapping
         ORDER BY id DESC
@@ -65,22 +67,35 @@
 
     <select id="queryMcpGatewayToolConfigListByProtocolId" parameterType="java.lang.Long"
             resultMap="McpProtocolMappingMap">
-        SELECT id, protocol_id, mapping_type, parent_path, field_name, mcp_path, mcp_type, mcp_desc,
+        SELECT id, protocol_type, protocol_id, mapping_type, parent_path, field_name, mcp_path, mcp_type, mcp_desc,
         is_required, sort_order
         FROM mcp_protocol_mapping
-        WHERE protocol_id = #{protocolId}
+        WHERE protocol_type = 'http' AND protocol_id = #{protocolId}
         ORDER BY sort_order ASC
     </select>
 
+    <select id="queryByProtocolKey" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpProtocolMappingPO"
+            resultMap="McpProtocolMappingMap">
+        SELECT id, protocol_type, protocol_id, mapping_type, parent_path, field_name, mcp_path, mcp_type, mcp_desc,
+               is_required, sort_order, create_time, update_time
+        FROM mcp_protocol_mapping
+        WHERE protocol_type = #{protocolType} AND protocol_id = #{protocolId}
+        ORDER BY sort_order ASC, id ASC
+    </select>
+
+    <delete id="deleteByProtocolKey" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpProtocolMappingPO">
+        DELETE FROM mcp_protocol_mapping
+        WHERE protocol_type = #{protocolType} AND protocol_id = #{protocolId}
+    </delete>
+
     <select id="queryListByProtocolIds" resultMap="McpProtocolMappingMap">
-        SELECT id, protocol_id, mapping_type, parent_path, field_name, mcp_path, mcp_type, mcp_desc, is_required, sort_order,
+        SELECT id, protocol_type, protocol_id, mapping_type, parent_path, field_name, mcp_path, mcp_type, mcp_desc, is_required, sort_order,
                create_time, update_time
         FROM mcp_protocol_mapping
-        WHERE protocol_id IN
+        WHERE protocol_type = 'http' AND protocol_id IN
         <foreach collection="list" item="protocolId" open="(" separator="," close=")">
             #{protocolId}
         </foreach>
     </select>
 
 </mapper>
-

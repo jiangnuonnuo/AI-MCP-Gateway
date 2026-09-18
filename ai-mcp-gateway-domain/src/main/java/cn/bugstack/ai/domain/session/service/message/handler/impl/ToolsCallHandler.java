@@ -9,8 +9,7 @@ import cn.bugstack.ai.domain.tool.model.valobj.ToolExecutionContext;
 import cn.bugstack.ai.domain.tool.model.valobj.ToolExecutionErrorCode;
 import cn.bugstack.ai.domain.tool.model.valobj.ToolExecutionResult;
 import cn.bugstack.ai.domain.session.service.message.handler.IRequestHandler;
-import cn.bugstack.ai.domain.mysql.adapter.port.IMysqlTemplateRegistry;
-import cn.bugstack.ai.domain.mysql.model.valobj.MysqlTemplate;
+import cn.bugstack.ai.types.exception.AppException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -33,9 +32,6 @@ public class ToolsCallHandler implements IRequestHandler {
 
     @Resource
     private IToolExecutionPort toolExecutionPort;
-
-    @Resource
-    private IMysqlTemplateRegistry mysqlTemplateRegistry;
 
     @Resource
     private IToolAccessPolicyPort accessPolicy;
@@ -70,13 +66,21 @@ public class ToolsCallHandler implements IRequestHandler {
 
             // 2. 查询协议信息
             McpToolProtocolConfigVO mcpToolProtocolConfigVO = repository.queryMcpGatewayProtocolConfig(gatewayId, toolName);
-            if (mcpToolProtocolConfigVO == null) {
-                mcpToolProtocolConfigVO = mysqlTemplateConfig(toolName);
-            }
             if (null == mcpToolProtocolConfigVO) {
                 return response(responseId, requestId, ToolExecutionResult.failure(requestId,
                         ToolExecutionErrorCode.TOOL_NOT_FOUND,
                         "Tool is not available"));
+            }
+            if (mcpToolProtocolConfigVO.getStatus() != null && mcpToolProtocolConfigVO.getStatus() != 1) {
+                return response(responseId, requestId, ToolExecutionResult.failure(requestId,
+                        ToolExecutionErrorCode.TOOL_DISABLED, "Tool is disabled"));
+            }
+            McpToolProtocolConfigVO.MysqlTemplateConfig mysqlConfig =
+                    mcpToolProtocolConfigVO.getMysqlTemplateConfig();
+            if (mysqlConfig != null && mysqlConfig.getDatasourceStatus() != null
+                    && mysqlConfig.getDatasourceStatus() != 1) {
+                return response(responseId, requestId, ToolExecutionResult.failure(requestId,
+                        ToolExecutionErrorCode.DATASOURCE_UNAVAILABLE, "Data source is unavailable"));
             }
 
             // 3. 交给后端无关的执行端口，Handler 不判断 HTTP、JDBC 或具体后端。
@@ -89,6 +93,13 @@ public class ToolsCallHandler implements IRequestHandler {
                     .build();
             return response(responseId, requestId, toolExecutionPort.execute(context));
 
+        } catch (AppException e) {
+            log.warn("Tool call control-plane lookup failed, errorCode={}", e.getCode());
+            ToolExecutionErrorCode errorCode = "CONTROL_PLANE_UNAVAILABLE".equals(e.getCode())
+                    ? ToolExecutionErrorCode.CONTROL_PLANE_UNAVAILABLE
+                    : ToolExecutionErrorCode.MISSING_CONFIGURATION;
+            return response(responseId, requestId, ToolExecutionResult.failure(requestId,
+                    errorCode, errorCode.name()));
         } catch (Exception e) {
             log.warn("Tool call request could not be processed, tool={}",
                     message == null || message.params() == null ? null : "provided");
@@ -98,26 +109,6 @@ public class ToolsCallHandler implements IRequestHandler {
 
         }
 
-    }
-
-    private McpToolProtocolConfigVO mysqlTemplateConfig(String toolName) {
-        if (mysqlTemplateRegistry == null) return null;
-        return mysqlTemplateRegistry.listPublished().stream()
-                .filter(template -> toolName.equals(template.getId()) || toolName.equals(template.getName()))
-                .findFirst()
-                .map(this::toMysqlProtocolConfig)
-                .orElse(null);
-    }
-
-    private McpToolProtocolConfigVO toMysqlProtocolConfig(MysqlTemplate template) {
-        return McpToolProtocolConfigVO.builder()
-                .backendType(cn.bugstack.ai.domain.tool.model.valobj.ToolBackendType.MYSQL)
-                .executionMode(cn.bugstack.ai.domain.tool.model.valobj.ToolExecutionMode.MYSQL_TEMPLATE)
-                .mysqlTemplateConfig(McpToolProtocolConfigVO.MysqlTemplateConfig.builder()
-                        .templateRef(template.getId())
-                        .templateVersion(template.getVersion())
-                        .build())
-                .build();
     }
 
     private McpSchemaVO.JSONRPCResponse response(Object responseId, String requestId, ToolExecutionResult result) {

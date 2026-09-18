@@ -254,3 +254,63 @@ UNLOCK TABLES;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+
+-- 控制面持久化扩展：仅供开发环境清库重建使用。data_warehouse 不在此脚本范围内。
+ALTER TABLE `mcp_gateway_tool`
+  MODIFY COLUMN `protocol_type` varchar(32) NOT NULL DEFAULT 'http' COMMENT '协议类型；http、mysql',
+  ADD COLUMN `status` tinyint(1) NOT NULL DEFAULT '0' COMMENT '状态：0-禁用，1-启用' AFTER `protocol_type`,
+  DROP INDEX `uq_tool_id`,
+  ADD UNIQUE KEY `uq_gateway_tool_id` (`gateway_id`,`tool_id`),
+  ADD KEY `idx_gateway_status` (`gateway_id`,`status`),
+  ADD KEY `idx_protocol_key` (`protocol_type`,`protocol_id`),
+  ADD CONSTRAINT `chk_gateway_tool_status` CHECK (`status` IN (0, 1));
+
+UPDATE `mcp_gateway_tool`
+SET `status` = 1
+WHERE `protocol_type` = 'http';
+
+ALTER TABLE `mcp_protocol_http` ADD UNIQUE KEY `uq_protocol_id` (`protocol_id`);
+
+ALTER TABLE `mcp_protocol_mapping`
+  ADD COLUMN `protocol_type` varchar(32) NOT NULL DEFAULT 'http' COMMENT '协议类型' AFTER `protocol_id`,
+  ADD UNIQUE KEY `uq_protocol_mapping_key` (`protocol_type`,`protocol_id`,`mapping_type`,`mcp_path`),
+  ADD KEY `idx_protocol_mapping_key` (`protocol_type`,`protocol_id`);
+
+DROP TABLE IF EXISTS `mcp_protocol_mysql`;
+DROP TABLE IF EXISTS `mcp_datasource`;
+
+CREATE TABLE `mcp_datasource` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `datasource_ref` varchar(64) NOT NULL,
+  `datasource_name` varchar(128) NOT NULL,
+  `datasource_type` varchar(32) NOT NULL,
+  `jdbc_url` varchar(1024) NOT NULL,
+  `username` varchar(128) NOT NULL,
+  `password_ciphertext` text NOT NULL,
+  `password_nonce` varchar(64) NOT NULL,
+  `encryption_key_ref` varchar(128) NOT NULL,
+  `status` tinyint(1) NOT NULL DEFAULT '0',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`), UNIQUE KEY `uq_datasource_ref` (`datasource_ref`),
+  KEY `idx_datasource_status` (`datasource_type`,`status`),
+  CONSTRAINT `chk_datasource_status` CHECK (`status` IN (0, 1))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='通用业务数据源注册表';
+
+CREATE TABLE `mcp_protocol_mysql` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `protocol_id` bigint unsigned NOT NULL,
+  `datasource_id` bigint unsigned NOT NULL,
+  `sql_text` mediumtext NOT NULL,
+  `max_rows` int unsigned NOT NULL DEFAULT '1000',
+  `max_result_bytes` bigint unsigned NOT NULL DEFAULT '4194304',
+  `max_columns` smallint unsigned NOT NULL DEFAULT '128',
+  `timeout_ms` int unsigned NOT NULL DEFAULT '30000',
+  `status` tinyint(1) NOT NULL DEFAULT '0',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`), UNIQUE KEY `uq_mysql_protocol_id` (`protocol_id`),
+  KEY `idx_mysql_protocol_status` (`status`),
+  CONSTRAINT `chk_mysql_protocol_status` CHECK (`status` IN (0, 1)),
+  CONSTRAINT `fk_mysql_protocol_datasource` FOREIGN KEY (`datasource_id`) REFERENCES `mcp_datasource` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='MySQL 只读协议与 SQL 模板';
