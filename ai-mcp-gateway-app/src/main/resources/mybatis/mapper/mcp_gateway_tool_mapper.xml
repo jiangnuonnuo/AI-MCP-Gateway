@@ -106,6 +106,12 @@
             <if test="toolName != null and toolName != ''">
                 AND tool_name like concat('%', #{toolName}, '%')
             </if>
+            <if test="protocolId != null">
+                AND protocol_id = #{protocolId}
+            </if>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
         </where>
         ORDER BY update_time DESC
         <if test="limitStart != null and limitCount != null">
@@ -126,6 +132,12 @@
             <if test="toolName != null and toolName != ''">
                 AND tool_name like concat('%', #{toolName}, '%')
             </if>
+            <if test="protocolId != null">
+                AND protocol_id = #{protocolId}
+            </if>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
         </where>
     </select>
 
@@ -137,6 +149,16 @@
 
     <delete id="deleteByToolId" parameterType="java.lang.Long">
         DELETE FROM mcp_gateway_tool WHERE tool_id = #{toolId}
+    </delete>
+
+    <update id="updateStatusById" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpGatewayToolPO">
+        UPDATE mcp_gateway_tool
+        SET status = #{status}, update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById" parameterType="java.lang.Long">
+        DELETE FROM mcp_gateway_tool WHERE id = #{id}
     </delete>
 
 </mapper>

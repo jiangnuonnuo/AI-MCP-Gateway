@@ -1,5 +1,5 @@
 server:
-  port: 8777
+  port: 8779
   servlet:
     context-path: /api-gateway
 
@@ -35,11 +35,11 @@ spring:
   # spring ai
   ai:
     openai:
-      base-url: https://apis.itedus.cn
-      api-key: ${SPRING_AI_OPENAI_API_KEY}
+      base-url: http://127.0.0.1:8777/v1
+      api-key: ${OPENAI_API_KEY}
       chat:
         options:
-          model: gpt-4o
+          model: step-3.7-flash
 
 # MyBatis 配置【如需使用记得打开】
 mybatis:
@@ -50,8 +50,10 @@ mybatis:
 redis:
   sdk:
     config:
-      host: 192.168.1.108
-      port: 16379
+      # 开发环境默认连接本机 Redis；部署到其他环境时通过环境变量覆盖。
+      host: ${MCP_REDIS_HOST:127.0.0.1}
+      port: ${MCP_REDIS_PORT:6379}
+      password: ${MCP_REDIS_PASSWORD:123456}
       pool-size: 10
       min-idle-size: 5
       idle-timeout: 30000

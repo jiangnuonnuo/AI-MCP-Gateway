@@ -48,7 +48,7 @@ public class AuthLicenseService implements IAuthLicenseService {
         boolean isBefore = new Date().before(expireTime);
 
         if (!isBefore) {
-            log.warn("apiKey 权限校验，expireTime 已过期。gatewayId:{} apiKey:{}", commandEntity.getGatewayId(), commandEntity.getApiKey());
+            log.warn("apiKey 权限校验，expireTime 已过期。gatewayId:{}", commandEntity.getGatewayId());
         }
 
         return isBefore;

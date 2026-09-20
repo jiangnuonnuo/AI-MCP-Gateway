@@ -2,6 +2,7 @@ package cn.bugstack.ai.infrastructure.dao;
 
 import cn.bugstack.ai.infrastructure.dao.po.McpDataSourcePO;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -29,4 +30,10 @@ public interface IMcpDataSourceDao {
 
     /** 查询全部数据源记录，供管理端使用。 */
     List<McpDataSourcePO> queryAll();
+
+    int updateStatusByDatasourceRef(@Param("datasourceRef") String datasourceRef, @Param("status") int status);
+
+    List<McpDataSourcePO> queryPage(McpDataSourcePO query);
+
+    Long queryPageCount(McpDataSourcePO query);
 }

@@ -1,0 +1,38 @@
+<section class="workbench-page" data-resource="template" aria-labelledby="workbench-title">
+    <section class="workbench-stage">
+        <h1 id="workbench-title">SQL 模板</h1>
+        <p>用标准化的 SQL 模板，构建可安全调用的 MCP 数据能力。</p>
+        <div class="stage-points" aria-label="SQL 模板能力"><span class="stage-point"><i aria-hidden="true">✓</i>统一数据访问入口</span><span class="stage-point"><i aria-hidden="true">✓</i>参数契约可追踪</span><span class="stage-point"><i aria-hidden="true">✓</i>一键发布为 MCP Tool</span></div>
+        <img class="hero-art" src="../assets/network-hero.png" alt="AI Agent 连接 MCP Gateway 与多个数据源的示意图">
+        <span class="hero-label hero-agent" aria-hidden="true">AI Agent</span><span class="hero-label hero-gateway" aria-hidden="true">MCP<br>Gateway</span><span class="hero-label hero-db-one" aria-hidden="true">MySQL</span><span class="hero-label hero-db-two" aria-hidden="true">PostgreSQL</span><span class="hero-label hero-db-three" aria-hidden="true">ClickHouse</span><span class="connect-note" aria-hidden="true">Connect<br>More<br>Possibilities<i></i></span>
+    </section>
+    <section class="kpi-grid" id="template-kpis" aria-label="SQL 模板指标"></section>
+    <section class="workbench-grid">
+        <div class="registry-panel">
+            <div class="tabs" role="tablist" aria-label="SQL 模板筛选"><button type="button" class="tab-button active" data-status-filter="all" role="tab" aria-selected="true">全部模板</button><button type="button" class="tab-button" data-status-filter="mine" role="tab" aria-selected="false">我的模板</button><button type="button" class="tab-button" data-status-filter="enabled" role="tab" aria-selected="false">已发布</button><button type="button" class="tab-button" data-status-filter="draft" role="tab" aria-selected="false">草稿</button></div>
+            <div class="filter-bar"><label class="filter-control search-control"><i class="bi bi-search" aria-hidden="true"></i><input id="template-search" type="search" placeholder="搜索模板名称、协议 ID 或 SQL" aria-label="搜索 SQL 模板"></label><label class="filter-control"><select id="template-datasource-filter" aria-label="按数据源筛选"><option value="">全部数据源</option></select></label><button type="button" class="button primary" id="template-create"><i class="bi bi-plus-lg" aria-hidden="true"></i>新建模板</button></div>
+            <div class="registry-scroll"><div class="registry-head"><span></span><span>名称 / 描述</span><span>数据源 / 协议</span><span>Tool</span><span>状态</span><span>操作</span></div><div id="template-rows" aria-live="polite"></div></div>
+            <div class="pagination-bar"><span id="template-page-info">显示 0 到 0 条，共 0 条</span><div class="pagination-actions" id="template-pagination"></div></div>
+        </div>
+        <aside class="inspector-panel" id="template-inspector" aria-label="SQL 模板详情检查器"></aside>
+    </section>
+    <section class="resource-drawer" id="template-drawer" aria-labelledby="template-drawer-title">
+        <div class="drawer-heading"><div><h2 id="template-drawer-title">新建 SQL 模板</h2><p>启用后的 SQL、数据源和参数契约不可原地覆盖；请先停用或创建新协议。</p></div><button type="button" class="drawer-close" data-close-drawer="template" aria-label="关闭 SQL 模板表单"><i class="bi bi-x-lg" aria-hidden="true"></i></button></div>
+        <div class="drawer-alert" id="template-form-alert" role="alert"></div>
+        <form id="template-form" novalidate>
+            <input type="hidden" name="id">
+            <div class="form-grid">
+                <div class="field"><label for="template-name">模板名称 <span class="required">*</span></label><input id="template-name" name="name" required maxlength="96" placeholder="订单来源汇总"><span class="field-error">请输入模板名称</span></div>
+                <div class="field"><label for="template-datasource">数据源 <span class="required">*</span></label><select id="template-datasource" name="datasourceId" required><option value="">选择数据源</option></select><span class="field-error">请选择数据源</span></div>
+                <div class="field full"><label for="template-description">模板说明</label><input id="template-description" name="description" maxlength="300" placeholder="说明模板的查询用途和业务边界"><span class="field-help">启用状态下仍可更新名称和说明。</span></div>
+                <div class="field full"><label for="template-sql">只读 SQL <span class="required">*</span></label><textarea id="template-sql" name="sql" class="mono" required spellcheck="false" placeholder="SELECT ... WHERE field = :param"></textarea><span class="field-help">保存时会执行语法、只读策略、参数映射和资源上限校验。</span><span class="field-error">请输入 SQL，并确保只包含安全的只读语句</span></div>
+                <div class="field full"><label for="template-params">参数契约 JSON</label><textarea id="template-params" name="params" class="mono" spellcheck="false" placeholder='[{"name":"fromTime","type":"DATETIME","required":true}]'></textarea><span class="field-help">参数名必须与 SQL 中的占位符一致。</span><span class="field-error">参数契约 JSON 格式不正确</span></div>
+                <div class="field"><label for="template-max-rows">最大返回行数</label><input id="template-max-rows" name="maxRows" type="number" min="1" max="100000" value="1000"><span class="field-error">请输入 1-100000 的行数上限</span></div>
+                <div class="field"><label for="template-timeout">超时（毫秒）</label><input id="template-timeout" name="timeoutMs" type="number" min="100" max="60000" value="3000"><span class="field-error">请输入 100-60000 的超时上限</span></div>
+                <div class="field"><label for="template-max-bytes">结果大小（字节）</label><input id="template-max-bytes" name="maxBytes" type="number" min="1024" max="52428800" value="5242880"><span class="field-error">请输入合法的结果大小上限</span></div>
+                <div class="field"><label for="template-status">初始状态</label><select id="template-status" name="status"><option value="0">停用（推荐）</option><option value="1">启用</option></select><span class="field-help">启用前必须通过所有 SQL 安全检查。</span></div>
+            </div>
+            <div class="drawer-actions"><button type="button" class="button" data-close-drawer="template">取消</button><button type="button" class="button" id="template-test"><i class="bi bi-play" aria-hidden="true"></i>测试运行</button><button type="submit" class="button primary" id="template-submit"><i class="bi bi-check2-circle" aria-hidden="true"></i>保存模板</button></div>
+        </form>
+    </section>
+</section>

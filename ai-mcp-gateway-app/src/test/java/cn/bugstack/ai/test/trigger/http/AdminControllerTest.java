@@ -4,7 +4,6 @@ import cn.bugstack.ai.api.dto.GatewayLLMRequestDTO;
 import cn.bugstack.ai.api.dto.GatewayLLMResponseDTO;
 import cn.bugstack.ai.api.response.Response;
 import cn.bugstack.ai.trigger.http.AdminController;
-import com.alibaba.fastjson.JSON;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -36,7 +35,7 @@ public class AdminControllerTest {
 
         Response<GatewayLLMResponseDTO> response = adminController.testCallGateway(requestDTO);
 
-        log.info("测试结果:{}", JSON.toJSONString(response));
+        org.junit.Assert.assertNotNull(response);
     }
 
 }

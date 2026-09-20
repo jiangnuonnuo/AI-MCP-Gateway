@@ -44,7 +44,7 @@ public class RootNode extends AbstractMcpStreamableMessageServiceSupport {
                 if (SessionMessageHandlerMethodEnum.TOOLS_CALL.equals(sessionMessageHandlerMethodEnum)) {
                     boolean isHit = authRateLimitService.rateLimit(new RateLimitCommandEntity(requestParameter.getGatewayId(), requestParameter.getApiKey()));
                     if (isHit) {
-                        log.warn("Streamable 消息处理 RootNode - 命中限流{} {}", requestParameter.getGatewayId(), requestParameter.getApiKey());
+                        log.warn("Streamable 消息处理 RootNode - 命中限流 gatewayId:{}", requestParameter.getGatewayId());
                         throw new AppException(McpErrorCodes.INSUFFICIENT_PERMISSIONS, "fail to auth apikey rateLimiter");
                     }
                 }

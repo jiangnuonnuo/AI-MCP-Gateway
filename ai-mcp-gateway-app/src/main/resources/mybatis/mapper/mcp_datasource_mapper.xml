@@ -75,4 +75,31 @@
         ORDER BY id DESC
     </select>
 
+    <update id="updateStatusByDatasourceRef">
+        UPDATE mcp_datasource
+        SET status = #{status}, update_time = CURRENT_TIMESTAMP
+        WHERE datasource_ref = #{datasourceRef}
+    </update>
+
+    <select id="queryPage" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpDataSourcePO" resultMap="McpDataSourceMap">
+        SELECT <include refid="DataSourceColumns"/>
+        FROM mcp_datasource
+        <where>
+            <if test="datasourceRef != null and datasourceRef != ''">AND datasource_ref LIKE concat('%', #{datasourceRef}, '%')</if>
+            <if test="datasourceName != null and datasourceName != ''">AND datasource_name LIKE concat('%', #{datasourceName}, '%')</if>
+            <if test="status != null">AND status = #{status}</if>
+        </where>
+        ORDER BY update_time DESC
+        <if test="limitStart != null and limitCount != null">LIMIT #{limitStart}, #{limitCount}</if>
+    </select>
+
+    <select id="queryPageCount" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpDataSourcePO" resultType="java.lang.Long">
+        SELECT count(id) FROM mcp_datasource
+        <where>
+            <if test="datasourceRef != null and datasourceRef != ''">AND datasource_ref LIKE concat('%', #{datasourceRef}, '%')</if>
+            <if test="datasourceName != null and datasourceName != ''">AND datasource_name LIKE concat('%', #{datasourceName}, '%')</if>
+            <if test="status != null">AND status = #{status}</if>
+        </where>
+    </select>
+
 </mapper>

@@ -91,11 +91,11 @@ public class McpStreamableGatewayController implements IMcpStreamableService {
                                                @RequestHeader HttpHeaders headers) {
         String sessionId = StringUtils.isNotBlank(headerSessionId) ? headerSessionId : paramSessionId;
         Map<String, String> transportContext = extractContext(headers);
-        log.info("MCP Streamable POST 收到消息，gatewayId:{} apiKey:{} sessionId:{} context:{} message:{}", gatewayId, apiKey, sessionId, transportContext, messageBody);
+        log.info("MCP Streamable POST 收到消息，gatewayId:{} sessionId:{}", gatewayId, sessionId);
 
         try {
             if (StringUtils.isBlank(gatewayId) || StringUtils.isBlank(messageBody)) {
-                log.warn("MCP Streamable POST 参数非法，gatewayId:{} messageBody:{}", gatewayId, messageBody);
+                log.warn("MCP Streamable POST 参数非法，gatewayId:{}", gatewayId);
                 return Mono.just(ResponseEntity.badRequest().body("{\"error\": \"Invalid or missing gatewayId/messageBody\"}"));
             }
 
@@ -105,7 +105,7 @@ public class McpStreamableGatewayController implements IMcpStreamableService {
             return Mono.<ResponseEntity<?>>just(responseEntity)
                     .contextWrite(ctx -> ctx.put("MCP_TRANSPORT_CONTEXT", transportContext));
         } catch (Exception e) {
-            log.error("MCP Streamable POST 处理消息失败，gatewayId:{} sessionId:{} messageBody:{}", gatewayId, sessionId, messageBody, e);
+            log.error("MCP Streamable POST 处理消息失败，gatewayId:{} sessionId:{}", gatewayId, sessionId, e);
             return Mono.just(ResponseEntity.internalServerError().body(JSON.toJSONString(Map.of("error", e.getMessage()))));
         }
     }

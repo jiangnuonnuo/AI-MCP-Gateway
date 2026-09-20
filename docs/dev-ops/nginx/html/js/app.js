@@ -22,23 +22,38 @@ $(document).ready(function() {
         $(this).addClass('active');
         
         const targetId = $(this).data('target');
+        window.history.replaceState(null, '', `#${targetId}`);
         loadView(targetId);
     });
 
     // 动态加载视图
     function loadView(targetId) {
         const viewPath = `views/${targetId}.html`;
-        $('#main-content-wrapper').html('<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><div class="mt-2 text-muted">加载中...</div></div>');
+        const $viewRegion = $('.view-region').length ? $('.view-region') : $('#main-content-wrapper');
+        updateShellMeta(targetId);
+        $viewRegion.html('<div class="text-center py-5"><div class="spinner-border text-info" role="status"></div><div class="mt-2 text-muted">加载中...</div></div>');
         
-        $('#main-content-wrapper').load(viewPath, function(response, status, xhr) {
+        $viewRegion.load(viewPath, function(response, status, xhr) {
             if (status == "error") {
-                $('#main-content-wrapper').html(`<div class="alert alert-danger m-4">页面加载失败：${xhr.status} ${xhr.statusText}</div>`);
+                $viewRegion.html(`<div class="alert alert-danger m-4">页面加载失败：${xhr.status} ${xhr.statusText}</div>`);
                 return;
             }
             
             // 页面加载后的初始化逻辑
             initViewLogic(targetId);
         });
+    }
+
+    // 顶部上下文与浏览器标题始终跟随当前动态 View。
+    function updateShellMeta(targetId) {
+        const labels = {
+            dashboard: '控制台', 'gateway-list': '网关列表', 'gateway-tool': '网关工具',
+            'gateway-protocol': 'HTTP 协议', datasource: '数据源', 'sql-template': 'SQL 模板',
+            'tool-binding': 'Tool 绑定', 'gateway-auth': '认证配置', 'gateway-test': '网关测试'
+        };
+        const label = labels[targetId] || targetId;
+        $('#shell-crumb').text(label);
+        document.title = `AI MCP Gateway · ${label}`;
     }
 
     // 初始化各个页面的逻辑
@@ -69,6 +84,12 @@ $(document).ready(function() {
             loadGatewayAuthList();
         } else if (targetId === 'gateway-test') {
             initGatewayTestPage();
+        } else if (targetId === 'datasource') {
+            window.initMysqlWorkbench('datasource');
+        } else if (targetId === 'sql-template') {
+            window.initMysqlWorkbench('template');
+        } else if (targetId === 'tool-binding') {
+            window.initMysqlWorkbench('binding');
         }
     }
 
@@ -374,8 +395,12 @@ $(document).ready(function() {
         $tbody.html(html);
     }
 
-    // 初始加载 Dashboard
-    loadView('dashboard');
+    // 初始加载当前 hash 指向的页面，支持资源页深链接和刷新后保持上下文。
+    const initialView = (window.location.hash || '#dashboard').slice(1);
+    const initialTarget = $('.nav-link[data-target="' + initialView + '"]').length ? initialView : 'dashboard';
+    $('.nav-link').removeClass('active');
+    $('.nav-link[data-target="' + initialTarget + '"]').addClass('active');
+    loadView(initialTarget);
 
     // 显示 Toast 通知
     function showToast(message, isSuccess = true) {

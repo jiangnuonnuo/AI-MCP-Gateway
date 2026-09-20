@@ -79,4 +79,30 @@
         ORDER BY id DESC
     </select>
 
+    <update id="updateStatusByProtocolId">
+        UPDATE mcp_protocol_mysql
+        SET status = #{status}, update_time = CURRENT_TIMESTAMP
+        WHERE protocol_id = #{protocolId}
+    </update>
+
+    <select id="queryPage" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpProtocolMysqlPO" resultMap="McpProtocolMysqlMap">
+        SELECT <include refid="MysqlProtocolColumns"/> FROM mcp_protocol_mysql
+        <where>
+            <if test="protocolId != null">AND protocol_id = #{protocolId}</if>
+            <if test="datasourceId != null">AND datasource_id = #{datasourceId}</if>
+            <if test="status != null">AND status = #{status}</if>
+        </where>
+        ORDER BY update_time DESC
+        <if test="limitStart != null and limitCount != null">LIMIT #{limitStart}, #{limitCount}</if>
+    </select>
+
+    <select id="queryPageCount" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpProtocolMysqlPO" resultType="java.lang.Long">
+        SELECT count(id) FROM mcp_protocol_mysql
+        <where>
+            <if test="protocolId != null">AND protocol_id = #{protocolId}</if>
+            <if test="datasourceId != null">AND datasource_id = #{datasourceId}</if>
+            <if test="status != null">AND status = #{status}</if>
+        </where>
+    </select>
+
 </mapper>
