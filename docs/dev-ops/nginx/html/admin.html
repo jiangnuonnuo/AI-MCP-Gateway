@@ -3,115 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MCP 网关管理系统</title>
-    <!-- Bootstrap 5 -->
+    <meta name="color-scheme" content="dark">
+    <title>AI MCP Gateway · Control Plane</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Fira+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-    <!-- 自定义样式 -->
     <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
-
-<header class="navbar navbar-expand-md sticky-top">
-    <div class="container-fluid">
-        <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3" href="#">
-            <i class="bi bi-hdd-network-fill"></i> AI MCP Gateway
-        </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        
-        <div class="navbar-nav ms-auto d-flex align-items-center">
-            <div class="nav-item text-nowrap d-flex align-items-center gap-3 pe-3">
-                <span class="text-muted small"><i class="bi bi-person-circle"></i> Admin</span>
-                <a class="nav-link text-danger d-flex align-items-center gap-1" href="#" id="logoutBtn" style="font-weight: 500;">
-                    <i class="bi bi-box-arrow-right"></i> 退出登录
-                </a>
-            </div>
+<body class="admin-page">
+<a class="skip-link" href="#main-content-wrapper">跳转到主要内容</a>
+<div class="app-shell">
+    <aside id="sidebarMenu" class="sidebar" aria-label="主导航">
+        <div class="brand">
+            <div class="brand-mark" aria-hidden="true">✦</div>
+            <div><div class="brand-name">AI MCP Gateway</div><div class="brand-sub">CONNECT AI TO REAL WORLD</div></div>
         </div>
-    </div>
-</header>
-
-<div class="container-fluid">
-    <div class="row">
-        <!-- 侧边栏 -->
-        <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block sidebar collapse">
-            <div class="sidebar-sticky">
-                <ul class="nav flex-column mb-4">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="#" data-target="dashboard">
-                            <i class="bi bi-speedometer2"></i> 控制台
-                        </a>
-                    </li>
-                </ul>
-                
-                <h6 class="sidebar-heading px-3 mb-2">
-                    <span>网关管理</span>
-                </h6>
-                <ul class="nav flex-column mb-4">
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" data-target="gateway-list">
-                            <i class="bi bi-list-ul"></i> 网关列表
-                        </a>
-                    </li>
-                    <!-- 二级目录: 元素配置 -->
-                    <li class="nav-item">
-                        <a class="nav-link d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#elementConfigCollapse" role="button" aria-expanded="true" aria-controls="elementConfigCollapse">
-                            <div><i class="bi bi-grid"></i> 元素配置</div>
-                            <i class="bi bi-chevron-down"></i>
-                        </a>
-                        <div class="collapse show" id="elementConfigCollapse">
-                            <ul class="nav flex-column ms-3">
-                                <li class="nav-item">
-                                    <a class="nav-link" href="#" data-target="gateway-tool">
-                                        <i class="bi bi-tools"></i> 网关工具
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" href="#" data-target="gateway-protocol">
-                                        <i class="bi bi-diagram-3"></i> 协议配置
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" href="#" data-target="gateway-auth">
-                                        <i class="bi bi-shield-lock"></i> 认证配置
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" data-target="gateway-test">
-                            <i class="bi bi-chat-dots"></i> 网关测试
-                        </a>
-                    </li>
-                </ul>
-            </div>
+        <nav class="nav-stack">
+            <div class="nav-label">网关管理</div>
+            <a class="nav-link" href="#dashboard" data-target="dashboard"><i class="bi bi-house glyph" aria-hidden="true"></i><span>控制台</span></a>
+            <a class="nav-link" href="#gateway-list" data-target="gateway-list"><i class="bi bi-grid-1x2 glyph" aria-hidden="true"></i><span>网关列表</span></a>
+            <a class="nav-link" href="#gateway-tool" data-target="gateway-tool"><i class="bi bi-tools glyph" aria-hidden="true"></i><span>网关工具</span></a>
+            <a class="nav-link" href="#gateway-protocol" data-target="gateway-protocol"><i class="bi bi-diagram-3 glyph" aria-hidden="true"></i><span>HTTP 协议</span></a>
+            <div class="nav-label nav-label-spaced">MCP 资源</div>
+            <a class="nav-link" href="#datasource" data-target="datasource"><i class="bi bi-database glyph" aria-hidden="true"></i><span>数据源</span><span class="nav-count" id="nav-datasource-count">08</span></a>
+            <a class="nav-link" href="#sql-template" data-target="sql-template"><i class="bi bi-file-earmark-code glyph" aria-hidden="true"></i><span>SQL 模板</span><span class="nav-count" id="nav-template-count">12</span></a>
+            <a class="nav-link" href="#tool-binding" data-target="tool-binding"><i class="bi bi-link-45deg glyph" aria-hidden="true"></i><span>Tool 绑定</span><span class="nav-count" id="nav-binding-count">09</span></a>
+            <div class="nav-label nav-label-spaced">安全与测试</div>
+            <a class="nav-link" href="#gateway-auth" data-target="gateway-auth"><i class="bi bi-shield-lock glyph" aria-hidden="true"></i><span>认证配置</span></a>
+            <a class="nav-link" href="#gateway-test" data-target="gateway-test"><i class="bi bi-play-circle glyph" aria-hidden="true"></i><span>网关测试</span></a>
         </nav>
-
-        <!-- 主内容区 -->
-        <main class="col-md-9 ms-sm-auto col-lg-10 main-content" id="main-content-wrapper">
-            <!-- 动态内容加载区 -->
-        </main>
-    </div>
+        <div class="bridge-note" aria-hidden="true">Bridging<br>AI Agents<br>to Real Data<small>CONTROL PLANE</small><i></i></div>
+        <div class="sidebar-foot">
+            <div class="env"><i aria-hidden="true"></i><span>Development</span></div>
+            <div class="env-sub">CN-SH · CONTROL DB HEALTHY</div>
+            <button type="button" class="logout-link" id="logoutBtn"><i class="bi bi-box-arrow-left" aria-hidden="true"></i>退出登录</button>
+        </div>
+    </aside>
+    <main class="main-shell" id="main-content-wrapper" tabindex="-1">
+        <header class="topbar" aria-label="页面工具栏">
+            <div class="crumb"><i class="bi bi-house home" aria-hidden="true"></i><span>/</span><span>MCP</span><span>/</span><strong id="shell-crumb">控制台</strong></div>
+            <div class="top-actions">
+                <label class="global-search" for="global-search-input"><i class="bi bi-search" aria-hidden="true"></i><input id="global-search-input" type="search" placeholder="搜索模板、数据源、工具..." autocomplete="off"><kbd>⌘ K</kbd></label>
+                <button class="icon-button" type="button" aria-label="查看系统通知"><i class="bi bi-bell" aria-hidden="true"></i><span class="notification-dot" aria-hidden="true"></span></button>
+                <button class="icon-button" type="button" aria-label="打开帮助"><i class="bi bi-question-circle" aria-hidden="true"></i></button>
+                <div class="user-context"><div class="avatar" aria-hidden="true">X</div><div><div class="user-name">Xerina</div><div class="user-role">Administrator</div></div></div>
+            </div>
+        </header>
+        <div class="view-region" aria-live="polite"></div>
+    </main>
 </div>
-
-<!-- Toast 通知容器 -->
-<div class="toast-container position-fixed bottom-0 end-0 p-3">
-  <div id="liveToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
-    <div class="d-flex">
-      <div class="toast-body d-flex align-items-center gap-2" id="toastMessage">
-        <i class="bi bi-check-circle-fill"></i> <span>操作成功！</span>
-      </div>
-      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-    </div>
-  </div>
-</div>
-
+<div class="toast-container position-fixed bottom-0 end-0 p-3"><div id="liveToast" class="toast align-items-center border-0" role="status" aria-live="polite" aria-atomic="true"><div class="d-flex"><div class="toast-body d-flex align-items-center gap-2" id="toastMessage"><i class="bi bi-check-circle-fill" aria-hidden="true"></i><span>操作成功</span></div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="关闭提示"></button></div></div></div>
+<div class="confirm-dialog" id="confirmDialog" hidden role="dialog" aria-modal="true" aria-labelledby="confirmDialogTitle"><div class="confirm-dialog-card"><div class="confirm-dialog-icon"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i></div><h2 id="confirmDialogTitle">确认操作</h2><p id="confirmDialogMessage"></p><div class="confirm-dialog-actions"><button type="button" class="button" id="confirmDialogCancel">取消</button><button type="button" class="button danger" id="confirmDialogConfirm">确认</button></div></div></div>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="js/config.js"></script>
 <script src="js/app.js"></script>
+<script src="js/mysql-workbench.js"></script>
 </body>
 </html>

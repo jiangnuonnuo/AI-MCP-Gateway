@@ -103,7 +103,7 @@ public class McpSSEGatewayController implements IMcpGatewayService {
                                                     @RequestParam(value = "api_key", required = false, defaultValue = "") String apiKey,
                                                     @RequestBody String messageBody) {
         try {
-            log.info("处理 MCP SSE 消息，gatewayId:{} apiKey:{} sessionId:{} messageBody:{}", gatewayId, apiKey, sessionId, messageBody);
+            log.info("处理 MCP SSE 消息，gatewayId:{} sessionId:{}", gatewayId, sessionId);
             if (StringUtils.isBlank(gatewayId) || StringUtils.isBlank(sessionId)) {
                 log.info("非法参数，gateway、sessionId is null");
                 throw new AppException(ResponseCode.ILLEGAL_PARAMETER.getCode(), ResponseCode.ILLEGAL_PARAMETER.getInfo());
@@ -114,7 +114,7 @@ public class McpSSEGatewayController implements IMcpGatewayService {
 
             return Mono.just(responseEntity);
         } catch (Exception e) {
-            log.error("处理 MCP SSE 消息失败，gatewayId:{} sessionId:{} messageBody:{}", gatewayId, sessionId, messageBody, e);
+            log.error("处理 MCP SSE 消息失败，gatewayId:{} sessionId:{}", gatewayId, sessionId, e);
             return Mono.just(ResponseEntity.internalServerError().build());
         }
     }

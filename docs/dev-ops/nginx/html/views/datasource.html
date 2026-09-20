@@ -1,0 +1,51 @@
+<section class="workbench-page" data-resource="datasource" aria-labelledby="workbench-title">
+    <section class="workbench-stage">
+        <h1 id="workbench-title">数据源</h1>
+        <p>统一管理 MySQL 数据源连接、连接池、只读模式与健康状态。</p>
+        <div class="stage-points" aria-label="数据源能力">
+            <span class="stage-point"><i aria-hidden="true">✓</i>连接信息统一托管</span>
+            <span class="stage-point"><i aria-hidden="true">✓</i>密码只写不回显</span>
+            <span class="stage-point"><i aria-hidden="true">✓</i>只读策略保护生产库</span>
+        </div>
+        <img class="hero-art" src="../assets/network-hero.png" alt="AI Agent 连接 MCP Gateway 与多个数据源的示意图">
+        <span class="hero-label hero-agent" aria-hidden="true">AI Agent</span><span class="hero-label hero-gateway" aria-hidden="true">MCP<br>Gateway</span><span class="hero-label hero-db-one" aria-hidden="true">MySQL</span><span class="hero-label hero-db-two" aria-hidden="true">PostgreSQL</span><span class="hero-label hero-db-three" aria-hidden="true">ClickHouse</span>
+        <span class="connect-note" aria-hidden="true">Connect<br>More<br>Possibilities<i></i></span>
+    </section>
+    <section class="kpi-grid" id="datasource-kpis" aria-label="数据源指标"></section>
+    <section class="workbench-grid">
+        <div class="registry-panel">
+            <div class="tabs" role="tablist" aria-label="数据源筛选">
+                <button type="button" class="tab-button active" data-status-filter="all" role="tab" aria-selected="true">全部数据源</button>
+                <button type="button" class="tab-button" data-status-filter="mysql" role="tab" aria-selected="false">MySQL</button>
+                <button type="button" class="tab-button" data-status-filter="enabled" role="tab" aria-selected="false">正常连接</button>
+                <button type="button" class="tab-button" data-status-filter="attention" role="tab" aria-selected="false">待检查</button>
+            </div>
+            <div class="filter-bar">
+                <label class="filter-control search-control"><i class="bi bi-search" aria-hidden="true"></i><input id="datasource-search" type="search" placeholder="搜索名称、主机或数据库" aria-label="搜索数据源"></label>
+                <label class="filter-control"><select id="datasource-sort" aria-label="数据源排序"><option value="updated">最近更新</option><option value="name">名称排序</option><option value="status">状态排序</option></select></label>
+                <button type="button" class="button primary" id="datasource-create"><i class="bi bi-plus-lg" aria-hidden="true"></i>新建数据源</button>
+            </div>
+            <div class="registry-scroll"><div class="registry-head"><span></span><span>名称 / 描述</span><span>主机 / 数据库</span><span>模板</span><span>状态</span><span>操作</span></div><div id="datasource-rows" aria-live="polite"></div></div>
+            <div class="pagination-bar"><span id="datasource-page-info">显示 0 到 0 条，共 0 条</span><div class="pagination-actions" id="datasource-pagination"></div></div>
+        </div>
+        <aside class="inspector-panel" id="datasource-inspector" aria-label="数据源详情检查器"></aside>
+    </section>
+    <section class="resource-drawer" id="datasource-drawer" aria-labelledby="datasource-drawer-title">
+        <div class="drawer-heading"><div><h2 id="datasource-drawer-title">新建数据源</h2><p>连接密码不会回显；编辑时留空表示保持原值。</p></div><button type="button" class="drawer-close" data-close-drawer="datasource" aria-label="关闭数据源表单"><i class="bi bi-x-lg" aria-hidden="true"></i></button></div>
+        <div class="drawer-alert" id="datasource-form-alert" role="alert"></div>
+        <form id="datasource-form" novalidate>
+            <input type="hidden" name="id">
+            <div class="form-grid">
+                <div class="field"><label for="datasource-name">数据源名称 <span class="required">*</span></label><input id="datasource-name" name="name" required maxlength="64" placeholder="例如：warehouse-prod"><span class="field-error">请输入数据源名称</span></div>
+                <div class="field"><label for="datasource-database">数据库名 <span class="required">*</span></label><input id="datasource-database" name="database" required maxlength="64" placeholder="warehouse"><span class="field-error">请输入数据库名</span></div>
+                <div class="field"><label for="datasource-host">主机地址 <span class="required">*</span></label><input id="datasource-host" name="host" required inputmode="url" placeholder="10.20.4.18"><span class="field-error">请输入主机地址</span></div>
+                <div class="field"><label for="datasource-port">端口 <span class="required">*</span></label><input id="datasource-port" name="port" type="number" min="1" max="65535" value="3306" required><span class="field-error">端口范围为 1-65535</span></div>
+                <div class="field"><label for="datasource-username">用户名 <span class="required">*</span></label><input id="datasource-username" name="username" required autocomplete="off"><span class="field-error">请输入用户名</span></div>
+                <div class="field"><label for="datasource-password">密码 <span class="required" data-password-required>*</span></label><input id="datasource-password" name="password" type="password" autocomplete="new-password" placeholder="仅写入，不会回显"><span class="field-help">编辑时留空，系统会保留已有密码。</span><span class="field-error">新建数据源必须填写密码</span></div>
+                <div class="field"><label for="datasource-readonly">只读策略</label><select id="datasource-readonly" name="readOnly"><option value="true">启用（推荐）</option><option value="false">关闭</option></select><span class="field-help">运行时继续执行 SQL 只读安全链路。</span></div>
+                <div class="field"><label for="datasource-status">初始状态</label><select id="datasource-status" name="status"><option value="0">停用（推荐）</option><option value="1">启用</option></select><span class="field-help">新建资源默认停用，启用前请完成连接测试。</span></div>
+            </div>
+            <div class="drawer-actions"><button type="button" class="button" data-close-drawer="datasource">取消</button><button type="submit" class="button primary" id="datasource-submit"><i class="bi bi-check2-circle" aria-hidden="true"></i>保存数据源</button></div>
+        </form>
+    </section>
+</section>

@@ -1,0 +1,37 @@
+<section class="workbench-page" data-resource="binding" aria-labelledby="workbench-title">
+    <section class="workbench-stage">
+        <h1 id="workbench-title">Tool 绑定</h1>
+        <p>把 SQL 模板、数据源与 Gateway Tool 连接成可发现、可追踪的调用链。</p>
+        <div class="stage-points" aria-label="Tool 绑定能力"><span class="stage-point"><i aria-hidden="true">✓</i>按 Gateway 管理路由</span><span class="stage-point"><i aria-hidden="true">✓</i>关联关系可预览</span><span class="stage-point"><i aria-hidden="true">✓</i>停用立即关闭运行时可见性</span></div>
+        <img class="hero-art" src="../assets/network-hero.png" alt="AI Agent 连接 MCP Gateway 与多个数据源的示意图">
+        <span class="hero-label hero-agent" aria-hidden="true">AI Agent</span><span class="hero-label hero-gateway" aria-hidden="true">MCP<br>Gateway</span><span class="hero-label hero-db-one" aria-hidden="true">MySQL</span><span class="hero-label hero-db-two" aria-hidden="true">PostgreSQL</span><span class="hero-label hero-db-three" aria-hidden="true">ClickHouse</span><span class="connect-note" aria-hidden="true">Connect<br>More<br>Possibilities<i></i></span>
+    </section>
+    <section class="kpi-grid" id="binding-kpis" aria-label="Tool 绑定指标"></section>
+    <section class="workbench-grid">
+        <div class="registry-panel">
+            <div class="tabs" role="tablist" aria-label="Tool 绑定筛选"><button type="button" class="tab-button active" data-status-filter="all" role="tab" aria-selected="true">全部绑定</button><button type="button" class="tab-button" data-status-filter="enabled" role="tab" aria-selected="false">已启用</button><button type="button" class="tab-button" data-status-filter="draft" role="tab" aria-selected="false">待发布</button><button type="button" class="tab-button" data-status-filter="attention" role="tab" aria-selected="false">异常</button></div>
+            <div class="filter-bar"><label class="filter-control search-control"><i class="bi bi-search" aria-hidden="true"></i><input id="binding-search" type="search" placeholder="搜索 Tool 名称、模板或 Gateway" aria-label="搜索 Tool 绑定"></label><label class="filter-control"><select id="binding-gateway-filter" aria-label="按 Gateway 筛选"><option value="">全部 Gateway</option></select></label><button type="button" class="button primary" id="binding-create"><i class="bi bi-plus-lg" aria-hidden="true"></i>新建绑定</button></div>
+            <div class="registry-scroll"><div class="registry-head"><span></span><span>模板 / 描述</span><span>Gateway / 协议</span><span>Tool</span><span>状态</span><span>操作</span></div><div id="binding-rows" aria-live="polite"></div></div>
+            <div class="pagination-bar"><span id="binding-page-info">显示 0 到 0 条，共 0 条</span><div class="pagination-actions" id="binding-pagination"></div></div>
+        </div>
+        <aside class="inspector-panel" id="binding-inspector" aria-label="Tool 绑定详情检查器"></aside>
+    </section>
+    <section class="resource-drawer" id="binding-drawer" aria-labelledby="binding-drawer-title">
+        <div class="drawer-heading"><div><h2 id="binding-drawer-title">新建 Tool 绑定</h2><p>同一 Gateway 下的工具名称必须唯一；新绑定默认停用。</p></div><button type="button" class="drawer-close" data-close-drawer="binding" aria-label="关闭 Tool 绑定表单"><i class="bi bi-x-lg" aria-hidden="true"></i></button></div>
+        <div class="drawer-alert" id="binding-form-alert" role="alert"></div>
+        <form id="binding-form" novalidate>
+            <input type="hidden" name="id">
+            <div class="form-grid">
+                <div class="field"><label for="binding-gateway">Gateway <span class="required">*</span></label><select id="binding-gateway" name="gatewayId" required><option value="">选择 Gateway</option></select><span class="field-error">请选择 Gateway</span></div>
+                <div class="field"><label for="binding-tool-name">工具名称 <span class="required">*</span></label><input id="binding-tool-name" name="toolName" required maxlength="96" placeholder="order_channel_summary"><span class="field-error">请输入工具名称</span></div>
+                <div class="field"><label for="binding-template">SQL 模板 <span class="required">*</span></label><select id="binding-template" name="templateId" required><option value="">选择 SQL 模板</option></select><span class="field-error">请选择 SQL 模板</span></div>
+                <div class="field"><label for="binding-datasource">数据源 <span class="required">*</span></label><select id="binding-datasource" name="datasourceId" required><option value="">选择数据源</option></select><span class="field-error">请选择数据源</span></div>
+                <div class="field"><label for="binding-version">版本</label><input id="binding-version" name="version" value="1.0.0" maxlength="24"><span class="field-help">用于 MCP Tool 发现与变更追踪。</span></div>
+                <div class="field"><label for="binding-protocol">协议类型</label><select id="binding-protocol" name="protocolType"><option value="mysql">mysql</option></select><span class="field-help">协议标识由服务端校验并写入绑定关系。</span></div>
+                <div class="field full"><label for="binding-description">工具描述</label><textarea id="binding-description" name="description" maxlength="300" placeholder="说明该 Tool 可以安全查询什么数据"></textarea><span class="field-help">描述会展示在 tools/list 中，不要包含密码、Token 或连接信息。</span></div>
+                <div class="field"><label for="binding-status">初始状态</label><select id="binding-status" name="status"><option value="0">停用（推荐）</option><option value="1">启用</option></select><span class="field-help">启用后才会出现在 tools/list。</span></div>
+            </div>
+            <div class="drawer-actions"><button type="button" class="button" data-close-drawer="binding">取消</button><button type="submit" class="button primary" id="binding-submit"><i class="bi bi-check2-circle" aria-hidden="true"></i>保存绑定</button></div>
+        </form>
+    </section>
+</section>

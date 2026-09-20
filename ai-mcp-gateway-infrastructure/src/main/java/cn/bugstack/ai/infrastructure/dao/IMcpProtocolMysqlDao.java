@@ -2,6 +2,7 @@ package cn.bugstack.ai.infrastructure.dao;
 
 import cn.bugstack.ai.infrastructure.dao.po.McpProtocolMysqlPO;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -32,4 +33,10 @@ public interface IMcpProtocolMysqlDao {
 
     /** 查询全部协议记录，供管理端使用。 */
     List<McpProtocolMysqlPO> queryAll();
+
+    int updateStatusByProtocolId(@Param("protocolId") Long protocolId, @Param("status") int status);
+
+    List<McpProtocolMysqlPO> queryPage(McpProtocolMysqlPO query);
+
+    Long queryPageCount(McpProtocolMysqlPO query);
 }

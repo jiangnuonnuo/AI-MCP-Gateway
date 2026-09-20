@@ -3,151 +3,248 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MCP 网关管理系统 - 登录</title>
-    <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
+    <meta name="theme-color" content="#050b1b">
+    <title>MCP 网关管理系统 · 登录</title>
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-    <!-- 引入自定义样式 -->
     <link rel="stylesheet" href="css/style.css">
-    <style>
-        body {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-        }
-        .login-card {
-            border-radius: 1rem;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            background: #fff;
-        }
-        .login-header {
-            background: linear-gradient(to right, #4e54c8, #8f94fb);
-            color: white;
-            padding: 2rem;
-            text-align: center;
-        }
-        .login-body {
-            padding: 2.5rem;
-        }
-        .form-floating:focus-within label {
-            color: #4e54c8;
-        }
-        .btn-login {
-            background: linear-gradient(to right, #4e54c8, #8f94fb);
-            border: none;
-            border-radius: 50px;
-            padding: 0.75rem;
-            font-weight: 600;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .btn-login:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(78, 84, 200, 0.4);
-            color: white;
-        }
-    </style>
 </head>
-<body>
+<body class="login-page">
+<main class="login-stage">
+    <header class="login-brand" aria-label="AI MCP Gateway">
+        <a class="login-brand-link" href="index.html" aria-label="AI MCP Gateway 首页">
+            <svg class="login-brand-mark" viewBox="0 0 48 48" role="img" aria-label="AI MCP Gateway 标志">
+                <path d="M10 25 24 13 38 8M10 25l14 10 14-27M24 13v22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="10" cy="25" r="5.2" fill="#4c9bff" stroke="#8dd8ff" stroke-width="1.2"/>
+                <circle cx="24" cy="13" r="5.2" fill="#52d9ff" stroke="#b0f3ff" stroke-width="1.2"/>
+                <circle cx="38" cy="8" r="5.2" fill="#6c75ff" stroke="#c2c7ff" stroke-width="1.2"/>
+                <circle cx="24" cy="35" r="5.2" fill="#08c8df" stroke="#a8ffff" stroke-width="1.2"/>
+            </svg>
+            <span class="login-brand-copy">
+                <strong>AI MCP Gateway</strong>
+                <small>CONNECT AI TO REAL WORLD</small>
+            </span>
+        </a>
+        <span class="login-topline" data-i18n="topline">让 AI 更好地连接真实世界</span>
+    </header>
 
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-6 col-xl-5">
-            <div class="login-card">
-                <div class="login-header">
-                    <i class="bi bi-hdd-network display-4 mb-3 d-block"></i>
-                    <h3 class="fw-bold mb-1">MCP 网关管理系统</h3>
-                    <p class="mb-0 opacity-75">高效、智能的 AI 网关控制中心</p>
+    <div class="login-shell">
+        <section class="login-hero" aria-labelledby="hero-title">
+            <div class="hero-copy">
+                <p class="hero-eyebrow">OPEN <span>·</span> SECURE <span>·</span> AGENT-READY</p>
+                <h1 id="hero-title"><em>MCP</em> <span data-i18n="heroTitle">网关管理系统</span></h1>
+                <p class="hero-subtitle" data-i18n="heroSubtitle">统一接入 · 安全管控 · 高效调度 · 释放 AI 应用的无限可能</p>
+
+                <div class="hero-features" aria-label="平台能力">
+                    <div class="hero-feature">
+                        <span class="feature-icon"><i class="bi bi-layers-fill" aria-hidden="true"></i></span>
+                        <span><strong data-i18n="featureOneTitle">多协议接入</strong><small data-i18n="featureOneSub">MCP / HTTP</small></span>
+                    </div>
+                    <div class="hero-feature">
+                        <span class="feature-icon"><i class="bi bi-shield-check" aria-hidden="true"></i></span>
+                        <span><strong data-i18n="featureTwoTitle">安全认证</strong><small data-i18n="featureTwoSub">权限与审计</small></span>
+                    </div>
+                    <div class="hero-feature">
+                        <span class="feature-icon"><i class="bi bi-box-seam-fill" aria-hidden="true"></i></span>
+                        <span><strong data-i18n="featureThreeTitle">统一管理</strong><small data-i18n="featureThreeSub">工具与资源</small></span>
+                    </div>
+                    <div class="hero-feature">
+                        <span class="feature-icon feature-icon-bright"><i class="bi bi-lightning-charge-fill" aria-hidden="true"></i></span>
+                        <span><strong data-i18n="featureFourTitle">高效调用</strong><small data-i18n="featureFourSub">赋能 AI Agent</small></span>
+                    </div>
                 </div>
-                <div class="login-body">
-                    <div class="text-center mb-4">
-                        <h5 class="text-muted fw-normal">账号登录</h5>
+            </div>
+
+            <div class="hero-visual" aria-hidden="true">
+                <img src="assets/network-hero.png" alt="" class="hero-network-art">
+                <span class="network-label label-agent">AI Agent</span>
+                <span class="network-label label-core">MCP<br><b>Gateway</b></span>
+                <span class="network-label label-db-one">数据仓库</span>
+                <span class="network-label label-db-two">业务数据库</span>
+                <span class="network-label label-db-three">三方服务</span>
+                <span class="network-pill pill-mcp">MCP</span>
+                <span class="network-pill pill-http">HTTP</span>
+                <span class="network-pill pill-api">API</span>
+            </div>
+            <p class="hero-footnote">AI BRIDGES<br>EVERYTHING</p>
+        </section>
+
+        <section class="login-panel-wrap" aria-labelledby="login-title">
+            <div class="login-card">
+                <div class="login-card-glow" aria-hidden="true"></div>
+                <div class="login-card-head">
+                    <div class="language-switch" role="group" aria-label="语言切换">
+                        <button type="button" class="language-button active" data-lang="zh" aria-pressed="true">中</button>
+                        <span aria-hidden="true">/</span>
+                        <button type="button" class="language-button" data-lang="en" aria-pressed="false">EN</button>
+                    </div>
+                    <p class="login-kicker">AI MCP GATEWAY</p>
+                    <h2 id="login-title" data-i18n="loginTitle">欢迎登录</h2>
+                    <p class="login-subtitle" data-i18n="loginSubtitle">高效、智能的 AI 网关控制中心</p>
+                </div>
+
+                <form id="loginForm" class="login-form" novalidate>
+                    <div class="login-field">
+                        <label for="username" data-i18n="usernameLabel">用户名</label>
+                        <div class="field-control">
+                            <i class="bi bi-person" aria-hidden="true"></i>
+                            <input type="text" id="username" autocomplete="username" required aria-describedby="loginError">
+                        </div>
+                    </div>
+                    <div class="login-field">
+                        <label for="password" data-i18n="passwordLabel">密码</label>
+                        <div class="field-control">
+                            <i class="bi bi-lock" aria-hidden="true"></i>
+                            <input type="password" id="password" autocomplete="current-password" required aria-describedby="loginError">
+                            <button type="button" id="togglePassword" class="field-action" aria-label="显示密码" aria-pressed="false"><i class="bi bi-eye" aria-hidden="true"></i></button>
+                        </div>
                     </div>
 
-                    <form id="loginForm">
-                        <div class="form-floating mb-3">
-                            <input type="text" class="form-control" id="username" placeholder="请输入用户名" required>
-                            <label for="username"><i class="bi bi-person me-2"></i>用户名</label>
-                        </div>
-                        <div class="form-floating mb-4">
-                            <input type="password" class="form-control" id="password" placeholder="请输入密码" required>
-                            <label for="password"><i class="bi bi-shield-lock me-2"></i>密码</label>
-                        </div>
-                        
-                        <!-- 错误提示信息 -->
-                        <div id="loginError" class="alert alert-danger d-none py-2 small d-flex align-items-center" role="alert">
-                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                            <span>用户名或密码错误！</span>
-                        </div>
+                    <div class="login-options">
+                        <label class="remember-control">
+                            <input type="checkbox" id="remember" checked>
+                            <span class="custom-check" aria-hidden="true"><i class="bi bi-check"></i></span>
+                            <span data-i18n="rememberLabel">记住我</span>
+                        </label>
+                        <button type="button" class="forgot-button" id="forgotPassword" data-i18n="forgotPassword">忘记密码?</button>
+                    </div>
 
-                        <div class="d-grid mb-4">
-                            <button type="submit" class="btn btn-primary btn-login">
-                                立即登录 <i class="bi bi-arrow-right-circle ms-1"></i>
-                            </button>
-                        </div>
-                        
-                        <div class="text-center small text-muted bg-light p-2 rounded">
-                            <i class="bi bi-info-circle me-1"></i> 测试账号：<strong>admin</strong> / <strong>password123</strong>
-                        </div>
-                    </form>
+                    <div id="loginError" class="login-message error-message" role="alert" aria-live="assertive" hidden>
+                        <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+                        <span data-i18n="loginError">用户名或密码错误，请重试</span>
+                    </div>
+                    <div id="loginHint" class="login-message hint-message" role="status" aria-live="polite" hidden></div>
+
+                    <button type="submit" class="login-submit" id="loginSubmit">
+                        <span data-i18n="loginButton">立即登录</span>
+                        <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                    </button>
+                </form>
+
+                <div class="login-divider"><span data-i18n="orContinue">或使用以下方式登录</span></div>
+                <div class="social-login-grid">
+                    <button type="button" class="social-login" data-provider="GitHub"><i class="bi bi-github" aria-hidden="true"></i><span>GitHub</span></button>
+                    <button type="button" class="social-login" data-provider="SSO"><i class="bi bi-diagram-3" aria-hidden="true"></i><span data-i18n="ssoLogin">SSO 登录</span></button>
                 </div>
+                <p class="login-copyright">© 2024–2025 AI MCP Gateway. All rights reserved.</p>
             </div>
-            <div class="text-center mt-4 text-muted small">
-                &copy; 2024-2025 AI MCP Gateway. All rights reserved.
-            </div>
-        </div>
+        </section>
     </div>
-</div>
+</main>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="js/config.js"></script>
 <script>
-    $(document).ready(function() {
-        $('#loginForm').on('submit', function(e) {
-            e.preventDefault();
-            
-            const username = $('#username').val();
-            const password = $('#password').val();
-            const $btn = $(this).find('button[type="submit"]');
-            
-            // 按钮加载状态
-            const originalText = $btn.html();
-            $btn.html('<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>登录中...').prop('disabled', true);
-            
-            // 模拟登录延迟，增加真实感
-            setTimeout(() => {
-                if(username === MOCK_ACCOUNT.username && password === MOCK_ACCOUNT.password) {
-                    // 登录成功，记录状态并跳转
-                    localStorage.setItem('mcp_admin_logged_in', 'true');
-                    window.location.href = 'admin.html';
-                } else {
-                    // 登录失败，显示错误并恢复按钮状态
-                    $('#loginError').removeClass('d-none');
-                    $btn.html(originalText).prop('disabled', false);
-                    
-                    // 添加震动动画
-                    $('.login-card').addClass('animate__animated animate__headShake');
-                    setTimeout(() => {
-                        $('.login-card').removeClass('animate__animated animate__headShake');
-                    }, 1000);
+    (function () {
+        const copy = {
+            zh: {
+                topline: '让 AI 更好地连接真实世界', heroTitle: '网关管理系统', heroSubtitle: '统一接入 · 安全管控 · 高效调度 · 释放 AI 应用的无限可能',
+                featureOneTitle: '多协议接入', featureOneSub: 'MCP / HTTP', featureTwoTitle: '安全认证', featureTwoSub: '权限与审计', featureThreeTitle: '统一管理', featureThreeSub: '工具与资源', featureFourTitle: '高效调用', featureFourSub: '赋能 AI Agent',
+                loginTitle: '欢迎登录', loginSubtitle: '高效、智能的 AI 网关控制中心', usernameLabel: '用户名', passwordLabel: '密码', rememberLabel: '记住我', forgotPassword: '忘记密码?', loginButton: '立即登录', orContinue: '或使用以下方式登录', ssoLogin: 'SSO 登录', loginError: '用户名或密码错误，请重试',
+                passwordShow: '显示密码', passwordHide: '隐藏密码', forgotHint: '请联系系统管理员重置登录密码', providerHint: '暂未配置 {provider} 登录，请使用账号密码登录', loading: '登录中...'
+            },
+            en: {
+                topline: 'Connect AI to the real world', heroTitle: 'Gateway Control Center', heroSubtitle: 'One gateway · Secure control · High throughput · Limitless AI possibilities',
+                featureOneTitle: 'Multi-protocol', featureOneSub: 'MCP / HTTP', featureTwoTitle: 'Secure auth', featureTwoSub: 'Access & audit', featureThreeTitle: 'Unified control', featureThreeSub: 'Tools & resources', featureFourTitle: 'Fast actions', featureFourSub: 'Built for AI agents',
+                loginTitle: 'Welcome back', loginSubtitle: 'Your intelligent AI gateway control center', usernameLabel: 'Username', passwordLabel: 'Password', rememberLabel: 'Remember me', forgotPassword: 'Forgot password?', loginButton: 'Sign in', orContinue: 'Or continue with', ssoLogin: 'SSO sign in', loginError: 'Incorrect username or password. Try again.',
+                passwordShow: 'Show password', passwordHide: 'Hide password', forgotHint: 'Contact your system administrator to reset the password', providerHint: '{provider} sign-in is not configured. Use your account instead', loading: 'Signing in...'
+            }
+        };
+        let language = 'zh';
+
+        function applyLanguage(nextLanguage) {
+            language = nextLanguage;
+            const strings = copy[language];
+            document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';
+            document.querySelectorAll('[data-i18n]').forEach(function (element) {
+                const key = element.dataset.i18n;
+                if (strings[key]) element.textContent = strings[key];
+            });
+            document.querySelectorAll('.language-button').forEach(function (button) {
+                const active = button.dataset.lang === language;
+                button.classList.toggle('active', active);
+                button.setAttribute('aria-pressed', String(active));
+            });
+            document.getElementById('togglePassword').setAttribute('aria-label', document.getElementById('password').type === 'password' ? strings.passwordShow : strings.passwordHide);
+        }
+
+        function showHint(message, isError) {
+            const error = document.getElementById('loginError');
+            const hint = document.getElementById('loginHint');
+            error.hidden = !isError;
+            hint.hidden = isError || !message;
+            if (isError) error.querySelector('span').textContent = message;
+            if (!isError) hint.textContent = message;
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const username = document.getElementById('username');
+            const password = document.getElementById('password');
+            const submit = document.getElementById('loginSubmit');
+            const form = document.getElementById('loginForm');
+            const toggle = document.getElementById('togglePassword');
+            const card = document.querySelector('.login-card');
+
+            username.value = MOCK_ACCOUNT.username;
+            password.value = MOCK_ACCOUNT.password;
+
+            document.querySelectorAll('.language-button').forEach(function (button) {
+                button.addEventListener('click', function () { applyLanguage(button.dataset.lang); });
+            });
+
+            toggle.addEventListener('click', function () {
+                const visible = password.type === 'password';
+                password.type = visible ? 'text' : 'password';
+                toggle.setAttribute('aria-pressed', String(visible));
+                toggle.setAttribute('aria-label', visible ? copy[language].passwordHide : copy[language].passwordShow);
+                toggle.querySelector('i').className = visible ? 'bi bi-eye-slash' : 'bi bi-eye';
+            });
+
+            [username, password].forEach(function (field) {
+                field.addEventListener('input', function () { showHint('', false); document.getElementById('loginError').hidden = true; });
+            });
+
+            document.getElementById('forgotPassword').addEventListener('click', function () {
+                showHint(copy[language].forgotHint, false);
+            });
+
+            document.querySelectorAll('.social-login').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    showHint(copy[language].providerHint.replace('{provider}', button.dataset.provider), false);
+                });
+            });
+
+            form.addEventListener('submit', function (event) {
+                event.preventDefault();
+                showHint('', false);
+                if (!username.value.trim() || !password.value) {
+                    showHint(copy[language].loginError, true);
+                    return;
                 }
-            }, 600);
+                const originalText = submit.querySelector('span').textContent;
+                submit.disabled = true;
+                submit.classList.add('is-loading');
+                submit.querySelector('span').textContent = copy[language].loading;
+
+                window.setTimeout(function () {
+                    if (username.value === MOCK_ACCOUNT.username && password.value === MOCK_ACCOUNT.password) {
+                        localStorage.setItem('mcp_admin_logged_in', 'true');
+                        if (document.getElementById('remember').checked) localStorage.setItem('mcp_admin_remembered', 'true');
+                        window.location.href = 'admin.html';
+                        return;
+                    }
+                    showHint(copy[language].loginError, true);
+                    submit.disabled = false;
+                    submit.classList.remove('is-loading');
+                    submit.querySelector('span').textContent = originalText;
+                    card.classList.remove('login-shake');
+                    void card.offsetWidth;
+                    card.classList.add('login-shake');
+                }, 520);
+            });
+
+            applyLanguage('zh');
         });
-        
-        // 自动填入测试账号
-        $('#username').val(MOCK_ACCOUNT.username);
-        $('#password').val(MOCK_ACCOUNT.password);
-        
-        // 输入时隐藏错误提示
-        $('#username, #password').on('input', function() {
-            $('#loginError').addClass('d-none');
-        });
-    });
+    }());
 </script>
-<!-- 引入 Animate.css 以支持错误震动效果 -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 </body>
 </html>

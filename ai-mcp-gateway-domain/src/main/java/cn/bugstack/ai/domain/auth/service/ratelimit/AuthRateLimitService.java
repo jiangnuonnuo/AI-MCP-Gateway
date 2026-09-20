@@ -71,7 +71,7 @@ public class AuthRateLimitService implements IAuthRateLimitService {
                 return true;
             }
             // 其他异常（如数据库错误），记录日志并放行
-            log.error("限流校验失败 gatewayId:{} apiKey:{}", gatewayId, apiKey, e);
+            log.error("限流校验失败 gatewayId:{}", gatewayId, e);
             return false;
         }
     }

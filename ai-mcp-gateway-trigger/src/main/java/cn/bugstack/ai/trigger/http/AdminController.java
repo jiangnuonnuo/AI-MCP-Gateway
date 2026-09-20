@@ -16,7 +16,6 @@ import cn.bugstack.ai.domain.protocol.model.entity.AnalysisCommandEntity;
 import cn.bugstack.ai.domain.protocol.model.valobj.http.HTTPProtocolVO;
 import cn.bugstack.ai.types.enums.GatewayEnum;
 import cn.bugstack.ai.types.enums.ResponseCode;
-import com.alibaba.fastjson.JSON;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -703,11 +702,10 @@ public class AdminController implements IAdminService {
     @Override
     public Response<GatewayLLMResponseDTO> testCallGateway(@RequestBody GatewayLLMRequestDTO requestDTO) {
         try {
-            // 为了便于排查测试调用问题，这里额外打印 apiKey（auth 校验 Key）
-            log.info("测试请求网关服务开始 gatewayId: {} authApiKey: {} reqDTO:{}", requestDTO.getGatewayId(), requestDTO.getAuthApiKey(), JSON.toJSONString(requestDTO));
+            log.info("测试请求网关服务开始 gatewayId: {}", requestDTO.getGatewayId());
 
             GatewayLLMResponseDTO responseDTO = adminLLMService.testCallGateway(requestDTO);
-            log.info("测试请求网关服务完成 gatewayId: {} authApiKey: {} resDTO:{}", requestDTO.getGatewayId(), requestDTO.getAuthApiKey(), JSON.toJSONString(responseDTO));
+            log.info("测试请求网关服务完成 gatewayId: {}", requestDTO.getGatewayId());
 
             return Response.<GatewayLLMResponseDTO>builder()
                     .code(ResponseCode.SUCCESS.getCode())
@@ -722,5 +720,6 @@ public class AdminController implements IAdminService {
                     .build();
         }
     }
+
 
 }

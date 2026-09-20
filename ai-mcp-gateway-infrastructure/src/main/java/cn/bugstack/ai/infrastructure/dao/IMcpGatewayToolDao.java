@@ -32,4 +32,8 @@ public interface IMcpGatewayToolDao {
 
     int deleteByToolId(Long toolId);
 
+    int updateStatusById(McpGatewayToolPO po);
+
+    int deleteById(Long id);
+
 }
