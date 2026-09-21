@@ -14,6 +14,7 @@ public interface IAdminMysqlManageService {
     MysqlAdminPage<MysqlDataSourceAdminView> pageDataSources(MysqlAdminQueries.DataSource query);
     MysqlDataSourceAdminView findDataSource(String datasourceRef);
     MysqlDataSourceAdminView saveDataSource(MysqlDataSourceAdminCommand command);
+    MysqlDataSourceAdminView testDataSource(String datasourceRef);
     MysqlDataSourceAdminView changeDataSourceStatus(String datasourceRef, int status);
     void deleteDataSource(String datasourceRef);
     MysqlAdminPage<MysqlTemplateAdminView> pageTemplates(MysqlAdminQueries.Template query);

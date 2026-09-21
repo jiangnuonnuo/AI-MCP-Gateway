@@ -6,6 +6,7 @@ import cn.bugstack.ai.infrastructure.adapter.port.MysqlJdbcGateway;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 
 import java.util.function.Function;
 
@@ -39,15 +40,21 @@ public class MysqlExecutionConfig {
 
     /** 为 Infrastructure 技术密钥解析器提供组合根查找函数。 */
     @Bean("mysqlSecretLookup")
-    public Function<String, String> mysqlSecretLookup() {
-        return MysqlExecutionConfig::resolveSecret;
+    public Function<String, String> mysqlSecretLookup(Environment environment) {
+        return reference -> resolveSecret(reference, environment);
     }
 
-    /** 在组合根解析密钥引用，避免技术适配器直接读取进程环境。 */
-    private static String resolveSecret(String reference) {
+    /** 在组合根解析密钥引用，支持环境变量和开发配置文件两种来源。 */
+    private static String resolveSecret(String reference, Environment environment) {
         if (reference == null || reference.isBlank()) return null;
-        if (reference.startsWith("env:")) return System.getenv(reference.substring("env:".length()));
+        if (reference.startsWith("env:")) {
+            String value = System.getenv(reference.substring("env:".length()));
+            return value == null || value.isBlank()
+                    ? environment.getProperty("mcp.mysql.datasource-key") : value;
+        }
         if (reference.startsWith("sys:")) return System.getProperty(reference.substring("sys:".length()));
-        return System.getenv(reference);
+        String value = System.getenv(reference);
+        return value == null || value.isBlank()
+                ? environment.getProperty("mcp.mysql.datasource-key") : value;
     }
 }

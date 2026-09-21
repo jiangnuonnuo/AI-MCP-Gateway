@@ -114,6 +114,9 @@ public class MysqlAdminRepository implements IMysqlAdminRepository {
             dataSourceDao.updateById(current);
         } catch (MysqlDomainException e) {
             throw e;
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            throw new MysqlDomainException("DATASOURCE_CREDENTIAL_KEY_UNAVAILABLE",
+                    "data source credential key is unavailable");
         } catch (DataAccessException e) {
             throw persistence("DATASOURCE_PERSISTENCE_ERROR", "data source configuration could not be saved", e);
         }

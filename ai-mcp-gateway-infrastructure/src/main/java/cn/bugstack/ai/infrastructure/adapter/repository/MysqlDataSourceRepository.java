@@ -74,12 +74,24 @@ public class MysqlDataSourceRepository implements IMysqlDataSourceRegistry, Mysq
     @Override
     public Optional<MysqlConnectionSettings> findSettings(String datasourceRef) {
         if (datasourceRef == null || datasourceRef.isBlank()) return Optional.empty();
-        McpDataSourcePO po;
         try {
-            po = dataSourceDao.queryEnabledByDatasourceRef(datasourceRef);
+            return toSettings(dataSourceDao.queryEnabledByDatasourceRef(datasourceRef));
         } catch (DataAccessException e) {
             throw new MysqlQueryException("DATASOURCE_UNAVAILABLE", "data source is unavailable", e);
         }
+    }
+
+    @Override
+    public Optional<MysqlConnectionSettings> findSettingsForHealth(String datasourceRef) {
+        if (datasourceRef == null || datasourceRef.isBlank()) return Optional.empty();
+        try {
+            return toSettings(dataSourceDao.queryByDatasourceRef(datasourceRef));
+        } catch (DataAccessException e) {
+            throw new MysqlQueryException("DATASOURCE_UNAVAILABLE", "data source is unavailable", e);
+        }
+    }
+
+    private Optional<MysqlConnectionSettings> toSettings(McpDataSourcePO po) {
         if (po == null || !"mysql".equalsIgnoreCase(po.getDatasourceType())) return Optional.empty();
         if (po.getJdbcUrl() == null || po.getJdbcUrl().isBlank()
                 || po.getJdbcUrl().matches("(?i).*([?&])password(=|%3d).*")) {

@@ -3,6 +3,11 @@ server:
   servlet:
     context-path: /api-gateway
 
+# 数据源凭证加密主密钥；部署环境可通过 MCP_MYSQL_DATASOURCE_KEY 覆盖。
+mcp:
+  mysql:
+    datasource-key: ${MCP_MYSQL_DATASOURCE_KEY:4fd697fa5f7a8dd2ba8bf82686f9ae2399fe5b34fdf3fa79a924ef7a1f7448fc}
+
 # 线程池配置
 thread:
   pool:

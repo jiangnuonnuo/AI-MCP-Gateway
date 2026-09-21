@@ -1,6 +1,7 @@
 package cn.bugstack.ai.test.domain.mysql;
 
 import cn.bugstack.ai.domain.mysql.adapter.port.IMysqlAdminRepository;
+import cn.bugstack.ai.domain.mysql.adapter.port.IMysqlDataSourceHealthPort;
 import cn.bugstack.ai.domain.mysql.adapter.port.ISqlSafetyPort;
 import cn.bugstack.ai.domain.mysql.model.admin.*;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlTemplateParameter;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -58,10 +60,35 @@ class MysqlAdminManagementServiceTest {
         assertEquals("TOOL_NAME_CONFLICT", error.getCode());
     }
 
+    @Test
+    void datasourceConnectionTestUsesHealthPortAndReturnsStableFailure() {
+        FakeRepository repository = new FakeRepository();
+        repository.dataSource = new MysqlDataSourceAdminView(1L, "warehouse", "Warehouse", "mysql",
+                "jdbc:mysql://127.0.0.1:3306/warehouse", "reader", 0, true, null, null);
+        AtomicReference<String> testedRef = new AtomicReference<>();
+        MysqlAdminManagementService service = service(repository, (sql, params, policy) -> SqlSafetyDecision.allowed(),
+                datasourceRef -> {
+                    testedRef.set(datasourceRef);
+                    return false;
+                });
+
+        MysqlDomainException error = assertThrows(MysqlDomainException.class,
+                () -> service.testDataSource("warehouse"));
+
+        assertEquals("warehouse", testedRef.get());
+        assertEquals("DATASOURCE_CONNECTION_FAILED", error.getCode());
+    }
+
     private static MysqlAdminManagementService service(FakeRepository repository, ISqlSafetyPort safetyPort) {
+        return service(repository, safetyPort, datasourceRef -> true);
+    }
+
+    private static MysqlAdminManagementService service(FakeRepository repository, ISqlSafetyPort safetyPort,
+                                                       IMysqlDataSourceHealthPort healthPort) {
         MysqlAdminManagementService service = new MysqlAdminManagementService();
         ReflectionTestUtils.setField(service, "repository", repository);
         ReflectionTestUtils.setField(service, "safetyPort", safetyPort);
+        ReflectionTestUtils.setField(service, "healthPort", healthPort);
         return service;
     }
 

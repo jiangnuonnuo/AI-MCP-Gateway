@@ -1,6 +1,7 @@
 package cn.bugstack.ai.domain.mysql.service;
 
 import cn.bugstack.ai.domain.mysql.adapter.port.IMysqlAdminRepository;
+import cn.bugstack.ai.domain.mysql.adapter.port.IMysqlDataSourceHealthPort;
 import cn.bugstack.ai.domain.mysql.adapter.port.ISqlSafetyPort;
 import cn.bugstack.ai.domain.mysql.model.admin.MysqlAdminPage;
 import cn.bugstack.ai.domain.mysql.model.admin.MysqlAdminQueries;
@@ -34,6 +35,9 @@ public class MysqlAdminManagementService {
     @Resource
     private ISqlSafetyPort safetyPort;
 
+    @Resource
+    private IMysqlDataSourceHealthPort healthPort;
+
     public MysqlAdminPage<MysqlDataSourceAdminView> pageDataSources(MysqlAdminQueries.DataSource query) {
         return repository.pageDataSources(query);
     }
@@ -59,6 +63,14 @@ public class MysqlAdminManagementService {
                 command.datasourceName(), command.datasourceType(), command.jdbcUrl(), command.username(),
                 command.password(), command.encryptionKeyRef(), status));
         return findDataSource(command.datasourceRef());
+    }
+
+    public MysqlDataSourceAdminView testDataSource(String datasourceRef) {
+        MysqlDataSourceAdminView dataSource = findDataSource(datasourceRef);
+        if (!healthPort.isHealthy(dataSource.datasourceRef())) {
+            throw error("DATASOURCE_CONNECTION_FAILED", "data source connection failed");
+        }
+        return dataSource;
     }
 
     public MysqlDataSourceAdminView changeDataSourceStatus(String datasourceRef, int status) {

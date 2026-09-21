@@ -1,5 +1,6 @@
 package cn.bugstack.ai.infrastructure.adapter.port;
 
+import cn.bugstack.ai.domain.mysql.adapter.port.IMysqlDataSourceHealthPort;
 import cn.bugstack.ai.domain.mysql.adapter.port.IMysqlQueryPort;
 import cn.bugstack.ai.domain.mysql.model.command.MysqlQueryCommand;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlQueryPolicy;
@@ -35,7 +36,7 @@ import java.util.concurrent.TimeUnit;
  * 独立的 MySQL/JDBC 适配器。每个业务数据源拥有独立 Hikari 连接池，且连接、Statement、ResultSet
  * 均在成功、异常和超时路径通过 try-with-resources 释放。
  */
-public class MysqlJdbcGateway implements IMysqlQueryPort, AutoCloseable {
+public class MysqlJdbcGateway implements IMysqlQueryPort, IMysqlDataSourceHealthPort, AutoCloseable {
     @Resource
     private MysqlConnectionSettingsRegistry connectionSettingsRegistry;
 
@@ -89,8 +90,9 @@ public class MysqlJdbcGateway implements IMysqlQueryPort, AutoCloseable {
         }
     }
 
-    public boolean health(String datasourceRef) {
-        MysqlConnectionSettings config = connectionSettingsRegistry.findSettings(datasourceRef).orElse(null);
+    @Override
+    public boolean isHealthy(String datasourceRef) {
+        MysqlConnectionSettings config = connectionSettingsRegistry.findSettingsForHealth(datasourceRef).orElse(null);
         if (config == null) return false;
         PoolHolder holder = poolFor(config);
         try (Connection connection = holder.pool.getConnection()) {
@@ -98,6 +100,10 @@ public class MysqlJdbcGateway implements IMysqlQueryPort, AutoCloseable {
         } catch (SQLException e) {
             return false;
         }
+    }
+
+    public boolean health(String datasourceRef) {
+        return isHealthy(datasourceRef);
     }
 
     public Map<String, Map<String, Integer>> poolMetrics() {
@@ -215,6 +221,7 @@ public class MysqlJdbcGateway implements IMysqlQueryPort, AutoCloseable {
     private record PoolHolder(HikariDataSource pool, Semaphore concurrent, MysqlConnectionSettings config) {
         private boolean matches(MysqlConnectionSettings other) {
             return config.getJdbcUrl().equals(other.getJdbcUrl()) && config.getUsername().equals(other.getUsername())
+                    && java.util.Objects.equals(config.getRuntimePassword(), other.getRuntimePassword())
                     && config.getMaxPoolSize() == other.getMaxPoolSize();
         }
     }

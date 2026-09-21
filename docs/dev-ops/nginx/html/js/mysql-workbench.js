@@ -6,10 +6,10 @@
 
     const previews = {
         datasource: [
-            { id: 'ds-warehouse', name: 'data-warehouse', description: 'MySQL 8.0 · warehouse', host: '10.20.4.18', port: 3306, database: 'warehouse', username: 'report_reader', readOnly: true, templateCount: 8, status: 'enabled', statusLabel: '在线', updatedAt: '2 分钟前' },
-            { id: 'ds-inventory', name: 'inventory-prod', description: 'MySQL 8.0 · inventory', host: '10.20.4.21', port: 3306, database: 'inventory', username: 'inventory_ro', readOnly: true, templateCount: 3, status: 'enabled', statusLabel: '在线', updatedAt: '18 分钟前' },
-            { id: 'ds-crm', name: 'crm-analytics', description: 'MySQL 8.0 · crm', host: '10.20.4.24', port: 3306, database: 'crm', username: 'crm_reader', readOnly: true, templateCount: 2, status: 'enabled', statusLabel: '在线', updatedAt: '1 小时前' },
-            { id: 'ds-marketing', name: 'marketing-read', description: 'MySQL 8.0 · marketing', host: '10.20.5.11', port: 3306, database: 'marketing', username: 'marketing_ro', readOnly: true, templateCount: 0, status: 'attention', statusLabel: '待检查', updatedAt: '3 小时前' }
+            { id: 'ds-warehouse', datasourceRef: 'data-warehouse', name: 'data-warehouse', description: 'MySQL 8.0 · warehouse', host: '10.20.4.18', port: 3306, database: 'warehouse', username: 'report_reader', readOnly: true, templateCount: 8, status: 'enabled', statusLabel: '在线', updatedAt: '2 分钟前' },
+            { id: 'ds-inventory', datasourceRef: 'inventory-prod', name: 'inventory-prod', description: 'MySQL 8.0 · inventory', host: '10.20.4.21', port: 3306, database: 'inventory', username: 'inventory_ro', readOnly: true, templateCount: 3, status: 'enabled', statusLabel: '在线', updatedAt: '18 分钟前' },
+            { id: 'ds-crm', datasourceRef: 'crm-analytics', name: 'crm-analytics', description: 'MySQL 8.0 · crm', host: '10.20.4.24', port: 3306, database: 'crm', username: 'crm_reader', readOnly: true, templateCount: 2, status: 'enabled', statusLabel: '在线', updatedAt: '1 小时前' },
+            { id: 'ds-marketing', datasourceRef: 'marketing-read', name: 'marketing-read', description: 'MySQL 8.0 · marketing', host: '10.20.5.11', port: 3306, database: 'marketing', username: 'marketing_ro', readOnly: true, templateCount: 0, status: 'attention', statusLabel: '待检查', updatedAt: '3 小时前' }
         ],
         template: [
             { id: 'tpl-orders', name: '订单来源汇总', description: '按渠道统计订单数量、金额和用户数', datasourceId: 'ds-warehouse', datasource: 'data-warehouse', toolCount: 2, status: 'enabled', statusLabel: '已发布', sql: 'SELECT c.channel_name,\n       SUM(o.pay_amount) AS revenue,\n       COUNT(o.order_id) AS orders\nFROM fact_order o\nJOIN dim_channel c ON c.id = o.channel_id\nWHERE o.pay_time BETWEEN :fromTime AND :toTime\nGROUP BY c.channel_name', params: [{ name: 'fromTime', type: 'DATETIME' }, { name: 'toTime', type: 'DATETIME' }, { name: 'channelId', type: 'INTEGER' }, { name: 'status', type: 'STRING' }], guards: '只读保护 · 1000 行 · 3000 ms', updatedAt: '12 分钟前' },
@@ -69,7 +69,9 @@
         const messages = {
             DATASOURCE_IN_USE: '该数据源仍被模板或绑定引用，请先解除引用。',
             DATASOURCE_CREDENTIAL_REQUIRED: '新建数据源必须提供密码和密钥引用。',
+            DATASOURCE_CREDENTIAL_KEY_UNAVAILABLE: '服务端未配置数据源凭证主密钥，请设置 MCP_MYSQL_DATASOURCE_KEY 后重启服务。',
             DATASOURCE_JDBC_URL_SENSITIVE: 'JDBC 地址不得包含密码、Token 或其他凭证参数。',
+            DATASOURCE_CONNECTION_FAILED: '无法连接该数据源，请检查主机、端口、数据库名、用户名和密码。',
             ENABLED_TEMPLATE_IMMUTABLE: '启用中的模板不可修改 SQL、数据源或参数契约，请先停用或创建新模板。',
             PROTOCOL_IMMUTABLE: '启用中的模板不可修改 SQL、数据源或参数契约，请先停用或创建新模板。',
             TOOL_NAME_DUPLICATE: '同一 Gateway 下已存在同名 Tool，请更换工具名称。',
@@ -123,21 +125,34 @@
         return { list: list.map(item => normalizeItem(item, resource)), total: Number(response.total || raw && raw.total || list.length) };
     }
 
+    function parseJdbcUrl(value) {
+        const jdbcUrl = String(value || '');
+        const match = jdbcUrl.match(/^jdbc:mysql:\/\/([^/:]+|\[[^\]]+\])(?::(\d+))?\/([^?;]+)/i);
+        return match ? { host: match[1], port: Number(match[2] || 3306), database: decodeURIComponent(match[3]) }
+            : { host: '-', port: 3306, database: '-' };
+    }
+
     function normalizeItem(item, resource) {
-        if (resource === 'datasource') return stripSensitive($.extend({}, item, {
+        if (resource === 'datasource') {
+            const connection = parseJdbcUrl(item.jdbcUrlMasked || item.jdbcUrl || item.jdbcURL);
+            return stripSensitive($.extend({}, item, {
             id: item.id || item.datasourceId || item.dataSourceId,
             name: item.name || item.datasourceName,
             description: item.description || `${item.type || 'MySQL'} · ${item.database || item.databaseName || '-'}`,
-            host: item.host || item.hostname || item.jdbcHost || '-', port: item.port || item.jdbcPort || 3306,
-            database: item.database || item.databaseName || '-', username: item.username || item.userName || '-',
+            host: item.host || item.hostname || item.jdbcHost || connection.host, port: item.port || item.jdbcPort || connection.port,
+            database: item.database || item.databaseName || connection.database, username: item.username || item.userName || '-',
             readOnly: item.readOnly !== false && item.readonly !== false, templateCount: item.templateCount || item.referenceCount || 0,
             status: normalizeStatus(item.status), statusLabel: item.statusLabel || item.statusText || ''
-        }));
+            }));
+        }
         if (resource === 'template') return stripSensitive($.extend({}, item, {
             id: item.id || item.protocolId || item.mysqlProtocolId,
             name: item.name || item.templateName,
             description: item.description || item.templateDesc || 'MySQL 只读 SQL 模板',
-            datasourceId: item.datasourceId || item.dataSourceId, datasource: item.datasource || item.datasourceName || '-',
+            version: item.version || item.protocolVersion || '1.0.0',
+            datasourceRef: item.datasourceRef || item.datasourceId || item.dataSourceId,
+            datasourceId: item.datasourceRef || item.datasourceId || item.dataSourceId,
+            datasource: item.datasource || item.datasourceName || item.datasourceRef || '-',
             toolCount: item.toolCount || item.bindingCount || 0, status: normalizeStatus(item.status), statusLabel: item.statusLabel || item.statusText || '',
             sql: item.sql || item.readonlySql || item.sqlText || 'SELECT ...', params: item.params || item.parameters || [], guards: item.guards || '待校验'
         }));
@@ -195,12 +210,13 @@
     }
 
     function initOptions(root, resource) {
-        const datasourceOptions = previews.datasource.map(row => `<option value="${escapeHtml(row.id)}">${escapeHtml(row.name)}</option>`).join('');
+        const datasourceRefOptions = previews.datasource.map(row => `<option value="${escapeHtml(row.datasourceRef || row.id)}">${escapeHtml(row.name)}</option>`).join('');
+        const datasourceIdOptions = previews.datasource.map(row => `<option value="${escapeHtml(row.id)}">${escapeHtml(row.name)}</option>`).join('');
         if (resource === 'template') {
-            root.find('#template-datasource, #template-datasource-filter').each(function () { if (this.id === 'template-datasource') $(this).append(datasourceOptions); else $(this).append(datasourceOptions); });
+            root.find('#template-datasource, #template-datasource-filter').each(function () { $(this).append(datasourceRefOptions); });
         }
         if (resource === 'binding') {
-            root.find('#binding-datasource').append(datasourceOptions);
+            root.find('#binding-datasource').append(datasourceIdOptions);
             root.find('#binding-template').append(previews.template.map(row => `<option value="${escapeHtml(row.id)}">${escapeHtml(row.name)}</option>`).join(''));
             const gateways = ['gw-commerce-prod|gateway-commerce-prod', 'gw-analytics-dev|gateway-analytics-dev', 'gw-internal|gateway-internal'];
             root.find('#binding-gateway, #binding-gateway-filter').append(gateways.map(item => { const parts = item.split('|'); return `<option value="${parts[0]}">${parts[1]}</option>`; }).join(''));
@@ -230,15 +246,52 @@
     function serializeRequest(resource, data) {
         const clean = $.extend({}, data);
         delete clean.__paramsInvalid;
-        if (resource === 'datasource') clean.datasourceId = clean.id || undefined;
-        if (resource === 'template') clean.templateId = clean.id || undefined;
+        if (resource === 'datasource') {
+            const datasourceRef = String(clean.datasourceRef || clean.name || '').trim().replace(/\s+/g, '-');
+            const payload = {
+                id: clean.id ? Number(clean.id) : undefined,
+                datasourceRef: datasourceRef,
+                datasourceName: String(clean.name || '').trim(),
+                datasourceType: 'mysql',
+                jdbcUrl: `jdbc:mysql://${String(clean.host || '').trim()}:${Number(clean.port)}/${String(clean.database || '').trim()}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true`,
+                username: String(clean.username || '').trim(),
+                password: clean.password,
+                encryptionKeyRef: typeof MYSQL_DATASOURCE_KEY_REF === 'undefined' ? undefined : MYSQL_DATASOURCE_KEY_REF,
+                status: Number(clean.status)
+            };
+            if (!payload.password) delete payload.password;
+            return payload;
+        }
+        if (resource === 'template') {
+            const protocolId = clean.id ? Number(clean.id) : undefined;
+            const datasourceRef = String(clean.datasourceRef || clean.datasourceId || '').trim();
+            return {
+                protocolId: protocolId,
+                version: String(clean.version || '1.0.0').trim(),
+                name: String(clean.name || '').trim(),
+                description: String(clean.description || '').trim(),
+                datasourceRef: datasourceRef,
+                sql: String(clean.sql || '').trim(),
+                parameters: Array.isArray(clean.params) ? clean.params : [],
+                maxRows: Number(clean.maxRows),
+                maxResultBytes: Number(clean.maxBytes),
+                maxColumns: clean.maxColumns == null || clean.maxColumns === '' ? undefined : Number(clean.maxColumns),
+                timeoutMs: Number(clean.timeoutMs),
+                status: Number(clean.status)
+            };
+        }
         if (resource === 'binding') clean.bindingId = clean.id || undefined;
         return clean;
     }
 
-    function request(endpoint, method, payload, onSuccess, onError) {
+    function request(endpoint, method, payload, onSuccess, onError, onComplete) {
+        if (!endpoint) { onError({ info: '接口尚未配置' }); if (onComplete) onComplete(); return; }
+        $.ajax({ url: endpoint, type: method || 'GET', data: method === 'GET' ? payload : JSON.stringify(payload), contentType: method === 'GET' ? undefined : 'application/json', success: onSuccess, error: function (xhr) { let response = {}; try { response = JSON.parse(xhr.responseText || '{}'); } catch (e) { /* 安全回退为统一错误 */ } onError(response); }, complete: onComplete });
+    }
+
+    function requestParams(endpoint, payload, onSuccess, onError) {
         if (!endpoint) { onError({ info: '接口尚未配置' }); return; }
-        $.ajax({ url: endpoint, type: method || 'GET', data: method === 'GET' ? payload : JSON.stringify(payload), contentType: method === 'GET' ? undefined : 'application/json', success: onSuccess, error: function (xhr) { let response = {}; try { response = JSON.parse(xhr.responseText || '{}'); } catch (e) { /* 安全回退为统一错误 */ } onError(response); } });
+        $.ajax({ url: endpoint, type: 'POST', data: payload, success: onSuccess, error: function (xhr) { let response = {}; try { response = JSON.parse(xhr.responseText || '{}'); } catch (e) { /* 安全回退为统一错误 */ } onError(response); } });
     }
 
     window.initMysqlWorkbench = function (resource) {
@@ -294,7 +347,9 @@
 
         function loadDetail(row) {
             if (!row || !config.endpoints.detail) return;
-            request(config.endpoints.detail, 'GET', { id: row.id }, function (response) {
+            const identity = resource === 'datasource' ? { datasourceRef: row.datasourceRef }
+                : resource === 'template' ? { protocolId: row.id, version: row.version } : { id: row.id };
+            request(config.endpoints.detail, 'GET', identity, function (response) {
                 if (!response || !(response.code === '0000' || response.code === 0 || response.success === true)) return;
                 const detail = response.data && (response.data.data || response.data.item || response.data);
                 if (!detail || typeof detail !== 'object') return;
@@ -315,7 +370,11 @@
             root.find(`#${resource}-drawer-title`).text(row ? `编辑${config.title}` : `新建${config.title}`);
             if (row) {
                 Object.keys(row).forEach(key => { const field = form.find(`[name="${key}"]`); if (field.length && key !== 'password' && key !== 'params') field.val(row[key]); });
-                if (resource === 'template') form.find('[name="params"]').val(JSON.stringify(row.params || [], null, 2));
+                if (resource === 'template') {
+                    form.find('[name="version"]').val(row.version || '1.0.0');
+                    form.find('[name="datasourceId"]').val(row.datasourceRef || row.datasourceId || '');
+                    form.find('[name="params"]').val(JSON.stringify(row.params || [], null, 2));
+                }
                 if (resource === 'datasource') form.find('[name="readOnly"]').val(String(row.readOnly !== false));
                 if (resource === 'binding') { form.find('[name="templateId"]').val(row.templateId); form.find('[name="datasourceId"]').val(row.datasourceId); form.find('[name="gatewayId"]').val(row.gatewayId); }
                 form.find('[name="status"]').val(row.status === 'enabled' ? '1' : '0');
@@ -342,24 +401,33 @@
             request(config.endpoints.save, 'POST', serializeRequest(resource, data), function (response) {
                 if (response && (response.code === '0000' || response.success === true)) { showToast(`${config.title}保存成功`); closeDrawer(); loadRows(); }
                 else { root.find('.drawer-alert').addClass('show').text(apiError(response, '保存失败')); }
-            }, function (response) { root.find('.drawer-alert').addClass('show').text(apiError(response, '保存失败，请检查管理 API')); });
-            submit.prop('disabled', false).removeClass('loading').html('<i class="bi bi-check2-circle" aria-hidden="true"></i>保存');
+            }, function (response) { root.find('.drawer-alert').addClass('show').text(apiError(response, '保存失败，请检查管理 API')); }, function () {
+                submit.prop('disabled', false).removeClass('loading').html(`<i class="bi bi-check2-circle" aria-hidden="true"></i>保存${config.title}`);
+            });
         }
 
         function changeStatus(row) {
             const nextStatus = row.status === 'enabled' ? 0 : 1;
-            request(config.endpoints.status, 'POST', { id: row.id, status: nextStatus }, function (response) { if (response && (response.code === '0000' || response.success === true)) { row.status = nextStatus ? 'enabled' : 'draft'; row.statusLabel = nextStatus ? '已启用' : '停用'; render(); showToast(nextStatus ? '资源已启用' : '资源已停用'); } else showToast(apiError(response, '状态更新失败'), false); }, function (response) { showToast(apiError(response, '状态更新失败'), false); });
+            const identity = resource === 'datasource' ? { datasourceRef: row.datasourceRef, status: nextStatus }
+                : resource === 'template' ? { protocolId: row.id, version: row.version, status: nextStatus } : { id: row.id, status: nextStatus };
+            requestParams(config.endpoints.status, identity, function (response) { if (response && (response.code === '0000' || response.success === true)) { row.status = nextStatus ? 'enabled' : 'draft'; row.statusLabel = nextStatus ? '已启用' : '停用'; render(); showToast(nextStatus ? '资源已启用' : '资源已停用'); } else showToast(apiError(response, '状态更新失败'), false); }, function (response) { showToast(apiError(response, '状态更新失败'), false); });
         }
 
         async function removeRow(row) {
             const title = resource === 'binding' ? row.toolName : row.name;
             if (!await confirmAction(`确定删除“${title}”吗？删除前会检查引用关系，操作不可撤销。`)) return;
-            request(config.endpoints.remove, 'POST', { id: row.id }, function (response) { if (response && (response.code === '0000' || response.success === true)) { state.rows = state.rows.filter(item => String(item.id) !== String(row.id)); state.selectedId = state.rows[0] && state.rows[0].id; render(); showToast('资源已删除'); } else showToast(apiError(response, '删除失败'), false); }, function (response) { showToast(apiError(response, '删除失败，请检查引用关系'), false); });
+            const identity = resource === 'datasource' ? { datasourceRef: row.datasourceRef }
+                : resource === 'template' ? { protocolId: row.id, version: row.version } : { id: row.id };
+            requestParams(config.endpoints.remove, identity, function (response) { if (response && (response.code === '0000' || response.success === true)) { state.rows = state.rows.filter(item => String(item.id) !== String(row.id)); state.selectedId = state.rows[0] && state.rows[0].id; render(); showToast('资源已删除'); } else showToast(apiError(response, '删除失败'), false); }, function (response) { showToast(apiError(response, '删除失败，请检查引用关系'), false); });
         }
 
         function testRow(row) {
             if (!config.endpoints.test) { showToast('该资源暂未配置测试接口', false); return; }
-            request(config.endpoints.test, 'POST', { id: row.id }, function (response) { if (response && (response.code === '0000' || response.success === true)) showToast(resource === 'datasource' ? '连接测试通过' : '模板测试完成'); else showToast(apiError(response, '测试未通过'), false); }, function (response) { showToast(apiError(response, '测试请求失败'), false); });
+            const button = root.find('[data-inspector-action="test"]');
+            const original = button.html();
+            const payload = resource === 'datasource' ? { datasourceRef: row.datasourceRef } : { id: row.id, version: row.version };
+            button.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> 测试中...');
+            request(config.endpoints.test, 'POST', payload, function (response) { if (response && (response.code === '0000' || response.success === true)) showToast(resource === 'datasource' ? '连接测试通过' : '模板测试完成'); else showToast(apiError(response, '测试未通过'), false); }, function (response) { showToast(apiError(response, '测试请求失败'), false); }, function () { button.prop('disabled', false).html(original); });
         }
 
         root.off('.mysql-workbench');

@@ -1,8 +1,10 @@
 package cn.bugstack.ai.test.infrastructure.security;
 
 import cn.bugstack.ai.infrastructure.security.DataSourceCredentialCipher;
+import cn.bugstack.ai.config.MysqlExecutionConfig;
 import cn.bugstack.ai.types.exception.MysqlQueryException;
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.env.MockEnvironment;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -31,6 +33,15 @@ class DataSourceCredentialCipherTest {
 
         assertEquals("DATASOURCE_CREDENTIAL_ERROR", error.getCode());
         assertFalse(error.getMessage().contains("not-base64"));
+    }
+
+    @Test
+    void resolvesDatasourceKeyFromDevApplicationConfiguration() {
+        MockEnvironment environment = new MockEnvironment()
+                .withProperty("mcp.mysql.datasource-key", "dev-master-key");
+
+        assertEquals("dev-master-key",
+                new MysqlExecutionConfig().mysqlSecretLookup(environment).apply("env:MCP_MYSQL_DATASOURCE_KEY"));
     }
 
     private static DataSourceCredentialCipher cipher() {

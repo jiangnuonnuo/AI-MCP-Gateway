@@ -2,9 +2,11 @@ package cn.bugstack.ai.test.trigger.http;
 
 import cn.bugstack.ai.api.IAdminMysqlService;
 import cn.bugstack.ai.api.IAdminService;
+import cn.bugstack.ai.api.dto.MysqlAdminTestRequestDTO;
 import cn.bugstack.ai.api.dto.MysqlDataSourceQueryDTO;
 import cn.bugstack.ai.api.response.Response;
 import cn.bugstack.ai.cases.admin.mysql.IAdminMysqlManageService;
+import cn.bugstack.ai.domain.mysql.model.admin.MysqlDataSourceAdminView;
 import cn.bugstack.ai.trigger.http.AdminMysqlController;
 import cn.bugstack.ai.trigger.http.AdminController;
 import cn.bugstack.ai.types.exception.MysqlDomainException;
@@ -54,6 +56,21 @@ class MysqlAdminControllerContractTest {
         assertTrue(IAdminMysqlService.class.isAssignableFrom(AdminMysqlController.class));
         assertFalse(Arrays.stream(IAdminService.class.getDeclaredMethods()).anyMatch(method -> method.getName().contains("Mysql")));
         assertFalse(Arrays.stream(AdminController.class.getDeclaredMethods()).anyMatch(method -> method.getName().contains("Mysql")));
+    }
+
+    @Test
+    void datasourceTestDelegatesToConnectionHealthUseCase() {
+        IAdminMysqlManageService service = mock(IAdminMysqlManageService.class);
+        when(service.testDataSource("warehouse")).thenReturn(new MysqlDataSourceAdminView(
+                1L, "warehouse", "Warehouse", "mysql", "jdbc:mysql://127.0.0.1:3306/warehouse",
+                "reader", 0, true, null, null));
+        AdminMysqlController controller = controller(service);
+
+        Response<?> response = controller.testMysqlDataSource(new MysqlAdminTestRequestDTO(null, "warehouse", null));
+
+        assertEquals("0000", response.getCode());
+        verify(service).testDataSource("warehouse");
+        verify(service, never()).findDataSource("warehouse");
     }
 
     private static AdminMysqlController controller(IAdminMysqlManageService service) {

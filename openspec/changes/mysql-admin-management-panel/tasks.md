@@ -25,7 +25,7 @@
 - [x] 4.1 实现 MySQL 管理 Case 的分页、详情、新建、编辑、删除和状态切换用例，验证跨资源校验只在 Case/Domain 编排而不下沉到 Controller
 - [x] 4.2 新增独立的 `IAdminMysqlService` 和 `AdminMysqlController`，从通用 `IAdminService`、`AdminController` 中移出全部 MySQL 管理端点，同时保持 `/admin/` 路由和统一 `Response`/`ResponsePage` 契约不变
 - [x] 4.3 增加稳定错误码到安全 HTTP 响应的映射，验证字段级校验、唯一性冲突、引用冲突、状态冲突和 SQL 安全拒绝均不泄露堆栈或敏感内容
-- [x] 4.4 用 Mock Repository 完成 Controller/Case 单元测试，验证默认停用、启用限制、绑定运行时可见性和分页参数边界
+- [x] 4.4 用 Mock Repository 完成 Controller/Case 单元测试，验证默认停用、启用限制、绑定运行时可见性、分页参数边界以及数据源连接测试会调用真实 JDBC 健康检查端口
 
 ## 5. 静态管理前端
 

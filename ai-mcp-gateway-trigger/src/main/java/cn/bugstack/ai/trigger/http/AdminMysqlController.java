@@ -100,7 +100,7 @@ public class AdminMysqlController implements IAdminMysqlService {
         try {
             String ref = requestDTO.getDatasourceRef() == null || requestDTO.getDatasourceRef().isBlank()
                     ? requestDTO.getId() : requestDTO.getDatasourceRef();
-            return mysqlSuccess(adminMysqlManageService.findDataSource(ref));
+            return mysqlSuccess(adminMysqlManageService.testDataSource(ref));
         } catch (Exception e) {
             return mysqlError(e);
         }
