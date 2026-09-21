@@ -20,10 +20,25 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /** 由显式只读凭证控制的真实 data_warehouse 查询；未提供凭证时不连接外部数据库。 */
 class MysqlJdbcGatewayIntegrationTest {
+
+    @Test
+    void verifiesDataWarehouseConnectionHealth() {
+        String username = System.getenv("DATA_WAREHOUSE_READONLY_USERNAME");
+        String password = System.getenv("DATA_WAREHOUSE_READONLY_PASSWORD");
+        assumeTrue(username != null && !username.isBlank() && password != null && !password.isBlank());
+
+        MysqlJdbcGateway gateway = gateway(username, password);
+        try {
+            assertTrue(gateway.isHealthy("data-warehouse"));
+        } finally {
+            gateway.close();
+        }
+    }
 
     @Test
     void executesPersistedReadonlyProtocolAgainstDataWarehouse() {
@@ -31,12 +46,7 @@ class MysqlJdbcGatewayIntegrationTest {
         String password = System.getenv("DATA_WAREHOUSE_READONLY_PASSWORD");
         assumeTrue(username != null && !username.isBlank() && password != null && !password.isBlank());
 
-        MysqlJdbcGateway gateway = new MysqlJdbcGateway();
-        ReflectionTestUtils.setField(gateway, "connectionSettingsRegistry",
-                (MysqlConnectionSettingsRegistry) ref -> Optional.of(settings(username, password)));
-        ReflectionTestUtils.setField(gateway, "parameterBinder", new MysqlTemplateParameterBinder());
-        ReflectionTestUtils.setField(gateway, "secretResolver",
-                (cn.bugstack.ai.infrastructure.security.ISecretResolver) reference -> null);
+        MysqlJdbcGateway gateway = gateway(username, password);
         try {
             MysqlTemplate protocol = MysqlTemplate.builder().id("900001").version("1.0.0")
                     .name("queryDataWarehouseOrderSummary").description("order summary")
@@ -60,6 +70,16 @@ class MysqlJdbcGatewayIntegrationTest {
         } finally {
             gateway.close();
         }
+    }
+
+    private static MysqlJdbcGateway gateway(String username, String password) {
+        MysqlJdbcGateway gateway = new MysqlJdbcGateway();
+        ReflectionTestUtils.setField(gateway, "connectionSettingsRegistry",
+                (MysqlConnectionSettingsRegistry) ref -> Optional.of(settings(username, password)));
+        ReflectionTestUtils.setField(gateway, "parameterBinder", new MysqlTemplateParameterBinder());
+        ReflectionTestUtils.setField(gateway, "secretResolver",
+                (cn.bugstack.ai.infrastructure.security.ISecretResolver) reference -> null);
+        return gateway;
     }
 
     private static MysqlConnectionSettings settings(String username, String password) {

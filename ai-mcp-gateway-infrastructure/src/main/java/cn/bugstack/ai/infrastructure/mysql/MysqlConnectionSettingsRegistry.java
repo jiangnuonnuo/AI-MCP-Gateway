@@ -17,4 +17,11 @@ public interface MysqlConnectionSettingsRegistry {
      * @return 连接设置
      */
     Optional<MysqlConnectionSettings> findSettings(String datasourceRef);
+
+    /**
+     * 获取连接测试使用的设置。连接测试允许校验尚未启用的数据源。
+     */
+    default Optional<MysqlConnectionSettings> findSettingsForHealth(String datasourceRef) {
+        return findSettings(datasourceRef);
+    }
 }

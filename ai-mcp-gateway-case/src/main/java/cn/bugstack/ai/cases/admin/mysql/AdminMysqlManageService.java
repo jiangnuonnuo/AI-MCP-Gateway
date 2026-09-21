@@ -21,6 +21,7 @@ public class AdminMysqlManageService implements IAdminMysqlManageService {
     @Override public MysqlAdminPage<MysqlDataSourceAdminView> pageDataSources(MysqlAdminQueries.DataSource query) { return managementService.pageDataSources(query); }
     @Override public MysqlDataSourceAdminView findDataSource(String ref) { return managementService.findDataSource(ref); }
     @Override public MysqlDataSourceAdminView saveDataSource(MysqlDataSourceAdminCommand command) { return managementService.saveDataSource(command); }
+    @Override public MysqlDataSourceAdminView testDataSource(String ref) { return managementService.testDataSource(ref); }
     @Override public MysqlDataSourceAdminView changeDataSourceStatus(String ref, int status) { return managementService.changeDataSourceStatus(ref, status); }
     @Override public void deleteDataSource(String ref) { managementService.deleteDataSource(ref); }
     @Override public MysqlAdminPage<MysqlTemplateAdminView> pageTemplates(MysqlAdminQueries.Template query) { return managementService.pageTemplates(query); }

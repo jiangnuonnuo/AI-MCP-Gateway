@@ -35,6 +35,7 @@
         <div class="drawer-alert" id="datasource-form-alert" role="alert"></div>
         <form id="datasource-form" novalidate>
             <input type="hidden" name="id">
+            <input type="hidden" name="datasourceRef">
             <div class="form-grid">
                 <div class="field"><label for="datasource-name">数据源名称 <span class="required">*</span></label><input id="datasource-name" name="name" required maxlength="64" placeholder="例如：warehouse-prod"><span class="field-error">请输入数据源名称</span></div>
                 <div class="field"><label for="datasource-database">数据库名 <span class="required">*</span></label><input id="datasource-database" name="database" required maxlength="64" placeholder="warehouse"><span class="field-error">请输入数据库名</span></div>
