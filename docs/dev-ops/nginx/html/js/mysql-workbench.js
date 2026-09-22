@@ -78,6 +78,13 @@
             TOOL_NAME_CONFLICT: '同一 Gateway 下已存在同名 Tool，请更换工具名称。',
             TEMPLATE_IN_USE: '该模板仍被 Tool 绑定引用，请先解除绑定。',
             BINDING_RESOURCE_UNAVAILABLE: '模板或数据源未启用，无法发布该绑定。',
+            SQL_PARAMETER_ERROR: '参数缺失、未声明或类型不匹配，请检查左侧参数面板。',
+            SQL_POLICY_REJECTED: '只读策略拒绝了本次执行，请检查模板治理规则。',
+            PROTOCOL_UNAVAILABLE: '模板不存在、已停用或当前版本不可执行。',
+            DATASOURCE_UNAVAILABLE: '模板绑定的数据源不可用，请先完成连接检查。',
+            QUERY_TIMEOUT: '查询超过模板超时上限，请缩小参数范围后重试。',
+            RESULT_LIMIT_EXCEEDED: '查询结果超过模板资源上限，请缩小结果范围。',
+            RESOURCE_LIMIT_EXCEEDED: '当前查询资源并发受限，请稍后重试。',
             GATEWAY_NOT_FOUND: 'Gateway 不存在或已不可用。',
             RESOURCE_NOT_FOUND: '资源不存在，可能已被其他管理员删除。',
             VALIDATION_ERROR: '请检查表单中的字段和格式。'
@@ -423,11 +430,163 @@
 
         function testRow(row) {
             if (!config.endpoints.test) { showToast('该资源暂未配置测试接口', false); return; }
+            if (resource === 'template') { openTemplateTestConsole(row); return; }
             const button = root.find('[data-inspector-action="test"]');
             const original = button.html();
             const payload = resource === 'datasource' ? { datasourceRef: row.datasourceRef } : { id: row.id, version: row.version };
             button.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> 测试中...');
             request(config.endpoints.test, 'POST', payload, function (response) { if (response && (response.code === '0000' || response.success === true)) showToast(resource === 'datasource' ? '连接测试通过' : '模板测试完成'); else showToast(apiError(response, '测试未通过'), false); }, function (response) { showToast(apiError(response, '测试请求失败'), false); }, function () { button.prop('disabled', false).html(original); });
+        }
+
+        const testState = { row: null, report: null, running: false, outputTab: 'response', collapsed: false };
+
+        function testParameters(row) {
+            return (row && (row.params || row.parameters) || []).map((parameter, index) => ({
+                name: parameter.name || parameter.key || `param_${index + 1}`,
+                type: String(parameter.type || 'STRING').toUpperCase(),
+                required: parameter.required !== false,
+                description: parameter.description || parameter.help || '',
+                defaultValue: parameter.defaultValue == null ? '' : parameter.defaultValue
+            }));
+        }
+
+        function parameterInput(parameter) {
+            const inputType = parameter.type === 'BOOLEAN' ? 'checkbox' : parameter.type === 'INTEGER' || parameter.type === 'LONG' || parameter.type === 'DECIMAL' ? 'number' : 'text';
+            const value = inputType === 'checkbox' ? '' : `value="${escapeHtml(parameter.defaultValue)}"`;
+            const checked = inputType === 'checkbox' && parameter.defaultValue === true ? ' checked' : '';
+            return `<label class="test-param-field"><span class="test-param-label"><b>${escapeHtml(parameter.name)}</b><em>${escapeHtml(parameter.type)}${parameter.required ? ' · 必填' : ' · 可选'}</em></span><span class="test-param-control"><input class="test-param-input" data-param-name="${escapeHtml(parameter.name)}" data-param-type="${escapeHtml(parameter.type)}" data-param-required="${parameter.required}" type="${inputType}" ${value}${checked} placeholder="${parameter.required ? '请输入参数值' : '可选'}" aria-label="${escapeHtml(parameter.name)}">${parameter.description ? `<small>${escapeHtml(parameter.description)}</small>` : ''}</span></label>`;
+        }
+
+        function renderTestParameters() {
+            const params = testParameters(testState.row);
+            const groups = {};
+            params.forEach(parameter => {
+                const group = parameter.name.indexOf('.') > 0 ? parameter.name.split('.')[0] : '执行参数';
+                (groups[group] = groups[group] || []).push(parameter);
+            });
+            const html = Object.keys(groups).map(group => `<details class="test-param-group" open><summary><span>${escapeHtml(group)}</span><small>${groups[group].length} 个参数</small></summary><div>${groups[group].map(parameterInput).join('')}</div></details>`).join('');
+            root.find('#template-test-param-groups').html(html || '<div class="test-empty-params">该模板无需填充参数。</div>');
+            root.find('#template-test-param-count').text(`${params.length} 个参数`);
+            updateParameterCount();
+        }
+
+        function updateParameterCount() {
+            const inputs = root.find('.test-param-input');
+            let complete = 0;
+            inputs.each(function () { if (this.type === 'checkbox' || String(this.value || '').trim()) complete += 1; });
+            root.find('#template-test-param-complete').text(`${complete} / ${inputs.length} 已填写`);
+        }
+
+        function collectTestParameters() {
+            const parameters = {};
+            let valid = true;
+            let firstInvalid = null;
+            root.find('.test-param-input').each(function () {
+                const required = $(this).data('param-required') !== false && String($(this).data('param-required')) !== 'false';
+                const raw = this.type === 'checkbox' ? this.checked : String(this.value || '').trim();
+                if (required && raw === '') { $(this).closest('.test-param-field').addClass('invalid'); valid = false; firstInvalid = firstInvalid || this; return; }
+                $(this).closest('.test-param-field').removeClass('invalid');
+                if (raw !== '') {
+                    const type = String($(this).data('param-type') || 'STRING').toUpperCase();
+                    parameters[$(this).data('param-name')] = type === 'INTEGER' || type === 'LONG' ? Number(raw) : type === 'DECIMAL' ? Number(raw) : type === 'BOOLEAN' ? Boolean(raw) : raw;
+                }
+            });
+            if (!valid) { showToast('请先填充所有必填参数。', false); if (firstInvalid) firstInvalid.focus(); return null; }
+            return parameters;
+        }
+
+        function templateTestStatus(label, kind) {
+            const status = root.find('#template-test-status');
+            status.removeClass('live danger draft').addClass(kind || 'draft').text(label);
+        }
+
+        function setTestStep(index) {
+            root.find('.test-step-rail span').removeClass('active').eq(index).addClass('active');
+        }
+
+        function renderTestTimeline(stages, running) {
+            const values = stages || ['PARAMETER_VALIDATION', 'POLICY_VALIDATION', 'DATASOURCE_CONNECTION', 'SQL_EXECUTION', 'RESPONSE_ASSEMBLY'].map((name, index) => ({ name, label: name, status: running && index === 0 ? 'RUNNING' : 'PENDING', durationMs: 0 }));
+            root.find('#template-test-timeline').html(values.map(stage => {
+                const status = String(stage.status || 'PENDING').toLowerCase();
+                const icon = status === 'succeeded' ? 'bi-check2' : status === 'failed' ? 'bi-x-lg' : status === 'running' ? 'bi-arrow-repeat' : 'bi-circle';
+                return `<div class="test-timeline-item ${status}"><span class="test-timeline-icon"><i class="bi ${icon}" aria-hidden="true"></i></span><span class="test-timeline-copy"><b>${escapeHtml(stage.label || stage.name)}</b><small>${status === 'running' ? '执行中…' : status === 'failed' ? escapeHtml(stage.errorMessage || '执行失败') : status === 'succeeded' ? `${Number(stage.durationMs || 0)} ms` : '等待执行'}</small></span></div>`;
+            }).join(''));
+        }
+
+        function testOutputPayload() {
+            const report = testState.report || {};
+            if (testState.outputTab === 'request') return report.requestParameters || {};
+            if (testState.outputTab === 'binding') return { template: { id: testState.row && testState.row.id, version: testState.row && testState.row.version }, datasource: testState.row && testState.row.datasourceRef, sql: testState.row && testState.row.sql, parameters: report.requestParameters || {} };
+            if (testState.outputTab === 'log') return report.stages || [];
+            return report.responseJson || {};
+        }
+
+        function renderTestOutput() {
+            root.find('#template-test-output').text(JSON.stringify(testOutputPayload(), null, 2));
+        }
+
+        function renderTestReport(report) {
+            testState.report = report || {};
+            root.find('#template-test-query-id').text(report && report.queryId ? `queryId ${report.queryId}` : '未生成 queryId');
+            root.find('#template-test-duration').text(report && report.durationMs != null ? `${report.durationMs} ms` : '—');
+            if (report && report.success) templateTestStatus('执行成功', 'live');
+            else templateTestStatus('执行失败', 'danger');
+            setTestStep(report && report.success ? 2 : 1);
+            renderTestTimeline(report && report.stages, false);
+            renderTestOutput();
+        }
+
+        function openTemplateTestConsole(row) {
+            testState.row = row;
+            testState.report = null;
+            testState.outputTab = 'response';
+            testState.running = false;
+            testState.collapsed = false;
+            root.find('#template-test-params-panel').removeClass('collapsed');
+            root.find('.test-console-body').removeClass('params-collapsed').css('grid-template-columns', '');
+            setTestStep(0);
+            root.find('#template-test-title').text(`${row.name || 'SQL 模板'} · 测试工作区`);
+            root.find('#template-test-subtitle').text(`${row.datasource || row.datasourceRef || '固定数据源'} · 执行前填充参数，执行后查看真实网关结果`);
+            root.find('#template-test-datasource').text(row.datasource || row.datasourceRef || '固定数据源');
+            root.find('#template-test-sql').html(highlightSql(row.sql || 'SELECT ...'));
+            root.find('#template-test-query-id').text('尚未生成 queryId');
+            root.find('#template-test-duration').text('—');
+            templateTestStatus('待执行', 'draft');
+            renderTestParameters();
+            renderTestTimeline(null, false);
+            root.find('#template-test-output').text('点击“运行测试”后显示真实响应。');
+            root.find('#template-test-console').removeAttr('hidden').addClass('open');
+            root.find('#template-test-run').trigger('focus');
+        }
+
+        function closeTemplateTestConsole() {
+            root.find('#template-test-console').attr('hidden', 'hidden').removeClass('open');
+            testState.running = false;
+        }
+
+        function runTemplateTest() {
+            if (testState.running || !testState.row) return;
+            const parameters = collectTestParameters();
+            if (!parameters) return;
+            const liveToast = document.getElementById('liveToast');
+            if (liveToast && window.bootstrap && bootstrap.Toast) bootstrap.Toast.getOrCreateInstance(liveToast).hide();
+            testState.running = true;
+            setTestStep(1);
+            root.find('#template-test-run').prop('disabled', true).addClass('loading').html('<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> 执行中…');
+            templateTestStatus('执行中', 'draft');
+            renderTestTimeline(null, true);
+            const payload = { id: testState.row.id, version: testState.row.version, parameters: parameters };
+            request(config.endpoints.test, 'POST', payload, function (response) {
+                const report = response && response.data && (response.data.data || response.data.item || response.data);
+                if (report && typeof report === 'object') renderTestReport(report);
+                else showToast(apiError(response, '测试未返回执行报告'), false);
+            }, function (response) {
+                const report = response && response.data && (response.data.data || response.data.item || response.data);
+                if (report && typeof report === 'object') renderTestReport(report); else { templateTestStatus('执行失败', 'danger'); showToast(apiError(response, '测试请求失败'), false); }
+            }, function () {
+                testState.running = false;
+                root.find('#template-test-run').prop('disabled', false).removeClass('loading').html('<i class="bi bi-play-fill" aria-hidden="true"></i>运行测试');
+            });
         }
 
         root.off('.mysql-workbench');
@@ -445,8 +604,36 @@
         root.on('click.mysql-workbench', '[data-inspector-action]', function () { const row = state.rows.find(item => String(item.id) === String(state.selectedId)); if (!row) return; const action = $(this).data('inspector-action'); if (action === 'edit') openDrawer(row); if (action === 'toggle') changeStatus(row); if (action === 'delete') removeRow(row); if (action === 'test') testRow(row); });
         root.on('click.mysql-workbench', '[data-page]', function () { if (this.disabled) return; state.page = Number($(this).data('page')); render(); loadRows(); });
         root.on('click.mysql-workbench', '#template-test', function () { const row = state.rows.find(item => String(item.id) === String(state.selectedId)); if (row) testRow(row); });
-        $(document).off('input.mysql-global', '#global-search-input').on('input.mysql-global', '#global-search-input', function () { state.search = this.value; state.page = 1; root.find(`#${resource}-search`).val(this.value); render(); clearTimeout(searchTimer); searchTimer = setTimeout(loadRows, 280); });
-        $(document).off('keydown.mysql-workbench').on('keydown.mysql-workbench', function (event) { if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); root.find(`input[type="search"]`).first().trigger('focus'); } if (event.key === 'Escape') closeDrawer(); });
+        root.on('click.mysql-workbench', '#template-test-close', closeTemplateTestConsole);
+        root.on('click.mysql-workbench', '#template-test-collapse', function () {
+            testState.collapsed = !testState.collapsed;
+            root.find('#template-test-params-panel').toggleClass('collapsed', testState.collapsed);
+            root.find('.test-console-body').toggleClass('params-collapsed', testState.collapsed);
+            $(this).attr('aria-expanded', String(!testState.collapsed));
+        });
+        root.on('click.mysql-workbench', '#template-test-run', runTemplateTest);
+        root.on('click.mysql-workbench', '#template-test-reset', function () { renderTestParameters(); });
+        root.on('click.mysql-workbench', '#template-test-copy', function () {
+            const text = root.find('#template-test-output').text();
+            const done = function () { showToast('JSON 已复制'); };
+            if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done).catch(function () { showToast('复制失败，请手动选择 JSON', false); });
+            else { const textarea = $('<textarea>').val(text).appendTo('body').select(); document.execCommand('copy'); textarea.remove(); done(); }
+        });
+        root.on('input.mysql-workbench', '#template-test-param-search', function () { const query = String(this.value || '').toLowerCase(); root.find('.test-param-field').each(function () { $(this).toggle(!query || $(this).text().toLowerCase().indexOf(query) >= 0); }); });
+        root.on('input.mysql-workbench change.mysql-workbench', '.test-param-input', updateParameterCount);
+        root.on('click.mysql-workbench', '.test-output-tab', function () { root.find('.test-output-tab').removeClass('active').attr('aria-selected', 'false'); $(this).addClass('active').attr('aria-selected', 'true'); testState.outputTab = $(this).data('output-tab'); renderTestOutput(); });
+        root.on('mousedown.mysql-workbench', '#template-test-resizer', function (event) {
+            if (testState.collapsed || window.matchMedia('(max-width: 900px)').matches) return;
+            event.preventDefault();
+            const body = root.find('.test-console-body');
+            const startX = event.clientX;
+            const startWidth = root.find('.test-params-panel').outerWidth();
+            $(document).on('mousemove.mysql-workbench-resize', function (moveEvent) {
+                const width = Math.max(280, Math.min(520, startWidth + moveEvent.clientX - startX));
+                body.css('grid-template-columns', `${width}px 8px minmax(0, 1fr)`);
+            }).on('mouseup.mysql-workbench-resize', function () { $(document).off('.mysql-workbench-resize'); });
+        });
+        $(document).off('keydown.mysql-workbench').on('keydown.mysql-workbench', function (event) { if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); root.find(`input[type="search"]`).first().trigger('focus'); } if (event.key === 'Escape') { if (root.find('#template-test-console.open').length) closeTemplateTestConsole(); else closeDrawer(); } });
 
         render();
         loadRows();

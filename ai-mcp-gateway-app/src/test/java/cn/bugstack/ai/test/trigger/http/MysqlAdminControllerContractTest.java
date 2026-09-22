@@ -6,7 +6,9 @@ import cn.bugstack.ai.api.dto.MysqlAdminTestRequestDTO;
 import cn.bugstack.ai.api.dto.MysqlDataSourceQueryDTO;
 import cn.bugstack.ai.api.response.Response;
 import cn.bugstack.ai.cases.admin.mysql.IAdminMysqlManageService;
+import cn.bugstack.ai.cases.admin.mysql.IAdminMysqlTemplateTestCase;
 import cn.bugstack.ai.domain.mysql.model.admin.MysqlDataSourceAdminView;
+import cn.bugstack.ai.domain.mysql.model.valobj.MysqlTemplateTestReport;
 import cn.bugstack.ai.trigger.http.AdminMysqlController;
 import cn.bugstack.ai.trigger.http.AdminController;
 import cn.bugstack.ai.types.exception.MysqlDomainException;
@@ -71,6 +73,27 @@ class MysqlAdminControllerContractTest {
         assertEquals("0000", response.getCode());
         verify(service).testDataSource("warehouse");
         verify(service, never()).findDataSource("warehouse");
+    }
+
+    @Test
+    void templateTestReturnsExecutionReportAndForwardsOnlyParameters() {
+        IAdminMysqlManageService service = mock(IAdminMysqlManageService.class);
+        IAdminMysqlTemplateTestCase testCase = mock(IAdminMysqlTemplateTestCase.class);
+        when(testCase.execute(eq("900002"), eq("1.0.0"), any())).thenReturn(MysqlTemplateTestReport.builder()
+                .success(true).templateRef("900002").version("1.0.0").datasourceRef("warehouse")
+                .queryId("q-1").requestParameters(java.util.Map.of("fromTime", "2026-09-01"))
+                .stages(java.util.List.of()).durationMs(8).metrics(java.util.Map.of("rowCount", 1))
+                .responseJson(java.util.Map.of("rows", java.util.List.of())).build());
+        AdminMysqlController controller = controller(service);
+        ReflectionTestUtils.setField(controller, "adminMysqlTemplateTestCase", testCase);
+
+        MysqlAdminTestRequestDTO request = new MysqlAdminTestRequestDTO("900002", "client-override", "1.0.0",
+                java.util.Map.of("fromTime", "2026-09-01"));
+        Response<?> response = controller.testMysqlTemplate(request);
+
+        assertEquals("0000", response.getCode());
+        assertEquals("q-1", ((cn.bugstack.ai.api.dto.MysqlTemplateTestDTO) response.getData()).getQueryId());
+        verify(testCase).execute(eq("900002"), eq("1.0.0"), eq(request.getParameters()));
     }
 
     private static AdminMysqlController controller(IAdminMysqlManageService service) {

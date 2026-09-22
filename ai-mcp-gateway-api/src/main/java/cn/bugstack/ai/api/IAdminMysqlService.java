@@ -35,7 +35,7 @@ public interface IAdminMysqlService {
 
     Response<MysqlTemplateDTO> deleteMysqlTemplate(Long protocolId, String version);
 
-    Response<MysqlTemplateDTO> testMysqlTemplate(MysqlAdminTestRequestDTO requestDTO);
+    Response<MysqlTemplateTestDTO> testMysqlTemplate(MysqlAdminTestRequestDTO requestDTO);
 
     ResponsePage<List<MysqlBindingDTO>> queryMysqlBindingPage(MysqlBindingQueryDTO queryDTO);
 

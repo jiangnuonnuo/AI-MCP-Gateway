@@ -3,6 +3,8 @@ package cn.bugstack.ai.test.infrastructure.adapter.port;
 import cn.bugstack.ai.domain.mysql.adapter.port.IMysqlQueryPort;
 import cn.bugstack.ai.domain.mysql.model.command.MysqlQueryCommand;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlParameterType;
+import cn.bugstack.ai.domain.mysql.model.valobj.MysqlExecutionStage;
+import cn.bugstack.ai.domain.mysql.model.valobj.MysqlExecutionTrace;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlQueryPolicy;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlTemplate;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlTemplateParameter;
@@ -11,6 +13,7 @@ import cn.bugstack.ai.infrastructure.adapter.port.MysqlJdbcGateway;
 import cn.bugstack.ai.infrastructure.mysql.MysqlConnectionSettings;
 import cn.bugstack.ai.infrastructure.mysql.MysqlConnectionSettingsRegistry;
 import cn.bugstack.ai.infrastructure.mysql.MysqlTemplateParameterBinder;
+import cn.bugstack.ai.types.exception.MysqlQueryException;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -21,10 +24,33 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /** 由显式只读凭证控制的真实 data_warehouse 查询；未提供凭证时不连接外部数据库。 */
 class MysqlJdbcGatewayIntegrationTest {
+
+    @Test
+    void reportsDatasourceStageWithoutOpeningJdbcConnectionWhenSettingsAreMissing() {
+        MysqlJdbcGateway gateway = new MysqlJdbcGateway();
+        ReflectionTestUtils.setField(gateway, "connectionSettingsRegistry",
+                (MysqlConnectionSettingsRegistry) ref -> Optional.empty());
+        ReflectionTestUtils.setField(gateway, "parameterBinder", new MysqlTemplateParameterBinder());
+        MysqlTemplate template = MysqlTemplate.builder().id("template").version("1").name("template")
+                .datasourceRef("missing").sql("SELECT 1").parameters(List.of())
+                .status(MysqlTemplateStatus.ENABLED).policy(MysqlQueryPolicy.defaults()).build();
+        MysqlExecutionTrace trace = new MysqlExecutionTrace();
+
+        try {
+            org.junit.jupiter.api.Assertions.assertThrows(MysqlQueryException.class,
+                    () -> gateway.executeWithTrace(MysqlQueryCommand.builder().template(template).build(), trace));
+            var failed = trace.snapshot().stream().filter(stage -> "DATASOURCE_CONNECTION".equals(stage.getName())).findFirst().orElseThrow();
+            assertEquals(MysqlExecutionStage.Status.FAILED, failed.getStatus());
+            assertEquals("DATASOURCE_UNAVAILABLE", failed.getErrorCode());
+        } finally {
+            gateway.close();
+        }
+    }
 
     @Test
     void verifiesDataWarehouseConnectionHealth() {

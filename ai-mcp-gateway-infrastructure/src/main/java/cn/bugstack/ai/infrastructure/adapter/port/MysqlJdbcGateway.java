@@ -5,6 +5,7 @@ import cn.bugstack.ai.domain.mysql.adapter.port.IMysqlQueryPort;
 import cn.bugstack.ai.domain.mysql.model.command.MysqlQueryCommand;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlQueryPolicy;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlQueryResult;
+import cn.bugstack.ai.domain.mysql.model.valobj.MysqlExecutionTrace;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlTemplate;
 import cn.bugstack.ai.infrastructure.mysql.MysqlConnectionSettings;
 import cn.bugstack.ai.infrastructure.mysql.MysqlConnectionSettingsRegistry;
@@ -49,44 +50,78 @@ public class MysqlJdbcGateway implements IMysqlQueryPort, IMysqlDataSourceHealth
 
     @Override
     public MysqlQueryResult execute(MysqlQueryCommand command) {
-        if (command != null) command.normalize();
-        MysqlTemplate template = command == null ? null : command.getTemplate();
-        if (template == null) throw new MysqlQueryException("INVALID_ARGUMENT", "template is required");
-        MysqlConnectionSettings dataSource = connectionSettingsRegistry.findSettings(template.getDatasourceRef())
-                .orElseThrow(() -> new MysqlQueryException("DATASOURCE_UNAVAILABLE", "data source is unavailable"));
-        MysqlQueryPolicy effectivePolicy = command.getRequestedPolicy();
-        if (effectivePolicy == null) {
-            effectivePolicy = new MysqlQueryPolicy(dataSource.getMaxSqlLength(), dataSource.getMaxRows(),
-                    dataSource.getMaxResultBytes(), dataSource.getMaxColumns(), dataSource.getMaxQueryTimeoutMs(), true);
-        }
-        MysqlQueryPolicy technicalPolicy = new MysqlQueryPolicy(dataSource.getMaxSqlLength(), dataSource.getMaxRows(),
-                dataSource.getMaxResultBytes(), dataSource.getMaxColumns(), dataSource.getMaxQueryTimeoutMs(), true);
-        effectivePolicy = effectivePolicy.boundedBy(technicalPolicy);
-        MysqlTemplateParameterBinder.BoundSql bound = parameterBinder.bind(template, command.getParameters());
+        return executeInternal(command, null);
+    }
 
-        PoolHolder holder = poolFor(dataSource);
-        boolean acquired = false;
+    /**
+     * 为管理端测试提供真实 JDBC 技术阶段，不把连接池、驱动异常或凭证细节写入报告。
+     */
+    @Override
+    public MysqlQueryResult executeWithTrace(MysqlQueryCommand command, MysqlExecutionTrace trace) {
+        return executeInternal(command, trace);
+    }
+
+    private MysqlQueryResult executeInternal(MysqlQueryCommand command, MysqlExecutionTrace trace) {
+        if (trace != null) trace.start("DATASOURCE_CONNECTION");
         try {
-            try {
-                acquired = holder.concurrent.tryAcquire(
-                        Math.min(effectivePolicy.getTimeoutMs(), dataSource.getConnectionTimeoutMs()),
-                        TimeUnit.MILLISECONDS);
-            } catch (InterruptedException interrupted) {
-                Thread.currentThread().interrupt();
-                throw new MysqlQueryException("QUERY_CANCELLED", "query was interrupted", interrupted);
+            if (command != null) command.normalize();
+            MysqlTemplate template = command == null ? null : command.getTemplate();
+            if (template == null) throw new MysqlQueryException("INVALID_ARGUMENT", "template is required");
+            MysqlConnectionSettings dataSource = connectionSettingsRegistry.findSettings(template.getDatasourceRef())
+                    .orElseThrow(() -> new MysqlQueryException("DATASOURCE_UNAVAILABLE", "data source is unavailable"));
+            MysqlQueryPolicy effectivePolicy = command.getRequestedPolicy();
+            if (effectivePolicy == null) {
+                effectivePolicy = new MysqlQueryPolicy(dataSource.getMaxSqlLength(), dataSource.getMaxRows(),
+                        dataSource.getMaxResultBytes(), dataSource.getMaxColumns(), dataSource.getMaxQueryTimeoutMs(), true);
             }
-            if (!acquired) throw new MysqlQueryException("RESOURCE_LIMIT_EXCEEDED", "query concurrency limit reached");
-            return executeJdbc(holder.pool, bound, command.getQueryId(), effectivePolicy);
+            MysqlQueryPolicy technicalPolicy = new MysqlQueryPolicy(dataSource.getMaxSqlLength(), dataSource.getMaxRows(),
+                    dataSource.getMaxResultBytes(), dataSource.getMaxColumns(), dataSource.getMaxQueryTimeoutMs(), true);
+            effectivePolicy = effectivePolicy.boundedBy(technicalPolicy);
+            MysqlTemplateParameterBinder.BoundSql bound = parameterBinder.bind(template, command.getParameters());
+
+            PoolHolder holder = poolFor(dataSource);
+            boolean acquired = false;
+            try {
+                try {
+                    acquired = holder.concurrent.tryAcquire(
+                            Math.min(effectivePolicy.getTimeoutMs(), dataSource.getConnectionTimeoutMs()),
+                            TimeUnit.MILLISECONDS);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw new MysqlQueryException("QUERY_CANCELLED", "query was interrupted", interrupted);
+                }
+                if (!acquired) throw new MysqlQueryException("RESOURCE_LIMIT_EXCEEDED", "query concurrency limit reached");
+                return executeJdbc(holder.pool, bound, command.getQueryId(), effectivePolicy, trace);
+            } catch (MysqlQueryException e) {
+                failTrace(trace, e.getCode());
+                throw e;
+            } catch (SQLTimeoutException e) {
+                failTrace(trace, "QUERY_TIMEOUT");
+                throw new MysqlQueryException("QUERY_TIMEOUT", "query timed out", e);
+            } catch (SQLException e) {
+                String code = e.getSQLState() != null && (e.getSQLState().startsWith("08"))
+                        ? "DATASOURCE_UNAVAILABLE" : "MYSQL_EXECUTION_ERROR";
+                failTrace(trace, code);
+                throw new MysqlQueryException(code, "MySQL query failed", e);
+            } catch (RuntimeException e) {
+                failTrace(trace, "MYSQL_EXECUTION_ERROR");
+                throw e;
+            } finally {
+                if (acquired) holder.concurrent.release();
+            }
         } catch (MysqlQueryException e) {
+            failTrace(trace, e.getCode());
             throw e;
-        } catch (SQLTimeoutException e) {
-            throw new MysqlQueryException("QUERY_TIMEOUT", "query timed out", e);
-        } catch (SQLException e) {
-            String code = e.getSQLState() != null && (e.getSQLState().startsWith("08"))
-                    ? "DATASOURCE_UNAVAILABLE" : "MYSQL_EXECUTION_ERROR";
-            throw new MysqlQueryException(code, "MySQL query failed", e);
-        } finally {
-            if (acquired) holder.concurrent.release();
+        } catch (RuntimeException e) {
+            failTrace(trace, "MYSQL_EXECUTION_ERROR");
+            throw e;
+        }
+    }
+
+    private static void failTrace(MysqlExecutionTrace trace, String code) {
+        if (trace != null && trace.currentStage() != null) {
+            String stage = trace.currentStage();
+            trace.fail(stage, code, code.equals("QUERY_TIMEOUT") ? "query timed out" : "MySQL query failed");
         }
     }
 
@@ -118,14 +153,22 @@ public class MysqlJdbcGateway implements IMysqlQueryPort, IMysqlDataSourceHealth
     }
 
     private MysqlQueryResult executeJdbc(HikariDataSource pool, MysqlTemplateParameterBinder.BoundSql bound,
-                                         String queryId, MysqlQueryPolicy policy) throws SQLException {
+                                         String queryId, MysqlQueryPolicy policy, MysqlExecutionTrace trace) throws SQLException {
         try (Connection connection = pool.getConnection()) {
+            if (trace != null) {
+                trace.succeed("DATASOURCE_CONNECTION");
+                trace.start("SQL_EXECUTION");
+            }
             connection.setReadOnly(true);
             try (PreparedStatement statement = connection.prepareStatement(bound.sql())) {
                 statement.setQueryTimeout((int) Math.max(1, Duration.ofMillis(policy.getTimeoutMs()).toSeconds()));
                 statement.setMaxRows(policy.getMaxRows() + 1);
                 bind(statement, bound.values());
                 try (ResultSet resultSet = statement.executeQuery()) {
+                    if (trace != null) {
+                        trace.succeed("SQL_EXECUTION");
+                        trace.start("RESPONSE_ASSEMBLY");
+                    }
                     ResultSetMetaData metadata = resultSet.getMetaData();
                     if (metadata.getColumnCount() > policy.getMaxColumns()) {
                         throw new MysqlQueryException("RESULT_LIMIT_EXCEEDED", "column limit exceeded");
@@ -154,6 +197,7 @@ public class MysqlJdbcGateway implements IMysqlQueryPort, IMysqlDataSourceHealth
                     }
                     MysqlQueryResult result = new MysqlQueryResult(queryId, columns, rows, truncated, bytes);
                     result.normalize();
+                    if (trace != null) trace.succeed("RESPONSE_ASSEMBLY");
                     return result;
                 }
             }
