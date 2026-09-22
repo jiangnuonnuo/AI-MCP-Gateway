@@ -6,13 +6,17 @@ import cn.bugstack.ai.domain.mysql.adapter.port.IMysqlProtocolRepository;
 import cn.bugstack.ai.domain.mysql.adapter.port.ISqlSafetyPort;
 import cn.bugstack.ai.domain.mysql.model.command.MysqlQueryCommand;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlDataSourceRef;
+import cn.bugstack.ai.domain.mysql.model.valobj.MysqlExecutionStage;
+import cn.bugstack.ai.domain.mysql.model.valobj.MysqlExecutionTrace;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlParameterType;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlQueryPolicy;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlQueryResult;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlTemplate;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlTemplateParameter;
+import cn.bugstack.ai.domain.mysql.model.valobj.MysqlTemplateTestReport;
 import cn.bugstack.ai.domain.mysql.model.valobj.SqlSafetyDecision;
 import cn.bugstack.ai.types.exception.MysqlDomainException;
+import cn.bugstack.ai.types.exception.MysqlQueryException;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
@@ -21,6 +25,7 @@ import java.time.temporal.TemporalAccessor;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * MySQL 模板查询领域服务，负责业务流程和规则编排，不直接依赖 JDBC。
@@ -57,26 +62,81 @@ public class MysqlTemplateQueryService {
     }
 
     /**
+     * 执行管理端模板测试并返回阶段化报告。参数、SQL、数据源和策略均从已发布模板解析，
+     * 管理端请求只提供模板参数，不能改变执行边界。
+     */
+    public MysqlTemplateTestReport executeWithReport(String templateRef, String version,
+                                                      Map<String, ?> arguments, String queryId) {
+        long startedAt = System.nanoTime();
+        String effectiveQueryId = queryId == null || queryId.isBlank() ? UUID.randomUUID().toString() : queryId;
+        Map<String, Object> requestParameters = snapshotParameters(arguments);
+        MysqlExecutionTrace trace = new MysqlExecutionTrace();
+        MysqlTemplate template = null;
+        try {
+            template = requireEnabledTemplate(templateRef, version);
+            MysqlQueryResult result = execute(template, arguments, null, effectiveQueryId, trace);
+            Map<String, Object> metrics = new LinkedHashMap<>();
+            metrics.put("rowCount", result.getRowCount());
+            metrics.put("columnCount", result.getColumns() == null ? 0 : result.getColumns().size());
+            metrics.put("truncated", result.isTruncated());
+            metrics.put("resultBytes", result.getResultBytes());
+            return MysqlTemplateTestReport.builder()
+                    .success(true)
+                    .templateRef(template.getId())
+                    .version(template.getVersion())
+                    .datasourceRef(template.getDatasourceRef())
+                    .queryId(result.getQueryId())
+                    .requestParameters(requestParameters)
+                    .stages(trace.snapshot())
+                    .durationMs(elapsedMs(startedAt))
+                    .metrics(metrics)
+                    .responseJson(result.toStructuredMap())
+                    .build();
+        } catch (MysqlDomainException exception) {
+            markFailure(trace, exception.getCode(), safeMessage(exception), exceptionStage(trace));
+            return failedReport(template, templateRef, version, effectiveQueryId, requestParameters, trace,
+                    elapsedMs(startedAt), exception.getCode(), safeMessage(exception));
+        } catch (MysqlQueryException exception) {
+            markFailure(trace, exception.getCode(), "MySQL query failed", exceptionStage(trace));
+            return failedReport(template, templateRef, version, effectiveQueryId, requestParameters, trace,
+                    elapsedMs(startedAt), exception.getCode(), "MySQL query failed");
+        } catch (RuntimeException exception) {
+            markFailure(trace, "MYSQL_EXECUTION_ERROR", "MySQL query failed", exceptionStage(trace));
+            return failedReport(template, templateRef, version, effectiveQueryId, requestParameters, trace,
+                    elapsedMs(startedAt), "MYSQL_EXECUTION_ERROR", "MySQL query failed");
+        }
+    }
+
+    /**
      * 执行已经由 Gateway 绑定解析出的协议记录。调用方不能通过参数覆盖 SQL、数据源或策略。
      */
     public MysqlQueryResult execute(MysqlTemplate template, Map<String, ?> arguments,
                                     MysqlQueryPolicy requestedPolicy, String queryId) {
+        return execute(template, arguments, requestedPolicy, queryId, null);
+    }
+
+    private MysqlQueryResult execute(MysqlTemplate template, Map<String, ?> arguments,
+                                     MysqlQueryPolicy requestedPolicy, String queryId,
+                                     MysqlExecutionTrace trace) {
         if (template == null) {
             throw new MysqlDomainException("PROTOCOL_UNAVAILABLE", "MySQL protocol is unavailable");
         }
         if (!template.isEnabled()) {
             throw new MysqlDomainException("PROTOCOL_UNAVAILABLE", "MySQL protocol is unavailable");
         }
-        MysqlDataSourceRef dataSource = requireEnabledDataSource(template.getDatasourceRef());
+        if (trace != null) trace.start("PARAMETER_VALIDATION");
         Map<String, Object> parameters = normalizeArguments(arguments);
-
         validateTemplateParameters(template, parameters);
+        if (trace != null) trace.succeed("PARAMETER_VALIDATION");
+        if (trace != null) trace.start("POLICY_VALIDATION");
+        MysqlDataSourceRef dataSource = requireEnabledDataSource(template.getDatasourceRef());
         MysqlQueryPolicy effectivePolicy = effectivePolicy(template, dataSource, requestedPolicy);
         SqlSafetyDecision decision = safetyPort.validate(template.getSql(), parameters, effectivePolicy);
         if (decision == null || !decision.isAllowed()) {
             throw new MysqlDomainException(decision == null ? "SQL_POLICY_REJECTED" : decision.getCode(),
                     decision == null ? "SQL policy rejected" : decision.getReason());
         }
+        if (trace != null) trace.succeed("POLICY_VALIDATION");
 
         MysqlQueryCommand command = MysqlQueryCommand.builder()
                 .template(template)
@@ -85,7 +145,65 @@ public class MysqlTemplateQueryService {
                 .queryId(queryId)
                 .build();
         command.normalize();
-        return queryPort.execute(command);
+        return trace == null ? queryPort.execute(command) : queryPort.executeWithTrace(command, trace);
+    }
+
+    private static void markFailure(MysqlExecutionTrace trace, String code, String message, String stage) {
+        if (stage != null) {
+            MysqlExecutionStage current = trace.snapshot().stream()
+                    .filter(value -> stage.equals(value.getName())).findFirst().orElse(null);
+            if (current != null && current.getStatus() != MysqlExecutionStage.Status.FAILED
+                    && current.getStatus() != MysqlExecutionStage.Status.SUCCEEDED) {
+                trace.fail(stage, code, message);
+            }
+        }
+    }
+
+    private static String exceptionStage(MysqlExecutionTrace trace) {
+        String running = trace.currentStage();
+        if (running != null) return running;
+        return trace.snapshot().stream().filter(value -> value.getStatus() == MysqlExecutionStage.Status.FAILED)
+                .map(MysqlExecutionStage::getName).findFirst().orElse("PARAMETER_VALIDATION");
+    }
+
+    private static MysqlTemplateTestReport failedReport(MysqlTemplate template, String templateRef, String version,
+                                                         String queryId, Map<String, Object> requestParameters,
+                                                         MysqlExecutionTrace trace, long durationMs, String code,
+                                                         String message) {
+        String resolvedRef = template == null ? templateRef : template.getId();
+        String resolvedVersion = template == null ? version : template.getVersion();
+        String datasourceRef = template == null ? null : template.getDatasourceRef();
+        String failedStage = trace.snapshot().stream()
+                .filter(value -> value.getStatus() == MysqlExecutionStage.Status.FAILED)
+                .map(MysqlExecutionStage::getName).findFirst().orElse(null);
+        return MysqlTemplateTestReport.builder().success(false).templateRef(resolvedRef).version(resolvedVersion)
+                .datasourceRef(datasourceRef).queryId(queryId).requestParameters(requestParameters)
+                .stages(trace.snapshot()).durationMs(durationMs).metrics(Map.of()).responseJson(Map.of())
+                .errorCode(code).errorMessage(message).failedStage(failedStage).build();
+    }
+
+    private static String safeMessage(MysqlDomainException exception) {
+        return exception.getMessage() == null || exception.getMessage().isBlank()
+                ? "MySQL template test failed" : exception.getMessage();
+    }
+
+    private static long elapsedMs(long startedAt) {
+        return Math.max(0L, (System.nanoTime() - startedAt) / 1_000_000L);
+    }
+
+    private static Map<String, Object> snapshotParameters(Map<String, ?> arguments) {
+        Map<String, Object> snapshot = new LinkedHashMap<>();
+        if (arguments == null) return snapshot;
+        arguments.forEach((key, value) -> snapshot.put(key, isSensitive(key) ? "***" : value));
+        return snapshot;
+    }
+
+    private static boolean isSensitive(String key) {
+        if (key == null) return false;
+        String normalized = key.replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
+        return normalized.contains("password") || normalized.contains("secret") || normalized.contains("token")
+                || normalized.contains("authorization") || normalized.contains("credential") || normalized.contains("jdbcurl")
+                || normalized.contains("privatekey") || normalized.endsWith("apikey");
     }
 
     private MysqlTemplate requireEnabledTemplate(String templateRef, String version) {

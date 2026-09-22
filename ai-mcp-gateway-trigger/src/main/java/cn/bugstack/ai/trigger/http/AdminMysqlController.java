@@ -5,8 +5,11 @@ import cn.bugstack.ai.api.dto.*;
 import cn.bugstack.ai.api.response.Response;
 import cn.bugstack.ai.api.response.ResponsePage;
 import cn.bugstack.ai.cases.admin.mysql.IAdminMysqlManageService;
+import cn.bugstack.ai.cases.admin.mysql.IAdminMysqlTemplateTestCase;
 import cn.bugstack.ai.domain.mysql.model.admin.*;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlParameterType;
+import cn.bugstack.ai.domain.mysql.model.valobj.MysqlExecutionStage;
+import cn.bugstack.ai.domain.mysql.model.valobj.MysqlTemplateTestReport;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlTemplateParameter;
 import cn.bugstack.ai.types.enums.ResponseCode;
 import cn.bugstack.ai.types.exception.MysqlDomainException;
@@ -32,6 +35,9 @@ public class AdminMysqlController implements IAdminMysqlService {
 
     @Resource
     private IAdminMysqlManageService adminMysqlManageService;
+
+    @Resource
+    private IAdminMysqlTemplateTestCase adminMysqlTemplateTestCase;
 
     @RequestMapping(value = "query_mysql_datasource_page", method = RequestMethod.GET)
     @Override
@@ -177,10 +183,21 @@ public class AdminMysqlController implements IAdminMysqlService {
 
     @RequestMapping(value = "test_mysql_template", method = RequestMethod.POST)
     @Override
-    public Response<MysqlTemplateDTO> testMysqlTemplate(@RequestBody MysqlAdminTestRequestDTO requestDTO) {
+    public Response<MysqlTemplateTestDTO> testMysqlTemplate(@RequestBody MysqlAdminTestRequestDTO requestDTO) {
         try {
-            Long protocolId = Long.valueOf(requestDTO.getId());
-            return mysqlSuccess(adminMysqlManageService.findTemplate(protocolId, requestDTO.getVersion()));
+            MysqlTemplateTestReport report = adminMysqlTemplateTestCase.execute(
+                    requestDTO == null ? null : requestDTO.getId(),
+                    requestDTO == null ? null : requestDTO.getVersion(),
+                    requestDTO == null ? java.util.Map.of() : requestDTO.getParameters());
+            MysqlTemplateTestDTO data = toDTO(report);
+            if (!report.isSuccess()) {
+                return Response.<MysqlTemplateTestDTO>builder()
+                        .code(report.getErrorCode())
+                        .info(report.getErrorMessage())
+                        .data(data)
+                        .build();
+            }
+            return mysqlSuccess(data);
         } catch (Exception e) {
             return mysqlError(e);
         }
@@ -301,6 +318,37 @@ public class AdminMysqlController implements IAdminMysqlService {
                 .status(value.status())
                 .createTime(value.createTime())
                 .updateTime(value.updateTime())
+                .build();
+    }
+
+    private MysqlTemplateTestDTO toDTO(MysqlTemplateTestReport value) {
+        return MysqlTemplateTestDTO.builder()
+                .success(value.isSuccess())
+                .templateRef(value.getTemplateRef())
+                .version(value.getVersion())
+                .datasourceRef(value.getDatasourceRef())
+                .queryId(value.getQueryId())
+                .requestParameters(value.getRequestParameters())
+                .requestJson(value.getRequestParameters())
+                .stages(value.getStages() == null ? List.of() : value.getStages().stream()
+                        .map(this::toDTO).collect(Collectors.toList()))
+                .durationMs(value.getDurationMs())
+                .metrics(value.getMetrics())
+                .responseJson(value.getResponseJson())
+                .errorCode(value.getErrorCode())
+                .errorMessage(value.getErrorMessage())
+                .failedStage(value.getFailedStage())
+                .build();
+    }
+
+    private MysqlExecutionStageDTO toDTO(MysqlExecutionStage value) {
+        return MysqlExecutionStageDTO.builder()
+                .name(value.getName())
+                .label(value.getLabel())
+                .status(value.getStatus() == null ? null : value.getStatus().name())
+                .durationMs(value.getDurationMs())
+                .errorCode(value.getErrorCode())
+                .errorMessage(value.getErrorMessage())
                 .build();
     }
 

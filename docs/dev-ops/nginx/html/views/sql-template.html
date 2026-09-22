@@ -3,7 +3,7 @@
         <h1 id="workbench-title">SQL 模板</h1>
         <p>用标准化的 SQL 模板，构建可安全调用的 MCP 数据能力。</p>
         <div class="stage-points" aria-label="SQL 模板能力"><span class="stage-point"><i aria-hidden="true">✓</i>统一数据访问入口</span><span class="stage-point"><i aria-hidden="true">✓</i>参数契约可追踪</span><span class="stage-point"><i aria-hidden="true">✓</i>一键发布为 MCP Tool</span></div>
-        <img class="hero-art" src="../assets/network-hero.png" alt="AI Agent 连接 MCP Gateway 与多个数据源的示意图">
+        <img class="hero-art" src="assets/network-hero.png" alt="" aria-hidden="true" onerror="this.hidden=true">
         <span class="hero-label hero-agent" aria-hidden="true">AI Agent</span><span class="hero-label hero-gateway" aria-hidden="true">MCP<br>Gateway</span><span class="hero-label hero-db-one" aria-hidden="true">MySQL</span><span class="hero-label hero-db-two" aria-hidden="true">PostgreSQL</span><span class="hero-label hero-db-three" aria-hidden="true">ClickHouse</span><span class="connect-note" aria-hidden="true">Connect<br>More<br>Possibilities<i></i></span>
     </section>
     <section class="kpi-grid" id="template-kpis" aria-label="SQL 模板指标"></section>
@@ -35,5 +35,27 @@
             </div>
             <div class="drawer-actions"><button type="button" class="button" data-close-drawer="template">取消</button><button type="button" class="button" id="template-test"><i class="bi bi-play" aria-hidden="true"></i>测试运行</button><button type="submit" class="button primary" id="template-submit"><i class="bi bi-check2-circle" aria-hidden="true"></i>保存模板</button></div>
         </form>
+    </section>
+    <section class="template-test-console" id="template-test-console" aria-labelledby="template-test-title" hidden>
+        <header class="test-console-header">
+            <div class="test-console-title"><button type="button" class="icon-button" id="template-test-close" aria-label="关闭测试工作区"><i class="bi bi-arrow-left" aria-hidden="true"></i></button><div><span class="eyebrow">SQL TEMPLATE / LIVE TEST</span><h2 id="template-test-title">模板测试工作区</h2><p id="template-test-subtitle">执行前填充参数，执行后查看真实网关结果。</p></div></div>
+            <nav class="test-step-rail" aria-label="测试步骤"><span class="active"><b>01</b>参数</span><i aria-hidden="true">›</i><span><b>02</b>执行</span><i aria-hidden="true">›</i><span><b>03</b>原始结果</span></nav>
+            <div class="test-console-meta"><span class="tag draft" id="template-test-status">待执行</span><span class="test-query-id" id="template-test-query-id">尚未生成 queryId</span></div>
+        </header>
+        <div class="test-console-body">
+            <aside class="test-params-panel" id="template-test-params-panel" aria-label="执行参数">
+                <div class="test-panel-heading"><div><span class="eyebrow">01 / REQUEST</span><h3>填充参数</h3></div><button type="button" class="icon-button" id="template-test-collapse" aria-label="收拢参数面板"><i class="bi bi-layout-sidebar-inset" aria-hidden="true"></i></button></div>
+                <label class="test-param-search"><i class="bi bi-search" aria-hidden="true"></i><input id="template-test-param-search" type="search" placeholder="搜索参数名称" aria-label="搜索测试参数"></label>
+                <div class="test-param-summary"><span id="template-test-param-count">0 个参数</span><span id="template-test-param-complete">0 / 0 已填写</span></div>
+                <div id="template-test-param-groups" class="test-param-groups"></div>
+                <div class="test-params-footer"><button type="button" class="button" id="template-test-reset"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>重置</button><button type="button" class="button primary" id="template-test-run"><i class="bi bi-play-fill" aria-hidden="true"></i>运行测试</button></div>
+            </aside>
+            <button type="button" class="test-panel-resizer" id="template-test-resizer" aria-label="调整参数面板宽度"></button>
+            <main class="test-result-panel" aria-live="polite">
+                <div class="test-sql-card"><div class="test-panel-heading"><div><span class="eyebrow">02 / EXECUTION</span><h3>执行过程</h3></div><span class="test-sql-datasource" id="template-test-datasource">固定数据源</span></div><pre id="template-test-sql" class="test-sql-code">SELECT ...</pre></div>
+                <div class="test-timeline-card"><div class="test-panel-heading"><div><span class="eyebrow">TRACE</span><h3>网关执行链路</h3></div><span id="template-test-duration" class="test-duration">—</span></div><div id="template-test-timeline" class="test-timeline"></div></div>
+                <div class="test-output-card"><div class="test-output-tabs" role="tablist" aria-label="测试输出"><button type="button" class="test-output-tab active" data-output-tab="response" role="tab" aria-selected="true">Response JSON</button><button type="button" class="test-output-tab" data-output-tab="request" role="tab" aria-selected="false">Request JSON</button><button type="button" class="test-output-tab" data-output-tab="binding" role="tab" aria-selected="false">SQL Binding</button><button type="button" class="test-output-tab" data-output-tab="log" role="tab" aria-selected="false">Execution Log</button><button type="button" class="test-output-copy" id="template-test-copy"><i class="bi bi-copy" aria-hidden="true"></i>复制 JSON</button></div><pre id="template-test-output" class="test-json-viewer">点击“运行测试”后显示真实响应。</pre></div>
+            </main>
+        </div>
     </section>
 </section>
