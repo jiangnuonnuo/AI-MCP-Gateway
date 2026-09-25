@@ -1,190 +1,47 @@
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-3 mb-4 border-bottom">
-    <h1 class="page-title">网关测试</h1>
-    <div class="d-flex gap-2">
-        <button class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1" id="openHistoryBtn">
-            <i class="bi bi-clock-history"></i> 历史记录
-        </button>
-        <button class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1" id="refreshGatewayAndAuthBtn">
-            <i class="bi bi-arrow-clockwise"></i> 重新加载
-        </button>
-    </div>
-</div>
-
 <style>
-/* 页面填满高度，右侧对话区自适应 */
-.row.gateway-test-main {
-    min-height: 100vh;
-    display: flex;
-}
-.col-lg-8.mb-4 {
-    display: flex;
-    flex-direction: column;
-}
-.card.h-100 {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-}
-.card-body.gateway-chat-body {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    background-color: #f8fafc;
-    padding: 1.25rem;
-}
-#chat-window {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-}
+.test-center { --tc-bg:#06152d;--tc-panel:#091d3c;--tc-panel-2:#0c2447;--tc-line:#214a76;--tc-line-soft:rgba(77,133,184,.24);--tc-text:#eaf5ff;--tc-muted:#7f9dbc;--tc-cyan:#43ead8;--tc-cyan-soft:rgba(67,234,216,.12);--tc-blue:#4c9dff;--tc-danger:#ff6785;--tc-warning:#ffc66b;min-height:calc(100vh - 74px);padding:22px;color:var(--tc-text);font-family:"Fira Sans",sans-serif}
+.tc-shell{min-height:calc(100vh - 118px);background:linear-gradient(145deg,rgba(8,29,60,.98),rgba(4,18,39,.98));border:1px solid var(--tc-line);border-radius:22px;overflow:hidden;box-shadow:0 22px 70px rgba(0,0,0,.24)}
+.tc-head{min-height:112px;padding:22px 28px;display:grid;grid-template-columns:minmax(280px,1fr) auto minmax(280px,1fr);align-items:center;border-bottom:1px solid var(--tc-line-soft);background:rgba(9,29,60,.72)}
+.tc-kicker,.tc-section-kicker{color:var(--tc-cyan);font:600 11px/1.2 "Fira Code",monospace;letter-spacing:.16em;text-transform:uppercase}.tc-title{margin:7px 0 3px;color:#fff;font-size:25px;font-weight:700}.tc-subtitle{margin:0;color:var(--tc-muted);font-size:13px}
+.tc-mode-tabs{display:flex;padding:4px;gap:4px;border:1px solid var(--tc-line);border-radius:12px;background:rgba(2,14,32,.66)}.tc-mode{min-width:124px;padding:10px 14px;border:0;border-radius:8px;background:transparent;color:var(--tc-muted);font:600 12px/1 "Fira Code",monospace;transition:.18s ease}.tc-mode:hover{color:var(--tc-text);background:rgba(76,157,255,.08)}.tc-mode.active{color:#071a2f;background:var(--tc-cyan);box-shadow:0 8px 22px rgba(67,234,216,.18)}
+.tc-head-status{justify-self:end;display:flex;align-items:center;gap:9px;color:var(--tc-muted);font:500 12px/1 "Fira Code",monospace}.tc-status-dot{width:8px;height:8px;border-radius:50%;background:#58708b;box-shadow:0 0 0 5px rgba(88,112,139,.1)}.tc-head-status.running .tc-status-dot{background:var(--tc-blue);animation:tc-pulse 1.2s infinite}.tc-head-status.succeeded .tc-status-dot{background:var(--tc-cyan)}.tc-head-status.failed .tc-status-dot{background:var(--tc-danger)}@keyframes tc-pulse{50%{box-shadow:0 0 0 8px rgba(76,157,255,0)}}
+.tc-workspace{display:grid;grid-template-columns:390px minmax(0,1fr);min-height:calc(100vh - 231px)}.tc-shell.parameters-collapsed .tc-workspace{grid-template-columns:74px minmax(0,1fr)}.tc-params{min-width:0;display:flex;flex-direction:column;border-right:1px solid var(--tc-line-soft);background:rgba(4,20,44,.84)}.tc-shell.parameters-collapsed .tc-params-body,.tc-shell.parameters-collapsed .tc-param-footer,.tc-shell.parameters-collapsed .tc-panel-title>div{display:none}.tc-shell.parameters-collapsed .tc-panel-title{justify-content:center}.tc-panel-title{height:72px;flex:0 0 auto;padding:0 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--tc-line-soft)}.tc-panel-title h2,.tc-result-title h2{margin:5px 0 0;color:#fff;font-size:17px;font-weight:650}.tc-icon-button{width:38px;height:38px;border:1px solid var(--tc-line);border-radius:10px;color:#a9c2da;background:#0b2448;display:inline-grid;place-items:center}.tc-icon-button:hover,.tc-icon-button:focus-visible{color:var(--tc-cyan);border-color:var(--tc-cyan);outline:none}
+.tc-params-body{flex:1;min-height:0;overflow:auto;padding:18px 18px 30px;scrollbar-color:#28537d transparent;scrollbar-width:thin}.tc-field{margin-bottom:16px}.tc-label-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 2px 7px}.tc-label{color:#c7d9ea;font-size:12px;font-weight:600}.tc-required{color:var(--tc-danger)}.tc-field-meta{color:#6788a9;font:500 10px/1 "Fira Code",monospace;text-transform:uppercase}
+.test-center .tc-control{width:100%;min-height:42px;padding:10px 12px;border:1px solid #28527d;border-radius:9px;outline:none;color:var(--tc-text);background:#071a36;box-shadow:none;font-size:13px;color-scheme:dark}.test-center .tc-control.tc-bool{width:42px;min-height:22px;padding:0;border-color:#37658d;accent-color:var(--tc-cyan)}.test-center select.tc-control{appearance:none;background-image:linear-gradient(45deg,transparent 50%,#7898b8 50%),linear-gradient(135deg,#7898b8 50%,transparent 50%);background-position:calc(100% - 17px) 18px,calc(100% - 12px) 18px;background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:34px}.test-center .tc-control:hover{border-color:#3c6c99}.test-center .tc-control:focus{border-color:var(--tc-blue);box-shadow:0 0 0 3px rgba(76,157,255,.13)}.test-center .tc-control[aria-invalid="true"]{border-color:var(--tc-danger);box-shadow:0 0 0 3px rgba(255,103,133,.1)}.tc-help{margin:6px 2px 0;color:#6786a5;font-size:11px;line-height:1.55}.tc-inline{display:grid;grid-template-columns:1fr 112px;gap:10px}.tc-load-button{min-height:42px;border:1px solid #2e668f;border-radius:9px;color:#bfece6;background:#0b2a4c;font-size:12px}.tc-load-button:hover{border-color:var(--tc-cyan);color:var(--tc-cyan)}
+.tc-parameter-tools{position:sticky;top:-18px;z-index:2;margin:2px -2px 14px;padding:14px 2px 10px;background:linear-gradient(#071a36 78%,transparent)}.tc-search-wrap{position:relative}.tc-search-wrap i{position:absolute;left:12px;top:12px;color:#688aa9}.tc-search-wrap .tc-control{padding-left:35px}.tc-filter-row{display:flex;gap:6px;margin-top:9px}.tc-filter{padding:6px 10px;border:1px solid #244c76;border-radius:999px;background:transparent;color:#7899b8;font-size:11px}.tc-filter.active{color:var(--tc-cyan);border-color:rgba(67,234,216,.48);background:var(--tc-cyan-soft)}.tc-progress{margin:14px 2px 16px}.tc-progress-copy{display:flex;justify-content:space-between;color:#6f91b0;font:500 10px/1 "Fira Code",monospace}.tc-progress-track{height:3px;margin-top:8px;border-radius:4px;background:#122f53;overflow:hidden}.tc-progress-bar{width:0;height:100%;background:linear-gradient(90deg,var(--tc-blue),var(--tc-cyan));transition:width .2s}
+.tc-param-group{margin-bottom:10px;border:1px solid var(--tc-line-soft);border-radius:11px;overflow:hidden;background:rgba(11,36,72,.42)}.tc-group-head{width:100%;padding:11px 12px;display:flex;align-items:center;justify-content:space-between;border:0;color:#c9ddeb;background:rgba(15,44,82,.66);font-size:12px}.tc-group-head span:last-child{color:#6689aa;font:500 10px/1 "Fira Code",monospace}.tc-group-fields{padding:12px}.tc-param-group.collapsed .tc-group-fields{display:none}.tc-param-group.collapsed .tc-group-head i{transform:rotate(-90deg)}.tc-param-field{margin-bottom:13px}.tc-param-field:last-child{margin-bottom:0}.tc-field-error{min-height:14px;margin:4px 2px 0;color:var(--tc-danger);font-size:10px}.tc-switch-line{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:16px 1px 10px}.tc-text-button{border:0;padding:0;color:var(--tc-blue);background:transparent;font-size:11px}.tc-json-editor{min-height:170px;resize:vertical;font:12px/1.65 "Fira Code",monospace!important}.tc-agent-prompt{min-height:180px!important;resize:vertical;line-height:1.65}.tc-segmented{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:4px;border:1px solid #28527d;border-radius:10px;background:#071a36}.tc-segmented button{padding:8px;border:0;border-radius:7px;color:#7999b7;background:transparent;font-size:11px}.tc-segmented button.active{color:#dffcf8;background:#12385d;box-shadow:inset 0 0 0 1px #2e698a}
+.tc-param-footer{flex:0 0 auto;padding:15px 18px;display:grid;grid-template-columns:82px 82px 1fr;gap:8px;border-top:1px solid var(--tc-line-soft);background:#071a36}.tc-button{min-height:43px;border:1px solid #2b557e;border-radius:10px;background:#0b2345;color:#9bb6cf;font-size:12px;font-weight:650}.tc-button:hover{color:#fff;border-color:#4380b4}.tc-button.primary{color:#05213a;border-color:var(--tc-cyan);background:var(--tc-cyan);box-shadow:0 10px 22px rgba(67,234,216,.12)}.tc-button.primary:hover{filter:brightness(1.07)}.tc-button.danger{color:#ff9eb1;border-color:rgba(255,103,133,.45)}.tc-button:disabled{opacity:.48;cursor:not-allowed}
+.tc-result{min-width:0;padding:18px 20px 20px;display:grid;grid-template-rows:auto auto minmax(300px,1fr);gap:14px;background:radial-gradient(circle at 85% 0%,rgba(27,92,150,.12),transparent 30%)}.tc-result-bar{min-height:54px;display:flex;align-items:center;justify-content:space-between;gap:16px}.tc-result-title{display:flex;align-items:center;gap:12px}.tc-run-badge{padding:7px 10px;border:1px solid #365978;border-radius:8px;color:#7895af;background:rgba(7,25,51,.7);font:500 10px/1 "Fira Code",monospace}.tc-run-badge.running{color:var(--tc-blue);border-color:rgba(76,157,255,.45)}.tc-run-badge.succeeded{color:var(--tc-cyan);border-color:rgba(67,234,216,.45)}.tc-run-badge.failed{color:var(--tc-danger);border-color:rgba(255,103,133,.45)}.tc-run-meta{display:flex;gap:18px;color:#7190ad;font:500 11px/1 "Fira Code",monospace}.tc-run-meta strong{color:#afc7dc;font-weight:500}
+.tc-card{border:1px solid var(--tc-line-soft);border-radius:14px;background:rgba(9,30,61,.76);overflow:hidden}.tc-trace-head{padding:14px 17px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--tc-line-soft)}.tc-trace-head h3{margin:5px 0 0;font-size:14px;color:#dcedfb}.tc-trace{padding:14px 16px 16px;display:flex;gap:8px;overflow:auto}.tc-trace-step{min-width:142px;flex:1;position:relative;padding:12px;border:1px solid #244b75;border-radius:10px;background:#0c274d}.tc-trace-step:not(:last-child)::after{content:"";position:absolute;z-index:0;top:22px;left:100%;width:9px;height:1px;background:#32618b}.tc-step-state{width:17px;height:17px;margin-bottom:12px;display:grid;place-items:center;border:1px solid #476c92;border-radius:50%;color:transparent;background:#173960;font-size:9px}.tc-trace-step.running .tc-step-state{border-color:var(--tc-blue);box-shadow:0 0 0 5px rgba(76,157,255,.1)}.tc-trace-step.succeeded .tc-step-state{color:#062039;border-color:var(--tc-cyan);background:var(--tc-cyan)}.tc-trace-step.failed .tc-step-state{color:#fff;border-color:var(--tc-danger);background:var(--tc-danger)}.tc-step-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#bdcfe1;font:600 10px/1.3 "Fira Code",monospace}.tc-step-detail{margin-top:7px;color:#6386a7;font-size:10px}
+.tc-output{min-height:0;display:flex;flex-direction:column}.tc-output-tabs{min-height:55px;display:flex;align-items:end;gap:5px;padding:0 14px;border-bottom:1px solid var(--tc-line-soft);overflow-x:auto;scrollbar-width:none}.tc-output-tabs::-webkit-scrollbar{display:none}.tc-output-tab{height:55px;padding:0 14px;position:relative;border:0;white-space:nowrap;color:#7896b4;background:transparent;font-size:12px}.tc-output-tab.active{color:var(--tc-cyan)}.tc-output-tab.active::after{content:"";position:absolute;left:10px;right:10px;bottom:0;height:2px;background:var(--tc-cyan)}.tc-copy{margin:10px 0 10px auto;align-self:center;padding:7px 11px;border:1px solid #2b547e;border-radius:8px;white-space:nowrap;color:#87a3bc;background:#0b2345;font-size:11px}.tc-copy:hover{color:var(--tc-cyan);border-color:var(--tc-cyan)}.tc-output-body{flex:1;min-height:260px;overflow:auto;position:relative}.tc-code{min-height:100%;margin:0;padding:18px 20px;color:#b9d1e7;background:rgba(3,16,36,.54);font:12px/1.7 "Fira Code",monospace;white-space:pre-wrap;word-break:break-word}.tc-empty{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:12px;color:#587796;text-align:center;font-size:12px}.tc-empty i{font-size:29px;color:#31587d}.tc-hidden{display:none!important}
+@media(max-width:1200px){.tc-head{grid-template-columns:minmax(240px,1fr) auto;gap:16px}.tc-mode-tabs{grid-row:2;grid-column:1/-1;justify-self:start}.tc-head-status{grid-column:2;grid-row:1}.tc-workspace{grid-template-columns:350px minmax(0,1fr)}}
+@media(max-width:860px){.test-center{padding:10px}.tc-head{display:flex;align-items:flex-start;flex-direction:column}.tc-head-status{position:absolute;right:32px}.tc-mode-tabs{width:100%;overflow:auto}.tc-mode{min-width:120px}.tc-workspace,.tc-shell.parameters-collapsed .tc-workspace{display:block}.tc-params{border-right:0;border-bottom:1px solid var(--tc-line-soft)}.tc-shell.parameters-collapsed .tc-params-body,.tc-shell.parameters-collapsed .tc-param-footer,.tc-shell.parameters-collapsed .tc-panel-title>div{display:initial}.tc-result{padding:14px}.tc-run-meta{display:none}}
+ .tc-inline{grid-template-columns:minmax(0,1fr) 44px}.tc-template-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 2px}.tc-template-meta>div{min-width:0;padding:10px 11px;border:1px solid var(--tc-line-soft);border-radius:9px;background:rgba(11,36,72,.4)}.tc-template-meta span{display:block;color:#6786a5;font:500 9px/1.2 "Fira Code",monospace}.tc-template-meta strong{display:block;margin-top:5px;overflow:hidden;color:#cfe1ef;font-size:12px;text-overflow:ellipsis;white-space:nowrap}
 </style>
 
-<div class="row gateway-test-main">
-    <!-- 左侧：测试配置 -->
-    <div class="col-lg-4 mb-4">
-        <div class="card">
-            <div class="card-header bg-light">
-                <h5 class="mb-0"><i class="bi bi-sliders me-2"></i>测试配置</h5>
-            </div>
-            <div class="card-body">
-                <form id="form-gateway-llm-test">
-                    <!-- 网关选择 -->
-                    <div class="mb-3">
-                        <label class="form-label">选择网关 <span class="text-danger">*</span></label>
-                        <select class="form-select" id="test-gatewayId" required>
-                            <option value="">加载中...</option>
-                        </select>
-                        <div class="form-text text-muted small" id="test-gatewayDesc">-</div>
-                    </div>
-
-                    <!-- MCP 协议类型选择 -->
-                    <div class="mb-3">
-                        <label class="form-label">MCP 协议类型 <span class="text-danger">*</span></label>
-                        <div class="d-flex gap-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="mcpType" id="mcpType-sse" value="sse" checked>
-                                <label class="form-check-label" for="mcpType-sse">SSE</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="mcpType" id="mcpType-streamable" value="streamable">
-                                <label class="form-check-label" for="mcpType-streamable">Streamable HTTP</label>
-                            </div>
-                        </div>
-                        <div class="form-text text-muted small">选择 MCP 传输协议类型，默认 SSE</div>
-                    </div>
-
-                    <!-- Auth Key 选择（根据网关是否开启认证动态显示） -->
-                    <div class="mb-3" id="auth-key-container" style="display: none;">
-                        <label class="form-label">Auth 校验 Key</label>
-                        <select class="form-select" id="test-apiKey">
-                            <option value="">请选择认证 Key...</option>
-                        </select>
-                        <div class="form-text text-muted small">如网关开启认证，请选择对应的认证 Key 进行测试</div>
-                    </div>
-
-                    <!-- 超时时间 -->
-                    <div class="mb-3">
-                        <label class="form-label">超时时间 (ms)</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light"><i class="bi bi-clock"></i></span>
-                            <input type="number" class="form-control" id="test-timeout" value="3000" min="1000" max="60000" step="500">
-                            <button class="btn btn-outline-secondary" type="button" id="btn-reset-timeout" title="重置为默认值">
-                                <i class="bi bi-arrow-counterclockwise"></i>
-                            </button>
-                        </div>
-                        <div class="form-text text-muted small">范围: 1000-60000 ms，默认 3000 ms</div>
-                    </div>
-
-                    <!-- Reload 选择 -->
-                    <div class="mb-3 form-check form-switch">
-                        <input class="form-check-input" type="checkbox" checked id="test-reload">
-                        <label class="form-check-label" for="test-reload">协议变更后重新加载 LLM</label>
-                        <div class="form-text text-muted small">勾选后，本次调用会重新加载最新协议配置。</div>
-                    </div>
-
-                    <!-- 请求消息 -->
-                    <div class="mb-3">
-                        <label class="form-label">请求消息 (Message) <span class="text-danger">*</span></label>
-                        <textarea class="form-control" id="test-message" rows="6" required placeholder="请输入要发送的对话内容，例如：\n帮我总结一下今天的待办事项"></textarea>
-                    </div>
-
-                    <!-- 发送按钮 -->
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary d-flex align-items-center justify-content-center gap-2" id="btn-send-test">
-                            <i class="bi bi-send"></i> 发送测试请求
-                        </button>
-                    </div>
-
-                    <!-- 快捷案例 -->
-                    <div class="mt-3">
-                        <label class="form-label text-muted small mb-2"><i class="bi bi-lightning-fill me-1"></i>快捷案例</label>
-                        <div class="d-flex gap-2 flex-wrap">
-                            <button type="button" class="btn btn-sm btn-outline-info btn-quick-case" data-message="你具备什么 mcp 工具能力">🔧 工具能力查询</button>
-                            <button type="button" class="btn btn-sm btn-outline-info btn-quick-case" data-message="获取公司雇员信息，信息如下； 城市；北京 公司；谷歌 雇员；小傅哥">👤 雇员信息查询</button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
+<section class="test-center" id="test-center-root" aria-labelledby="test-center-title">
+ <div class="tc-shell" id="tc-shell">
+  <header class="tc-head">
+   <div><div class="tc-kicker">MCP TEST CENTER / LIVE VALIDATION</div><h1 class="tc-title" id="test-center-title">测试中心</h1><p class="tc-subtitle">同一区域完成模板预检、Tool 手动调用与 Agent 自动调度验收</p></div>
+   <nav class="tc-mode-tabs" aria-label="测试模式"><button class="tc-mode active" type="button" data-mode="template">01 模板预检</button><button class="tc-mode" type="button" data-mode="tool">02 Tool 调用</button><button class="tc-mode" type="button" data-mode="agent">03 Agent 调度</button></nav>
+   <div class="tc-head-status idle" id="tc-head-status"><span class="tc-status-dot"></span><span>等待执行</span></div>
+  </header>
+  <div class="tc-workspace">
+   <aside class="tc-params" aria-label="调用参数">
+    <div class="tc-panel-title"><div><div class="tc-section-kicker" id="tc-request-kicker">01 / TEMPLATE</div><h2 id="tc-param-title">模板参数</h2></div><button class="tc-icon-button" id="tc-collapse" type="button" aria-label="收起参数面板" aria-expanded="true"><i class="bi bi-layout-sidebar-inset"></i></button></div>
+    <div class="tc-params-body">
+     <section id="tc-template-config"><div class="tc-field"><div class="tc-label-row"><label class="tc-label" for="tc-template-ref">SQL 模板 <span class="tc-required">*</span></label><span class="tc-field-meta">protocolId</span></div><div class="tc-inline"><select class="tc-control" id="tc-template-ref"><option value="">加载模板中…</option></select><button class="tc-load-button" id="tc-refresh-templates" type="button" aria-label="刷新模板列表"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i></button></div><p class="tc-help" id="tc-template-help">仅展示已启用、可执行的 SQL 模板。</p></div><div class="tc-template-meta"><div><span>模板版本</span><strong id="tc-template-version">—</strong></div><div><span>继承数据源</span><strong id="tc-template-datasource">—</strong></div></div></section>
+     <section class="tc-hidden" id="tc-tool-config"><div class="tc-field"><div class="tc-label-row"><label class="tc-label" for="tc-tool-gateway">Gateway <span class="tc-required">*</span></label><span class="tc-field-meta">existing</span></div><select class="tc-control" id="tc-tool-gateway"><option value="">加载中…</option></select></div><div class="tc-field"><div class="tc-label-row"><label class="tc-label" for="tc-tool-name">Tool <span class="tc-required">*</span></label><span class="tc-field-meta">tools/list</span></div><select class="tc-control" id="tc-tool-name" disabled><option value="">请先选择 Gateway</option></select><p class="tc-help" id="tc-tool-desc">这里只选择已有 Tool，不创建或修改绑定。</p></div></section>
+     <section class="tc-hidden" id="tc-agent-config"><div class="tc-field"><div class="tc-label-row"><label class="tc-label" for="tc-agent-gateway">Gateway <span class="tc-required">*</span></label><span class="tc-field-meta">agent target</span></div><select class="tc-control" id="tc-agent-gateway"><option value="">加载中…</option></select></div><div class="tc-field"><div class="tc-label-row"><span class="tc-label">MCP 传输</span><span class="tc-field-meta">transport</span></div><div class="tc-segmented" id="tc-transport"><button class="active" type="button" data-value="sse">SSE</button><button type="button" data-value="streamable">Streamable</button></div></div><div class="tc-field"><div class="tc-label-row"><label class="tc-label" for="tc-agent-timeout">超时时间</label><span class="tc-field-meta">ms</span></div><input class="tc-control" id="tc-agent-timeout" type="number" min="1000" max="120000" value="30000"></div><div class="tc-field"><div class="tc-label-row"><label class="tc-label" for="tc-agent-auth">认证 Key</label><span class="tc-field-meta">optional</span></div><input class="tc-control" id="tc-agent-auth" type="password" autocomplete="off" placeholder="按 Gateway 配置填写"></div><div class="tc-field"><div class="tc-label-row"><label class="tc-label" for="tc-agent-message">自然语言请求 <span class="tc-required">*</span></label><span class="tc-field-meta">agent prompt</span></div><textarea class="tc-control tc-agent-prompt" id="tc-agent-message" placeholder="例如：查询 2026-09-01 至 2026-09-22 的渠道订单汇总，并说明数据来源。"></textarea><p class="tc-help">Agent 自行发现和选择 Tool，此处不会出现手动 Tool 选择。</p></div></section>
+    <section id="tc-schema-parameters"><div class="tc-parameter-tools"><div class="tc-search-wrap"><i class="bi bi-search"></i><input class="tc-control" id="tc-param-search" placeholder="搜索参数名称或路径"></div><div class="tc-filter-row" role="group" aria-label="参数筛选"><button class="tc-filter active" data-filter="all" type="button">全部</button><button class="tc-filter" data-filter="unfilled" type="button">未填写</button><button class="tc-filter" data-filter="invalid" type="button">有错误</button></div></div><div class="tc-progress"><div class="tc-progress-copy"><span id="tc-param-count">等待加载参数定义</span><span id="tc-param-ratio">0 / 0</span></div><div class="tc-progress-track"><div class="tc-progress-bar" id="tc-progress-bar"></div></div></div><div id="tc-param-groups"><div class="tc-help">选择 SQL 模板后自动加载参数定义，或切换到 Tool 调用。</div></div><div class="tc-switch-line"><span class="tc-label">原始 JSON 参数</span><button class="tc-text-button" id="tc-toggle-json" type="button">切换到 JSON 编辑</button></div><textarea class="tc-control tc-json-editor tc-hidden" id="tc-raw-arguments" spellcheck="false">{}</textarea><div class="tc-field-error" id="tc-json-error"></div></section>
     </div>
-
-    <!-- 右侧：测试结果（对话区） -->
-    <div class="col-lg-8 mb-4">
-        <div class="card h-100">
-            <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="bi bi-chat-dots me-2"></i>对话结果</h5>
-                <div class="d-flex align-items-center gap-2">
-                    <span class="text-muted small">响应耗时: <span id="response-time">-</span> ms</span>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-clear-result" title="清空结果">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="card-body gateway-chat-body">
-                <div id="chat-window">
-                    <div class="text-center text-muted py-5" id="chat-empty-placeholder">
-                        <i class="bi bi-chat-square-text fs-3 d-block mb-2"></i>
-                        暂无对话记录，请配置参数后发送测试请求
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- 历史记录模态框 -->
-<div class="modal fade" id="historyModal" tabindex="-1" aria-labelledby="historyModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="historyModalLabel"><i class="bi bi-clock-history me-2"></i>测试历史记录</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead class="table-light">
-                            <tr>
-                                <th style="width: 170px;">时间</th>
-                                <th style="width: 130px;">网关ID</th>
-                                <th>请求消息</th>
-                                <th style="width: 90px;">状态</th>
-                            </tr>
-                        </thead>
-                        <tbody id="history-table-body">
-                            <tr>
-                                <td colspan="4" class="text-center text-muted py-3">暂无历史记录</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-light" data-bs-dismiss="modal">关闭</button>
-                <button type="button" class="btn btn-outline-danger btn-sm" id="btn-clear-history">
-                    <i class="bi bi-trash me-1"></i> 清空历史
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
+    <div class="tc-param-footer"><button class="tc-button" id="tc-reset" type="button"><i class="bi bi-arrow-counterclockwise me-1"></i>重置</button><button class="tc-button danger tc-hidden" id="tc-cancel" type="button"><i class="bi bi-stop-fill me-1"></i>取消</button><button class="tc-button primary" id="tc-run" type="button"><i class="bi bi-play-fill me-1"></i><span>运行预检</span></button></div>
+   </aside>
+   <main class="tc-result" aria-label="测试结果">
+    <div class="tc-result-bar"><div class="tc-result-title"><div><div class="tc-section-kicker" id="tc-execution-kicker">02 / EXECUTION</div><h2 id="tc-result-heading">执行与原始结果</h2></div><span class="tc-run-badge idle" id="tc-run-badge">IDLE</span></div><div class="tc-run-meta"><span>requestId <strong id="tc-request-id">—</strong></span><span>queryId <strong id="tc-query-id">—</strong></span><span><strong id="tc-duration">—</strong> ms</span></div></div>
+    <section class="tc-card" aria-labelledby="tc-trace-title"><div class="tc-trace-head"><div><div class="tc-section-kicker">TRACE</div><h3 id="tc-trace-title">真实执行链路</h3></div><span class="tc-field-meta" id="tc-trace-note">尚未执行</span></div><div class="tc-trace" id="tc-trace"></div></section>
+    <section class="tc-card tc-output" aria-label="原始数据"><div class="tc-output-tabs" role="tablist"><button class="tc-output-tab active" type="button" data-output="response">Response JSON</button><button class="tc-output-tab" type="button" data-output="request">Request JSON</button><button class="tc-output-tab" type="button" data-output="trace">Tool / Agent Trace</button><button class="tc-output-tab" type="button" data-output="binding">SQL / Binding</button><button class="tc-output-tab" type="button" data-output="log">Execution Log</button><button class="tc-copy" id="tc-copy-json" type="button"><i class="bi bi-copy me-1"></i>复制 JSON</button></div><div class="tc-output-body"><pre class="tc-code tc-hidden" id="tc-output-code"></pre><div class="tc-empty" id="tc-output-empty"><i class="bi bi-braces-asterisk"></i><span>运行测试后，这里展示未经表格转换的原始 JSON 与执行事件。</span></div></div></section>
+   </main>
+  </div>
+ </div>
+</section>

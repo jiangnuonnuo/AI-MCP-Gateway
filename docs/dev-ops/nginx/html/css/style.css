@@ -150,6 +150,17 @@
 .admin-page .pagination .page-link { color: #9bb0d2; border-color: #2b507e; background: #071a34; }
 .admin-page .pagination .active .page-link { color: #061126; border-color: var(--cyan); background: var(--cyan); }
 
+/*
+ * 管理页面的视图是动态插入 .main-shell 内部，而 Bootstrap 的 backdrop
+ * 会直接追加到 body。main-shell 本身是一个 z-index: 2 的 stacking context，
+ * 如果不在弹窗打开时整体抬升，backdrop 会盖住弹窗内容，导致输入和关闭控件
+ * 看起来存在但无法获得焦点。只在 modal-open 状态抬升该上下文，关闭后恢复原层级。
+ */
+.admin-page.modal-open .main-shell,
+.admin-page .main-shell:has(.modal.show) { z-index: 1060; }
+.admin-page .modal { z-index: 1065; }
+.admin-page .modal-backdrop { z-index: 1050; }
+
 .workbench-page { padding: 15px 0 0; }
 .workbench-stage { position: relative; height: 240px; padding: 38px 30px 0; overflow: hidden; }
 .workbench-stage h1 { position: relative; z-index: 1; margin: 0; color: #f4f8ff; font-size: clamp(34px, 4vw, 46px); line-height: 1; letter-spacing: -.045em; }
@@ -260,6 +271,7 @@
 .field label { color: #8ca6ca; font-size: 10px; }
 .field label .required { color: var(--orange); }
 .field input, .field select, .field textarea { width: 100%; min-height: 37px; padding: 9px 10px; color: #d4e2f4; border: 1px solid #2b507e; border-radius: 8px; outline: 0; background: #071a34; font-size: 11px; }
+.field-readonly { display: flex; align-items: center; min-height: 37px; padding: 9px 10px; color: #9eb6d6; border: 1px solid rgba(55, 100, 151, .56); border-radius: 8px; background: rgba(9, 31, 61, .72); font-size: 11px; }
 .field select { appearance: none; padding-right: 34px; color-scheme: dark; cursor: pointer; background-image: linear-gradient(45deg, transparent 50%, #80a5d7 50%), linear-gradient(135deg, #80a5d7 50%, transparent 50%); background-position: calc(100% - 16px) 16px, calc(100% - 11px) 16px; background-repeat: no-repeat; background-size: 5px 5px, 5px 5px; }
 .field textarea { min-height: 105px; resize: vertical; }
 .field input[type="checkbox"] { width: 16px; min-height: 16px; accent-color: var(--cyan); }

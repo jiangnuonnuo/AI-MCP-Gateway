@@ -4,27 +4,6 @@
     const icons = ['bi-database', 'bi-file-earmark-code', 'bi-link-45deg'];
     const kpiIcons = ['▣', '◉', '♣', '◇'];
 
-    const previews = {
-        datasource: [
-            { id: 'ds-warehouse', datasourceRef: 'data-warehouse', name: 'data-warehouse', description: 'MySQL 8.0 · warehouse', host: '10.20.4.18', port: 3306, database: 'warehouse', username: 'report_reader', readOnly: true, templateCount: 8, status: 'enabled', statusLabel: '在线', updatedAt: '2 分钟前' },
-            { id: 'ds-inventory', datasourceRef: 'inventory-prod', name: 'inventory-prod', description: 'MySQL 8.0 · inventory', host: '10.20.4.21', port: 3306, database: 'inventory', username: 'inventory_ro', readOnly: true, templateCount: 3, status: 'enabled', statusLabel: '在线', updatedAt: '18 分钟前' },
-            { id: 'ds-crm', datasourceRef: 'crm-analytics', name: 'crm-analytics', description: 'MySQL 8.0 · crm', host: '10.20.4.24', port: 3306, database: 'crm', username: 'crm_reader', readOnly: true, templateCount: 2, status: 'enabled', statusLabel: '在线', updatedAt: '1 小时前' },
-            { id: 'ds-marketing', datasourceRef: 'marketing-read', name: 'marketing-read', description: 'MySQL 8.0 · marketing', host: '10.20.5.11', port: 3306, database: 'marketing', username: 'marketing_ro', readOnly: true, templateCount: 0, status: 'attention', statusLabel: '待检查', updatedAt: '3 小时前' }
-        ],
-        template: [
-            { id: 'tpl-orders', name: '订单来源汇总', description: '按渠道统计订单数量、金额和用户数', datasourceId: 'ds-warehouse', datasource: 'data-warehouse', toolCount: 2, status: 'enabled', statusLabel: '已发布', sql: 'SELECT c.channel_name,\n       SUM(o.pay_amount) AS revenue,\n       COUNT(o.order_id) AS orders\nFROM fact_order o\nJOIN dim_channel c ON c.id = o.channel_id\nWHERE o.pay_time BETWEEN :fromTime AND :toTime\nGROUP BY c.channel_name', params: [{ name: 'fromTime', type: 'DATETIME' }, { name: 'toTime', type: 'DATETIME' }, { name: 'channelId', type: 'INTEGER' }, { name: 'status', type: 'STRING' }], guards: '只读保护 · 1000 行 · 3000 ms', updatedAt: '12 分钟前' },
-            { id: 'tpl-store', name: '门店营收报表', description: '按门店统计日/月销售数据', datasourceId: 'ds-warehouse', datasource: 'data-warehouse', toolCount: 1, status: 'enabled', statusLabel: '已发布', sql: 'SELECT store_id, SUM(pay_amount) AS revenue\nFROM fact_order\nWHERE pay_time BETWEEN :fromTime AND :toTime\nGROUP BY store_id', params: [{ name: 'fromTime', type: 'DATETIME' }, { name: 'toTime', type: 'DATETIME' }], guards: '只读保护 · 2000 行 · 5000 ms', updatedAt: '28 分钟前' },
-            { id: 'tpl-inventory', name: '商品库存预警', description: '查询低库存商品列表', datasourceId: 'ds-inventory', datasource: 'inventory-prod', toolCount: 0, status: 'draft', statusLabel: '草稿', sql: 'SELECT sku, stock, safety_stock\nFROM inventory_snapshot\nWHERE stock < safety_stock\nORDER BY stock ASC', params: [], guards: '待校验', updatedAt: '昨天' },
-            { id: 'tpl-member', name: '会员画像数据', description: '用户分层与 RFM 分析', datasourceId: 'ds-crm', datasource: 'crm-analytics', toolCount: 1, status: 'enabled', statusLabel: '已发布', sql: 'SELECT member_id, segment, recency, frequency, monetary\nFROM member_rfm\nWHERE member_id = :memberId', params: [{ name: 'memberId', type: 'STRING' }], guards: '只读保护 · 100 行 · 2000 ms', updatedAt: '昨天' }
-        ],
-        binding: [
-            { id: 'bind-orders', templateId: 'tpl-orders', templateName: '订单来源汇总', datasourceId: 'ds-warehouse', datasource: 'data-warehouse', gatewayId: 'gw-commerce-prod', gateway: 'gateway-commerce-prod', toolName: 'order_channel_summary', description: '查询订单渠道汇总', version: '1.0.0', protocol: 'MYSQL · 900001', status: 'enabled', statusLabel: '已启用', updatedAt: '7 分钟前' },
-            { id: 'bind-store', templateId: 'tpl-store', templateName: '门店营收报表', datasourceId: 'ds-warehouse', datasource: 'data-warehouse', gatewayId: 'gw-commerce-prod', gateway: 'gateway-commerce-prod', toolName: 'store_revenue_report', description: '查询门店营收数据', version: '1.0.0', protocol: 'MYSQL · 900002', status: 'enabled', statusLabel: '已启用', updatedAt: '34 分钟前' },
-            { id: 'bind-member', templateId: 'tpl-member', templateName: '会员画像数据', datasourceId: 'ds-crm', datasource: 'crm-analytics', gatewayId: 'gw-analytics-dev', gateway: 'gateway-analytics-dev', toolName: 'member_profile', description: '查询会员画像摘要', version: '1.0.0', protocol: 'MYSQL · 900004', status: 'enabled', statusLabel: '已启用', updatedAt: '1 小时前' },
-            { id: 'bind-inventory', templateId: 'tpl-inventory', templateName: '商品库存预警', datasourceId: 'ds-inventory', datasource: 'inventory-prod', gatewayId: 'gw-internal', gateway: 'gateway-internal', toolName: 'inventory_alert', description: '查询低库存商品', version: '0.9.0', protocol: 'MYSQL · 900003', status: 'draft', statusLabel: '草稿', updatedAt: '昨天' }
-        ]
-    };
-
     const configs = {
         datasource: {
             title: '数据源',
@@ -164,11 +143,20 @@
             sql: item.sql || item.readonlySql || item.sqlText || 'SELECT ...', params: item.params || item.parameters || [], guards: item.guards || '待校验'
         }));
         return stripSensitive($.extend({}, item, {
-            id: item.id || item.bindingId || item.toolId, templateId: item.templateId || item.protocolId,
-            templateName: item.templateName || item.protocolName || '-', datasourceId: item.datasourceId || item.dataSourceId,
-            datasource: item.datasource || item.datasourceName || '-', gatewayId: item.gatewayId, gateway: item.gateway || item.gatewayName || '-',
-            toolName: item.toolName || item.name, description: item.description || item.toolDescription || '-', version: item.version || item.toolVersion || '1.0.0',
+            id: item.id || item.bindingId || item.toolId,
+            protocolId: item.protocolId || item.templateId,
+            templateId: item.protocolId || item.templateId,
+            templateName: item.templateName || item.protocolName || `protocol-${item.protocolId || item.templateId || '-'}`,
+            datasource: '由 SQL 模板继承',
+            gatewayId: item.gatewayId,
+            gateway: item.gateway || item.gatewayName || item.gatewayId || '-',
+            toolName: item.toolName || item.name,
+            description: item.toolDescription || item.description || '-',
+            toolDescription: item.toolDescription || item.description || '',
+            version: item.toolVersion || item.version || '1.0.0',
+            toolVersion: item.toolVersion || item.version || '1.0.0',
             protocol: item.protocol || `${item.protocolType || 'MYSQL'} · ${item.protocolId || '-'}`,
+            protocolType: item.protocolType || 'mysql',
             status: normalizeStatus(item.status), statusLabel: item.statusLabel || item.statusText || ''
         }));
     }
@@ -206,7 +194,7 @@
         let detail = '';
         if (resource === 'datasource') detail = `<div class="inspector-label"><span>连接摘要</span><strong>${row.readOnly !== false ? '只读保护' : '请检查策略'}</strong></div><div class="detail-grid"><div class="detail-item">主机<strong>${escapeHtml(row.host)}:${escapeHtml(row.port)}</strong></div><div class="detail-item">数据库<strong>${escapeHtml(row.database)}</strong></div><div class="detail-item">用户名<strong>${escapeHtml(row.username)}</strong></div><div class="detail-item">密码<strong>•••••••• · 不回显</strong></div></div><div class="inspector-note">连接测试只返回健康状态，不在页面或日志展示完整 JDBC 信息。</div>`;
         if (resource === 'template') detail = `<div class="inspector-label"><span>SQL 预览</span><strong>已校验</strong></div><pre class="code-preview">${highlightSql(row.sql || 'SELECT ...')}</pre><div class="inspector-label"><span>参数配置</span><strong>${(row.params || []).length} 个参数</strong></div><div class="detail-grid">${(row.params || []).slice(0, 6).map(param => `<div class="detail-item">${escapeHtml(param.name || param.key)}<strong>${escapeHtml(param.type || 'STRING')}</strong></div>`).join('') || '<div class="detail-item">无参数<strong>固定查询</strong></div>'}</div><div class="inspector-label"><span>执行护栏</span><strong>只读保护</strong></div><div class="inspector-note">${escapeHtml(row.guards || '保存时执行 SQL 安全责任链。')}</div>`;
-        if (resource === 'binding') detail = `<div class="inspector-label"><span>绑定关系</span><strong>可追踪</strong></div><div class="detail-grid"><div class="detail-item">Gateway<strong>${escapeHtml(row.gateway)}</strong></div><div class="detail-item">Tool 名称<strong>${escapeHtml(row.toolName)}</strong></div><div class="detail-item">SQL 模板<strong>${escapeHtml(row.templateName)}</strong></div><div class="detail-item">数据源<strong>${escapeHtml(row.datasource)}</strong></div></div><div class="inspector-note">${escapeHtml(row.protocol)} · 停用后不会出现在 tools/list，也不能被 tools/call 调用。</div>`;
+        if (resource === 'binding') detail = `<div class="inspector-label"><span>绑定关系</span><strong>可追踪</strong></div><div class="detail-grid"><div class="detail-item">Gateway<strong>${escapeHtml(row.gateway)}</strong></div><div class="detail-item">Tool 名称<strong>${escapeHtml(row.toolName)}</strong></div><div class="detail-item">SQL 模板<strong>${escapeHtml(row.templateName)} · ${escapeHtml(row.protocolId || '-')}</strong></div><div class="detail-item">数据源<strong>由 SQL 模板继承</strong></div><div class="detail-item">Tool 版本<strong>${escapeHtml(row.toolVersion)}</strong></div></div><div class="inspector-note">${escapeHtml(row.protocol)} · 数据源、SQL 与参数契约均由模板解析；停用后不会出现在 tools/list，也不能被 tools/call 调用。</div>`;
         const primaryAction = resource === 'template' || resource === 'datasource' ? `<button type="button" class="button primary" data-inspector-action="test"><i class="bi bi-play" aria-hidden="true"></i>${resource === 'template' ? '测试运行' : '连接测试'}</button>` : '';
         return `<div class="inspector-head"><span class="tag ${statusClass(row.status)} inspector-status">● ${escapeHtml(statusLabel(row))}</span><div class="inspector-title">${escapeHtml(resource === 'binding' ? `${row.templateName} → ${row.toolName}` : text.name)}</div><div class="inspector-sub">${escapeHtml(text.sub || text.relation)} · 更新于 ${escapeHtml(row.updatedAt || '刚刚')}</div></div><div class="inspector-body"><div class="inspector-tabs" role="tablist"><button type="button" class="inspector-tab active" role="tab">概览</button><button type="button" class="inspector-tab" role="tab">关联</button><button type="button" class="inspector-tab" role="tab">变更记录</button></div>${detail}</div><div class="inspector-actions">${primaryAction}<button type="button" class="button" data-inspector-action="edit"><i class="bi bi-pencil" aria-hidden="true"></i>编辑</button><button type="button" class="button" data-inspector-action="toggle"><i class="bi bi-power" aria-hidden="true"></i>${row.status === 'enabled' ? '停用' : '启用'}</button><button type="button" class="button danger" data-inspector-action="delete" aria-label="删除资源"><i class="bi bi-trash" aria-hidden="true"></i></button></div>`;
     }
@@ -216,17 +204,58 @@
         return escaped.replace(/\b(SELECT|FROM|JOIN|ON|WHERE|GROUP BY|ORDER BY|BETWEEN|AND|AS|COUNT|SUM)\b/gi, '<span class="keyword">$1</span>').replace(/(:[A-Za-z][A-Za-z0-9_]*)/g, '<span class="param">$1</span>');
     }
 
+    function appendOptions(select, options, placeholder) {
+        const current = select.val();
+        select.empty().append(`<option value="">${escapeHtml(placeholder)}</option>`).append(options);
+        if (current) select.val(current);
+    }
+
+    function syncBindingTemplateMeta(root) {
+        const select = root.find('#binding-template');
+        const option = select.find('option:selected');
+        root.find('#binding-template-version').text(option.data('version') || '—');
+        root.find('#binding-datasource-summary').text(option.data('datasource') || '选择模板后自动带出');
+    }
+
     function initOptions(root, resource) {
-        const datasourceRefOptions = previews.datasource.map(row => `<option value="${escapeHtml(row.datasourceRef || row.id)}">${escapeHtml(row.name)}</option>`).join('');
-        const datasourceIdOptions = previews.datasource.map(row => `<option value="${escapeHtml(row.id)}">${escapeHtml(row.name)}</option>`).join('');
         if (resource === 'template') {
-            root.find('#template-datasource, #template-datasource-filter').each(function () { $(this).append(datasourceRefOptions); });
+            root.find('#template-datasource, #template-datasource-filter').prop('disabled', true);
+            request(API_ENDPOINTS.GET_MYSQL_DATASOURCE_PAGE, 'GET', { page: 1, rows: 200, status: 1 }, function (response) {
+                const page = normalizePage(response, 'datasource');
+                const options = page.list.map(row => `<option value="${escapeHtml(row.datasourceRef || row.id)}">${escapeHtml(row.name || row.datasourceRef || row.id)}</option>`).join('');
+                root.find('#template-datasource, #template-datasource-filter').prop('disabled', false).each(function () { appendOptions($(this), options, '选择数据源'); });
+            }, function () {
+                root.find('#template-datasource, #template-datasource-filter').each(function () { appendOptions($(this), '', '数据源加载失败'); });
+            });
         }
         if (resource === 'binding') {
-            root.find('#binding-datasource').append(datasourceIdOptions);
-            root.find('#binding-template').append(previews.template.map(row => `<option value="${escapeHtml(row.id)}">${escapeHtml(row.name)}</option>`).join(''));
-            const gateways = ['gw-commerce-prod|gateway-commerce-prod', 'gw-analytics-dev|gateway-analytics-dev', 'gw-internal|gateway-internal'];
-            root.find('#binding-gateway, #binding-gateway-filter').append(gateways.map(item => { const parts = item.split('|'); return `<option value="${parts[0]}">${parts[1]}</option>`; }).join(''));
+            root.find('#binding-template, #binding-gateway, #binding-gateway-filter').prop('disabled', true);
+            request(API_ENDPOINTS.GET_MYSQL_TEMPLATE_PAGE, 'GET', { page: 1, rows: 200, status: 1 }, function (response) {
+                const page = normalizePage(response, 'template');
+                const available = page.list.filter(row => row.status === 'enabled');
+                const options = available.map(row => `<option value="${escapeHtml(row.protocolId || row.id)}" data-version="${escapeHtml(row.version || '1')}" data-datasource="${escapeHtml(row.datasource || row.datasourceRef || '—')}">${escapeHtml(row.name || `protocol-${row.protocolId || row.id}`)} · ${escapeHtml(row.protocolId || row.id)} · v${escapeHtml(row.version || '1')}</option>`).join('');
+                appendOptions(root.find('#binding-template'), options, available.length ? '选择已发布 SQL 模板' : '暂无可用模板');
+                root.find('#binding-template').prop('disabled', !available.length);
+                syncBindingTemplateMeta(root);
+                const pending = root.find('#binding-template').data('selectedProtocolId');
+                if (pending) { root.find('#binding-template').val(String(pending)); syncBindingTemplateMeta(root); }
+            }, function () {
+                appendOptions(root.find('#binding-template'), '', '模板加载失败');
+                syncBindingTemplateMeta(root);
+            });
+            request(API_ENDPOINTS.GET_GATEWAY_OPTIONS, 'GET', {}, function (response) {
+                const raw = response && response.data;
+                const rows = Array.isArray(raw) ? raw : raw && (raw.list || raw.records || raw.rows || raw.data) || [];
+                const options = (Array.isArray(rows) ? rows : []).map(item => `<option value="${escapeHtml(item.gatewayId || item.id)}">${escapeHtml(item.gatewayName || item.name || item.gatewayId || item.id)}</option>`).join('');
+                appendOptions(root.find('#binding-gateway, #binding-gateway-filter'), options, '选择 Gateway');
+                root.find('#binding-gateway, #binding-gateway-filter').prop('disabled', !rows.length);
+                const pending = root.find('#binding-gateway').data('selectedGatewayId');
+                if (pending) root.find('#binding-gateway').val(String(pending));
+                const pendingFilter = root.find('#binding-gateway-filter').data('selectedGatewayId');
+                if (pendingFilter) root.find('#binding-gateway-filter').val(String(pendingFilter));
+            }, function () {
+                appendOptions(root.find('#binding-gateway, #binding-gateway-filter'), '', 'Gateway 加载失败');
+            });
         }
     }
 
@@ -243,7 +272,7 @@
     function validateForm(root, resource, data) {
         let valid = true;
         root.find('.field').removeClass('invalid');
-        const required = resource === 'datasource' ? ['name', 'database', 'host', 'port', 'username'] : resource === 'template' ? ['name', 'datasourceId', 'sql'] : ['gatewayId', 'toolName', 'templateId', 'datasourceId'];
+        const required = resource === 'datasource' ? ['name', 'database', 'host', 'port', 'username'] : resource === 'template' ? ['name', 'datasourceId', 'sql'] : ['gatewayId', 'toolName', 'protocolId'];
         required.forEach(name => { const input = root.find(`[name="${name}"]`); const field = input.closest('.field'); if (!input.prop('disabled') && !data[name]) { field.addClass('invalid'); valid = false; } });
         if (resource === 'datasource' && !data.id && !data.password) { root.find('[name="password"]').closest('.field').addClass('invalid'); valid = false; }
         if (resource === 'template' && data.__paramsInvalid) { root.find('[name="params"]').closest('.field').addClass('invalid'); valid = false; }
@@ -287,7 +316,19 @@
                 status: Number(clean.status)
             };
         }
-        if (resource === 'binding') clean.bindingId = clean.id || undefined;
+        if (resource === 'binding') {
+            return {
+                id: clean.id ? Number(clean.id) : undefined,
+                gatewayId: String(clean.gatewayId || '').trim(),
+                toolName: String(clean.toolName || '').trim(),
+                toolType: 'function',
+                toolDescription: String(clean.toolDescription || '').trim(),
+                toolVersion: String(clean.toolVersion || '1.0.0').trim(),
+                protocolId: clean.protocolId ? Number(clean.protocolId) : undefined,
+                protocolType: 'mysql',
+                status: Number(clean.status)
+            };
+        }
         return clean;
     }
 
@@ -305,7 +346,7 @@
         const root = $(`.workbench-page[data-resource="${resource}"]`);
         if (!root.length) return;
         const config = configs[resource];
-        const state = { rows: previews[resource].slice(), total: previews[resource].length, page: 1, pageSize: 5, selectedId: previews[resource][0] && previews[resource][0].id, statusFilter: 'all', search: '', sort: 'updated', apiAvailable: false };
+        const state = { rows: [], total: 0, page: 1, pageSize: 5, selectedId: null, statusFilter: 'all', search: '', sort: 'updated', apiAvailable: false, loadError: false };
         root.find(`#${resource === 'template' ? 'template' : resource}-kpis`).html(kpiHtml(config.kpis));
         initOptions(root, resource);
 
@@ -327,7 +368,8 @@
             const startIndex = (state.page - 1) * state.pageSize;
             const visible = state.apiAvailable ? state.rows : all.slice(startIndex, startIndex + state.pageSize);
             if (!state.selectedId && visible[0]) state.selectedId = visible[0].id;
-            root.find(`#${resource}-rows`).html(visible.length ? visible.map(row => rowHtml(row, resource, state.selectedId)).join('') : '<div class="empty-state">暂无匹配记录</div>');
+            const empty = state.loadError ? '<div class="empty-state">管理接口暂不可用，请检查服务后重试。<button type="button" class="button" data-action="retry">重试</button></div>' : '<div class="empty-state">暂无匹配记录</div>';
+            root.find(`#${resource}-rows`).html(visible.length ? visible.map(row => rowHtml(row, resource, state.selectedId)).join('') : empty);
             const selected = state.rows.find(row => String(row.id) === String(state.selectedId)) || visible[0];
             root.find(`#${resource}-inspector`).html(inspectorHtml(selected, resource));
             const pageCount = Math.max(1, Math.ceil(total / state.pageSize));
@@ -348,8 +390,8 @@
             if (resource === 'binding' && state.gatewayFilter) params.gatewayId = state.gatewayFilter;
             request(config.endpoints.page, 'GET', params, function (response) {
                 const page = normalizePage(response, resource);
-                if (response && (response.code === '0000' || response.code === 0 || response.success === true)) { state.rows = page.list; state.total = page.total; state.apiAvailable = true; state.selectedId = page.list[0] && page.list[0].id; render(); }
-            }, function () { state.apiAvailable = false; render(); });
+                if (response && (response.code === '0000' || response.code === 0 || response.success === true)) { state.rows = page.list; state.total = page.total; state.apiAvailable = true; state.loadError = false; state.selectedId = page.list[0] && page.list[0].id; render(); }
+            }, function () { state.apiAvailable = false; state.loadError = true; state.rows = []; state.total = 0; state.selectedId = null; render(); });
         }
 
         function loadDetail(row) {
@@ -371,6 +413,9 @@
             const drawer = root.find(`#${resource}-drawer`);
             const form = root.find('form');
             form[0].reset();
+            root.find('#binding-template').removeData('selectedProtocolId');
+            root.find('#binding-gateway').removeData('selectedGatewayId');
+            if (resource === 'binding') syncBindingTemplateMeta(root);
             form.find('[name="id"]').val(row ? row.id : '');
             root.find('.drawer-alert').removeClass('show').text('');
             root.find('.field').removeClass('invalid');
@@ -383,7 +428,13 @@
                     form.find('[name="params"]').val(JSON.stringify(row.params || [], null, 2));
                 }
                 if (resource === 'datasource') form.find('[name="readOnly"]').val(String(row.readOnly !== false));
-                if (resource === 'binding') { form.find('[name="templateId"]').val(row.templateId); form.find('[name="datasourceId"]').val(row.datasourceId); form.find('[name="gatewayId"]').val(row.gatewayId); }
+                if (resource === 'binding') {
+                    form.find('[name="protocolId"]').val(row.protocolId || row.templateId);
+                    form.find('[name="gatewayId"]').val(row.gatewayId);
+                    root.find('#binding-template').data('selectedProtocolId', row.protocolId || row.templateId);
+                    root.find('#binding-gateway').data('selectedGatewayId', row.gatewayId);
+                    syncBindingTemplateMeta(root);
+                }
                 form.find('[name="status"]').val(row.status === 'enabled' ? '1' : '0');
             }
             if (resource === 'template' && row && row.status === 'enabled') { drawer.addClass('immutable'); form.find('[name="sql"], [name="datasourceId"], [name="params"]').prop('disabled', true); }
@@ -399,7 +450,7 @@
             const form = root.find('form');
             const submit = form.find('button[type="submit"]');
             const data = collectForm(root, resource);
-            if (!validateForm(root, resource, data)) { showToast('请检查表单中的必填项和格式。', false); return; }
+            if (!validateForm(root, resource, data)) { showToast('请检查表单中的必填项和格式。', false); form.find('.field.invalid input, .field.invalid select, .field.invalid textarea').first().trigger('focus'); return; }
             if (resource === 'binding') {
                 const duplicate = state.rows.some(row => String(row.id) !== String(data.id || '') && String(row.gatewayId) === String(data.gatewayId) && String(row.toolName || '').trim().toLowerCase() === String(data.toolName || '').trim().toLowerCase());
                 if (duplicate) { root.find('.drawer-alert').addClass('show').text('同一 Gateway 下已存在同名 Tool，请更换工具名称。'); showToast('工具名称已存在', false); return; }
@@ -595,11 +646,13 @@
         root.on('input.mysql-workbench', `#${resource}-search`, function () { state.search = this.value; state.page = 1; render(); clearTimeout(searchTimer); searchTimer = setTimeout(loadRows, 280); });
         root.on('change.mysql-workbench', `#${resource}-sort`, function () { state.sort = this.value; render(); });
         root.on('change.mysql-workbench', '#template-datasource-filter, #binding-gateway-filter', function () { state.gatewayFilter = this.value; state.datasourceFilter = this.value; state.page = 1; render(); loadRows(); });
+        root.on('change.mysql-workbench', '#binding-template', function () { syncBindingTemplateMeta(root); });
         root.on('click.mysql-workbench', `#${resource}-create`, function () { openDrawer(null); });
         root.on('click.mysql-workbench', '[data-close-drawer]', closeDrawer);
         root.on('submit.mysql-workbench', 'form', saveForm);
         root.on('click.mysql-workbench', '.registry-row', function (event) { if ($(event.target).closest('input, button').length && !$(event.target).closest('[data-action="select"], .record').length) return; const id = $(this).data('row-id'); state.selectedId = id; const row = state.rows.find(item => String(item.id) === String(id)); render(); loadDetail(row); });
         root.on('click.mysql-workbench', '[data-action="select"]', function () { state.selectedId = $(this).closest('.registry-row').data('row-id'); const row = state.rows.find(item => String(item.id) === String(state.selectedId)); render(); loadDetail(row); });
+        root.on('click.mysql-workbench', '[data-action="retry"]', function () { loadRows(); });
         root.on('click.mysql-workbench', '[data-action="menu"]', function () { const row = state.rows.find(item => String(item.id) === String($(this).closest('.registry-row').data('row-id'))); if (row) openDrawer(row); });
         root.on('click.mysql-workbench', '[data-inspector-action]', function () { const row = state.rows.find(item => String(item.id) === String(state.selectedId)); if (!row) return; const action = $(this).data('inspector-action'); if (action === 'edit') openDrawer(row); if (action === 'toggle') changeStatus(row); if (action === 'delete') removeRow(row); if (action === 'test') testRow(row); });
         root.on('click.mysql-workbench', '[data-page]', function () { if (this.disabled) return; state.page = Number($(this).data('page')); render(); loadRows(); });

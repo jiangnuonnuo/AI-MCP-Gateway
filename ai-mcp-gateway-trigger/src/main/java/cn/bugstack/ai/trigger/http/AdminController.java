@@ -721,5 +721,36 @@ public class AdminController implements IAdminService {
         }
     }
 
+    /**
+     * 统一测试中心 Agent 调度测试：只接收自然语言任务，Tool 选择和调用由已配置 Agent/MCP 链路完成。
+     */
+    @RequestMapping(value = "test_agent_gateway", method = RequestMethod.POST)
+    @Override
+    public Response<AgentTestDTO> testAgentGateway(@RequestBody AgentTestRequestDTO requestDTO) {
+        try {
+            AgentTestDTO responseDTO = adminLLMService.testAgentGateway(requestDTO);
+            if (responseDTO == null || !responseDTO.isSuccess()) {
+                return Response.<AgentTestDTO>builder()
+                        .code(responseDTO == null || responseDTO.getErrorCode() == null
+                                ? ResponseCode.UN_ERROR.getCode() : responseDTO.getErrorCode())
+                        .info(responseDTO == null || responseDTO.getErrorMessage() == null
+                                ? ResponseCode.UN_ERROR.getInfo() : responseDTO.getErrorMessage())
+                        .data(responseDTO)
+                        .build();
+            }
+            return Response.<AgentTestDTO>builder()
+                    .code(ResponseCode.SUCCESS.getCode())
+                    .info(ResponseCode.SUCCESS.getInfo())
+                    .data(responseDTO)
+                    .build();
+        } catch (Exception e) {
+            log.warn("Agent 调度测试失败 errorType={}", e.getClass().getSimpleName());
+            return Response.<AgentTestDTO>builder()
+                    .code(ResponseCode.UN_ERROR.getCode())
+                    .info(ResponseCode.UN_ERROR.getInfo())
+                    .build();
+        }
+    }
+
 
 }

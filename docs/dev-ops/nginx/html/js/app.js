@@ -49,7 +49,7 @@ $(document).ready(function() {
         const labels = {
             dashboard: '控制台', 'gateway-list': '网关列表', 'gateway-tool': '网关工具',
             'gateway-protocol': 'HTTP 协议', datasource: '数据源', 'sql-template': 'SQL 模板',
-            'tool-binding': 'Tool 绑定', 'gateway-auth': '认证配置', 'gateway-test': '网关测试'
+            'tool-binding': 'Tool 绑定', 'gateway-auth': '认证配置', 'gateway-test': '测试中心'
         };
         const label = labels[targetId] || targetId;
         $('#shell-crumb').text(label);
@@ -95,6 +95,10 @@ $(document).ready(function() {
 
     // 网关测试页初始化
     function initGatewayTestPage() {
+        if (window.initTestCenter) {
+            window.initTestCenter();
+            return;
+        }
         loadGatewayOptionsForTest();
         loadAuthOptionsForTest();
 
@@ -418,6 +422,7 @@ $(document).ready(function() {
         const toast = new bootstrap.Toast(toastEl[0]);
         toast.show();
     }
+    window.showToast = showToast;
 
     // 表单提交通用处理 - 使用事件委托
     function handleFormSubmitDelegated(formId, endpoint, dataProcessor, onSuccess) {

@@ -8,6 +8,7 @@ import cn.bugstack.ai.domain.tool.adapter.port.IToolAccessPolicyPort;
 import cn.bugstack.ai.domain.tool.model.valobj.ToolExecutionContext;
 import cn.bugstack.ai.domain.tool.model.valobj.ToolExecutionErrorCode;
 import cn.bugstack.ai.domain.tool.model.valobj.ToolExecutionResult;
+import cn.bugstack.ai.domain.tool.service.ToolInvocationService;
 import cn.bugstack.ai.domain.session.service.message.handler.IRequestHandler;
 import cn.bugstack.ai.types.exception.AppException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -36,6 +37,12 @@ public class ToolsCallHandler implements IRequestHandler {
     @Resource
     private IToolAccessPolicyPort accessPolicy;
 
+    /**
+     * 共享的 Tool 调用领域入口。保留下方字段作为纯单元测试的兼容装配路径，Spring 运行时始终优先使用该服务。
+     */
+    @Resource
+    private ToolInvocationService toolInvocationService;
+
     @Override
     public McpSchemaVO.JSONRPCResponse handle(String gatewayId, McpSchemaVO.JSONRPCRequest message) {
         Object responseId = message == null ? null : message.id();
@@ -58,6 +65,11 @@ public class ToolsCallHandler implements IRequestHandler {
             }
             Object argumentsObj = callToolRequest.arguments();
             String toolName = callToolRequest.name();
+
+            if (toolInvocationService != null) {
+                return response(responseId, requestId,
+                        toolInvocationService.execute(gatewayId, toolName, argumentsObj, requestId));
+            }
 
             if (accessPolicy != null && !accessPolicy.isAllowed(gatewayId, toolName)) {
                 return response(responseId, requestId, ToolExecutionResult.failure(requestId,

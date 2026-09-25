@@ -49,4 +49,6 @@ public interface IAdminService {
 
     Response<GatewayLLMResponseDTO> testCallGateway(GatewayLLMRequestDTO requestDTO);
 
+    Response<AgentTestDTO> testAgentGateway(AgentTestRequestDTO requestDTO);
+
 }

@@ -6,6 +6,7 @@ import cn.bugstack.ai.api.response.Response;
 import cn.bugstack.ai.api.response.ResponsePage;
 import cn.bugstack.ai.cases.admin.mysql.IAdminMysqlManageService;
 import cn.bugstack.ai.cases.admin.mysql.IAdminMysqlTemplateTestCase;
+import cn.bugstack.ai.cases.admin.mysql.IAdminToolTestCase;
 import cn.bugstack.ai.domain.mysql.model.admin.*;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlParameterType;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlExecutionStage;
@@ -38,6 +39,9 @@ public class AdminMysqlController implements IAdminMysqlService {
 
     @Resource
     private IAdminMysqlTemplateTestCase adminMysqlTemplateTestCase;
+
+    @Resource
+    private IAdminToolTestCase adminToolTestCase;
 
     @RequestMapping(value = "query_mysql_datasource_page", method = RequestMethod.GET)
     @Override
@@ -203,6 +207,55 @@ public class AdminMysqlController implements IAdminMysqlService {
         }
     }
 
+    /** 返回当前 Gateway 已存在且可测试的 Tool schema，不提供绑定管理动作。 */
+    @RequestMapping(value = "test_center_tools", method = RequestMethod.GET)
+    @Override
+    public Response<List<ToolTestToolDTO>> queryTestCenterTools(@RequestParam String gatewayId) {
+        try {
+            List<ToolTestToolDTO> data = adminToolTestCase.listTools(gatewayId).stream()
+                    .map(tool -> ToolTestToolDTO.builder()
+                            .name(tool.name())
+                            .description(tool.description())
+                            .inputSchema(toSchemaMap(tool.inputSchema()))
+                            .build())
+                    .collect(Collectors.toList());
+            return Response.<List<ToolTestToolDTO>>builder()
+                    .code(ResponseCode.SUCCESS.getCode())
+                    .info(ResponseCode.SUCCESS.getInfo())
+                    .data(data)
+                    .build();
+        } catch (Exception e) {
+            return Response.<List<ToolTestToolDTO>>builder()
+                    .code(errorCode(e)).info(errorInfo(e)).data(List.of()).build();
+        }
+    }
+
+    /** 执行一次当前 Gateway 已绑定 Tool 的真实调用，仅接收 Tool 参数。 */
+    @RequestMapping(value = "test_center_tool_call", method = RequestMethod.POST)
+    @Override
+    public Response<ToolManualTestDTO> testCenterToolCall(@RequestBody ToolManualTestRequestDTO requestDTO) {
+        try {
+            var report = adminToolTestCase.execute(requestDTO == null ? null : requestDTO.getGatewayId(),
+                    requestDTO == null ? null : requestDTO.getToolName(),
+                    requestDTO == null ? java.util.Map.of() : requestDTO.getArguments());
+            ToolManualTestDTO data = ToolManualTestDTO.builder()
+                    .success(report.isSuccess()).testId(report.getTestId()).gatewayId(report.getGatewayId())
+                    .toolName(report.getToolName()).requestId(report.getRequestId()).queryId(report.getQueryId())
+                    .requestArguments(report.getRequestArguments()).requestJson(report.getRequestArguments())
+                    .result(report.getResult()).responseJson(report.getResult()).durationMs(report.getDurationMs())
+                    .stages(report.getStages() == null ? List.of() : report.getStages().stream().map(stage -> ToolExecutionStageDTO.builder()
+                            .name(stage.getName()).label(stage.getLabel()).status(stage.getStatus() == null ? null : stage.getStatus().name())
+                            .durationMs(stage.getDurationMs()).errorCode(stage.getErrorCode()).errorMessage(stage.getErrorMessage()).build()).collect(Collectors.toList()))
+                    .errorCode(report.getErrorCode()).errorMessage(report.getErrorMessage()).build();
+            return Response.<ToolManualTestDTO>builder()
+                    .code(report.isSuccess() ? ResponseCode.SUCCESS.getCode() : report.getErrorCode())
+                    .info(report.isSuccess() ? ResponseCode.SUCCESS.getInfo() : report.getErrorMessage())
+                    .data(data).build();
+        } catch (Exception e) {
+            return Response.<ToolManualTestDTO>builder().code(errorCode(e)).info(errorInfo(e)).build();
+        }
+    }
+
     @RequestMapping(value = "query_mysql_binding_page", method = RequestMethod.GET)
     @Override
     public ResponsePage<List<MysqlBindingDTO>> queryMysqlBindingPage(@ModelAttribute MysqlBindingQueryDTO queryDTO) {
@@ -350,6 +403,18 @@ public class AdminMysqlController implements IAdminMysqlService {
                 .errorCode(value.getErrorCode())
                 .errorMessage(value.getErrorMessage())
                 .build();
+    }
+
+    private java.util.Map<String, Object> toSchemaMap(cn.bugstack.ai.domain.session.model.valobj.McpSchemaVO.JsonSchema schema) {
+        if (schema == null) return java.util.Map.of("type", "object", "properties", java.util.Map.of());
+        java.util.Map<String, Object> result = new java.util.LinkedHashMap<>();
+        if (schema.type() != null) result.put("type", schema.type());
+        result.put("properties", schema.properties() == null ? java.util.Map.of() : schema.properties());
+        if (schema.required() != null && !schema.required().isEmpty()) result.put("required", schema.required());
+        if (schema.additionalProperties() != null) result.put("additionalProperties", schema.additionalProperties());
+        if (schema.defs() != null) result.put("$defs", schema.defs());
+        if (schema.definitions() != null) result.put("definitions", schema.definitions());
+        return result;
     }
 
     private <T> Response<T> mysqlSuccess(Object value) {
