@@ -60,3 +60,38 @@ Gateway MUST 在 Tool、数据源和查询模式层面执行权限判断。动�
 
 - **WHEN** 模板包含被标记为敏感的参数且管理员查看请求 JSON、SQL 绑定或执行日志
 - **THEN** 页面和接口仅显示掩码/摘要，不返回可恢复的原始值
+
+## ADDED Requirements
+
+### Requirement: Agent test reports SHALL be based on authentic MCP events
+
+Agent 调度测试 MUST 使用已配置 AI 通过当前 Gateway 的 MCP 能力自主发现和调用 Tool，并以传输层实际发生的 `tools/list`、`tools/call`、Tool 响应/错误和最终回答生成追踪报告。系统不得从最终文本、客户端 loading 或普通日志推断未发生的 Tool 调用。
+
+#### Scenario: Agent event evidence is complete
+
+- **WHEN** Agent 为完成任务发出一次或多次真实 Tool 调用
+- **THEN** 报告按实际顺序包含会话、工具发现、每次 Tool 请求、参数摘要、响应/错误、耗时和最终回答，并关联 agentTestId、requestId 与下游 queryId（若有）
+
+#### Scenario: Agent needs no Tool
+
+- **WHEN** Agent 直接回答任务且没有发送 `tools/call`
+- **THEN** 报告明确显示零次 Tool 调用和最终回答，不虚构 Tool 事件，也不将零次调用判定为失败
+
+#### Scenario: Agent trace cannot be proven
+
+- **WHEN** MCP 传输层未提供某个必需事件的可核验记录
+- **THEN** 报告将该事件标记为 `UNOBSERVED`，相关真实验收不通过，且系统不得用最终文本补齐事件
+
+### Requirement: Agent and Tool test traces SHALL obey the gateway security boundary
+
+Agent 提示词、Tool 参数、Tool 响应、模型错误和 Trace 日志 MUST 使用与模板测试相同的脱敏规则。测试报告只在当前请求生命周期内访问，不新增历史持久化，不得把 AI 凭证、MCP Authorization、数据库凭证或敏感参数返回到浏览器。
+
+#### Scenario: Sensitive data appears in an Agent Tool request
+
+- **WHEN** Agent 自动生成的 Tool 参数或底层错误包含 Token、Authorization、密码、模型密钥、JDBC URL 或敏感字段
+- **THEN** Trace、响应和日志仅保留掩码后的值与稳定错误码，原始敏感材料不会离开网关边界
+
+#### Scenario: Agent timeout or cancellation
+
+- **WHEN** Agent 超过测试超时或管理员取消调度
+- **THEN** 网关停止后续 Tool 调用并释放客户端资源，报告保留已经发生的事件，不报告未发生的调用或伪造成功

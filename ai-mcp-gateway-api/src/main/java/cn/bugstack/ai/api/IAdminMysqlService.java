@@ -37,6 +37,10 @@ public interface IAdminMysqlService {
 
     Response<MysqlTemplateTestDTO> testMysqlTemplate(MysqlAdminTestRequestDTO requestDTO);
 
+    Response<List<ToolTestToolDTO>> queryTestCenterTools(String gatewayId);
+
+    Response<ToolManualTestDTO> testCenterToolCall(ToolManualTestRequestDTO requestDTO);
+
     ResponsePage<List<MysqlBindingDTO>> queryMysqlBindingPage(MysqlBindingQueryDTO queryDTO);
 
     Response<MysqlBindingDTO> queryMysqlBindingDetail(Long id);

@@ -44,6 +44,10 @@ const API_ENDPOINTS = {
     DELETE_GATEWAY_TOOL: `${API_BASE_URL}/admin/delete_gateway_tool_config`,
     // 测试调用网关 LLM 服务
     TEST_CALL_GATEWAY: `${API_BASE_URL}/admin/test_call_gateway`,
+    // 统一测试中心：仅调用既有模板、Tool 与 Gateway Agent，不提供绑定管理
+    TEST_CENTER_TOOLS: `${API_BASE_URL}/admin/test_center_tools`,
+    TEST_CENTER_TOOL_CALL: `${API_BASE_URL}/admin/test_center_tool_call`,
+    TEST_AGENT_GATEWAY: `${API_BASE_URL}/admin/test_agent_gateway`,
 
     // MySQL 管理工作台：所有页面只通过 REST 管理接口访问控制面
     GET_MYSQL_DATASOURCE_PAGE: `${API_BASE_URL}/admin/query_mysql_datasource_page`,
@@ -68,6 +72,6 @@ const API_ENDPOINTS = {
 
 // 模拟登录账号
 const MOCK_ACCOUNT = {
-    username: "admin",
-    password: "password123"
+    username: "root",
+    password: "123456"
 };

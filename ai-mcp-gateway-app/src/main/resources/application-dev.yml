@@ -40,7 +40,8 @@ spring:
   # spring ai
   ai:
     openai:
-      base-url: http://127.0.0.1:8777/v1
+      # Spring AI 会在 base-url 后追加 /v1/chat/completions，本地 OpenAI 兼容服务配置到主机根地址。
+      base-url: http://127.0.0.1:8777
       api-key: ${OPENAI_API_KEY}
       chat:
         options:

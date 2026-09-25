@@ -60,3 +60,24 @@ Gateway MUST 使用独立连接池执行 MySQL 查询，配置连接超时、获
 
 - **WHEN** 管理端测试查询成功或失败
 - **THEN** 响应包含 queryId、阶段状态和耗时，且不改变 MCP Tool 正式调用的连接池、超时和释放语义
+
+## ADDED Requirements
+
+### Requirement: Manual Tool tests SHALL share the formal Gateway invocation path
+
+管理端 Tool 手动测试 MUST 从当前 Gateway 已存在且启用的 Tool 绑定解析协议、模板和数据源，并使用与正式 MCP `tools/call` 相同的参数校验、只读策略、执行器路由、资源治理和结构化结果语义。测试请求不得覆盖 SQL、数据源、行数、超时或策略。
+
+#### Scenario: Manual Tool call matches formal Tool execution
+
+- **WHEN** 管理员使用同一 Tool 和同一组合法参数运行手动测试，且 MCP Client 使用该 Tool 发起正式 `tools/call`
+- **THEN** 两条链路使用同一绑定和执行规则，返回的 `columns`、`rows`、`rowCount`、`truncated` 和错误治理语义一致
+
+#### Scenario: Manual Tool call cannot bypass read-only rules
+
+- **WHEN** 手动测试请求包含危险参数、尝试放宽策略或指向停用数据源
+- **THEN** Gateway 在获取连接前拒绝请求，返回稳定错误码和失败阶段，不执行写入或危险 SQL
+
+#### Scenario: Tool binding disappears before execution
+
+- **WHEN** 已选择 Tool 在执行前解绑、停用或不再属于当前 Gateway
+- **THEN** 测试返回 Tool 不可用错误，不使用旧缓存配置继续执行，不创建新的持久化绑定
