@@ -80,7 +80,9 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="form-gateway-tool">
+                <form id="form-gateway-tool" novalidate>
+                    <input type="hidden" name="bindingId" id="tool-bindingId">
+                    <input type="hidden" name="bindingOriginalMode" id="tool-bindingOriginalMode">
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="form-label">选择网关 <span class="text-danger">*</span></label>
@@ -120,19 +122,82 @@
                             <input type="text" class="form-control" name="toolVersion" id="tool-toolVersion" value="1.0.0">
                         </div>
                         <div class="col-md-4 mt-3 mt-md-0">
-                            <label class="form-label">关联协议 URL <span class="text-danger">*</span></label>
+                            <label class="form-label">协议类型 <span class="text-danger">*</span></label>
+                            <select class="form-select" name="protocolType" id="tool-protocolType" required>
+                                <option value="http">HTTP</option>
+                                <option value="mysql">MySQL</option>
+                                <option value="dubbo">Dubbo</option>
+                                <option value="rabbitmq">RabbitMQ</option>
+                            </select>
+                            <div class="form-text text-muted">选择 Tool 实际使用的协议，MySQL Tool 直接关联模板或动态 SQL 数据源。</div>
+                        </div>
+                        <div class="col-md-4 mt-3 mt-md-0 gateway-tool-http-field">
+                            <label class="form-label">关联协议配置 <span class="text-danger">*</span></label>
                             <select class="form-select" name="protocolId" id="tool-protocolId" required>
                                 <option value="">请选择关联协议...</option>
                             </select>
                             <div class="form-text text-muted" id="tool-protocolId-help">协议ID: -</div>
                         </div>
-                        <div class="col-md-4 mt-3 mt-md-0">
-                            <label class="form-label">协议类型</label>
-                            <select class="form-select" name="protocolType" id="tool-protocolType">
-                                <option value="http">http</option>
-                                <option value="dubbo">dubbo</option>
-                                <option value="rabbitmq">rabbitmq</option>
+                    </div>
+
+                    <div class="border rounded p-3 mb-3 d-none" id="tool-mysql-fields">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <h6 class="mb-1">MySQL Tool 绑定</h6>
+                                <div class="form-text text-muted">模板模式复用已发布 SQL 模板；动态 SQL 模式在调用时接收 SQL，并固定数据源与只读资源上限。</div>
+                            </div>
+                            <span class="badge bg-info text-dark">MySQL</span>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="tool-mysql-execution-mode">执行模式 <span class="text-danger">*</span></label>
+                                <select class="form-select" name="executionMode" id="tool-mysql-execution-mode">
+                                    <option value="TEMPLATE">SQL 模板</option>
+                                    <option value="DYNAMIC_READONLY">动态 SQL（调用时传入）</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 gateway-tool-mysql-template-field">
+                                <label class="form-label" for="tool-mysql-template">SQL 模板 <span class="text-danger">*</span></label>
+                                <select class="form-select" name="mysqlProtocolId" id="tool-mysql-template">
+                                    <option value="">加载已发布 SQL 模板...</option>
+                                </select>
+                                <div class="form-text text-muted" id="tool-mysql-template-help">协议ID: - · 版本: - · 数据源: -</div>
+                            </div>
+                            <div class="col-md-6 gateway-tool-mysql-dynamic-field">
+                                <label class="form-label" for="tool-mysql-datasource">固定数据源 <span class="text-danger">*</span></label>
+                                <select class="form-select" name="datasourceRef" id="tool-mysql-datasource">
+                                    <option value="">加载已启用数据源...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 gateway-tool-mysql-dynamic-field">
+                                <label class="form-label" for="tool-mysql-max-rows">最大返回行数</label>
+                                <input type="number" class="form-control" name="maxRows" id="tool-mysql-max-rows" min="1" value="1000">
+                            </div>
+                            <div class="col-md-4 gateway-tool-mysql-dynamic-field">
+                                <label class="form-label" for="tool-mysql-max-bytes">最大结果字节数</label>
+                                <input type="number" class="form-control" name="maxResultBytes" id="tool-mysql-max-bytes" min="1" value="4194304">
+                            </div>
+                            <div class="col-md-4 gateway-tool-mysql-dynamic-field">
+                                <label class="form-label" for="tool-mysql-max-columns">最大返回列数</label>
+                                <input type="number" class="form-control" name="maxColumns" id="tool-mysql-max-columns" min="1" value="128">
+                            </div>
+                            <div class="col-md-4 gateway-tool-mysql-dynamic-field">
+                                <label class="form-label" for="tool-mysql-timeout-ms">查询超时（毫秒）</label>
+                                <input type="number" class="form-control" name="timeoutMs" id="tool-mysql-timeout-ms" min="1" value="30000">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">初始状态</label>
+                            <select class="form-select" name="status" id="tool-status">
+                                <option value="0">停用（推荐）</option>
+                                <option value="1">启用</option>
                             </select>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="alert alert-info py-2 mb-0 small" role="note">启用 MySQL Tool 前，请先确认关联模板或数据源已启用。动态 SQL Tool 的 SQL 会在 tools/call 时传入。</div>
                         </div>
                     </div>
                     <div class="d-flex justify-content-end mt-4">

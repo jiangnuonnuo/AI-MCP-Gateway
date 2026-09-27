@@ -36,7 +36,7 @@ public class RootNode extends AbstractMcpStreamableMessageServiceSupport {
     @Override
     protected ResponseEntity<?> doApply(HandleMessageCommandEntity requestParameter, DefaultMcpStreamableMessageFactory.DynamicContext dynamicContext) throws Exception {
         try {
-            log.info("Streamable 消息处理 RootNode:{}", requestParameter);
+            log.info("Streamable 消息处理 RootNode gatewayId:{} sessionId:{}", requestParameter.getGatewayId(), requestParameter.getSessionId());
 
             if (requestParameter.getJsonrpcMessage() instanceof McpSchemaVO.JSONRPCRequest request) {
                 String method = request.method();
@@ -52,7 +52,7 @@ public class RootNode extends AbstractMcpStreamableMessageServiceSupport {
 
             return router(requestParameter, dynamicContext);
         } catch (Exception e) {
-            log.error("Streamable 消息处理 RootNode:{}", requestParameter, e);
+            log.error("Streamable 消息处理 RootNode gatewayId:{} sessionId:{}", requestParameter.getGatewayId(), requestParameter.getSessionId(), e);
             throw e;
         }
     }

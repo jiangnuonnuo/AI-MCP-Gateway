@@ -7,6 +7,7 @@ public enum ToolExecutionMode {
 
     HTTP_REQUEST,
     MYSQL_TEMPLATE,
+    MYSQL_DYNAMIC_READONLY,
     UNKNOWN;
 
     public static ToolExecutionMode from(String value) {
@@ -16,6 +17,7 @@ public enum ToolExecutionMode {
         return switch (value.trim().toUpperCase()) {
             case "HTTP", "HTTP_REQUEST", "REQUEST" -> HTTP_REQUEST;
             case "MYSQL", "MYSQL_TEMPLATE", "TEMPLATE" -> MYSQL_TEMPLATE;
+            case "MYSQL_DYNAMIC", "MYSQL_DYNAMIC_READONLY", "DYNAMIC_READONLY" -> MYSQL_DYNAMIC_READONLY;
             default -> UNKNOWN;
         };
     }

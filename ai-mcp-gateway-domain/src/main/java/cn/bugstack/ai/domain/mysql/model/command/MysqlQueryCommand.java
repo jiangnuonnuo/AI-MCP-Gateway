@@ -10,13 +10,12 @@ import lombok.NoArgsConstructor;
 import java.util.Map;
 import java.util.LinkedHashMap;
 import java.util.Collections;
-import java.util.Objects;
 import java.util.UUID;
 
 /**
- * MySQL 模板执行命令。
+ * MySQL 只读执行命令。
  *
- * <p>数据源引用由模板提供，客户端参数不能覆盖目标数据源。</p>
+ * <p>数据源引用由已解析的模板或动态 Tool 绑定提供，客户端参数不能覆盖目标数据源。</p>
  */
 @Data
 @Builder
@@ -24,10 +23,16 @@ import java.util.UUID;
 @AllArgsConstructor
 public class MysqlQueryCommand {
 
-    /** 待执行的已发布模板。 */
+    /** 模板模式的已发布协议；动态模式为空。 */
     private MysqlTemplate template;
 
-    /** 模板声明的参数值。 */
+    /** 动态模式的 SQL 文本；模板模式从 template 读取。 */
+    private String sql;
+
+    /** 动态模式固定的数据源引用；模板模式从 template 读取。 */
+    private String datasourceRef;
+
+    /** 模板声明或动态 SQL 的绑定参数值。 */
     private Map<String, Object> parameters;
 
     /** 调用方请求的资源策略，只允许收紧服务端上限。 */
@@ -37,7 +42,13 @@ public class MysqlQueryCommand {
     private String queryId;
 
     public MysqlQueryCommand(MysqlTemplate template, Map<String, Object> parameters) {
-        this(template, parameters, null, null);
+        this(template, null, null, parameters, null, null);
+        normalize();
+    }
+
+    public MysqlQueryCommand(String sql, String datasourceRef, Map<String, Object> parameters,
+                             MysqlQueryPolicy requestedPolicy, String queryId) {
+        this(null, sql, datasourceRef, parameters, requestedPolicy, queryId);
         normalize();
     }
 
@@ -45,7 +56,15 @@ public class MysqlQueryCommand {
      * 规范化执行命令中的不可变边界和查询标识。
      */
     public void normalize() {
-        template = Objects.requireNonNull(template, "template");
+        if (template == null) {
+            if (sql == null || sql.isBlank()) throw new IllegalArgumentException("sql is required");
+            if (datasourceRef == null || datasourceRef.isBlank()) {
+                throw new IllegalArgumentException("datasourceRef is required");
+            }
+        } else {
+            datasourceRef = template.getDatasourceRef();
+            sql = template.getSql();
+        }
         parameters = parameters == null
                 ? Map.of()
                 : Collections.unmodifiableMap(new LinkedHashMap<>(parameters));

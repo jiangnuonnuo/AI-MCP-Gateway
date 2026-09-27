@@ -32,6 +32,7 @@
         $(document).off('change.testCenter', '#tc-template-ref').on('change.testCenter', '#tc-template-ref', function () { selectTemplate($(this).val()); });
         $(document).off('click.testCenter', '#tc-refresh-templates').on('click.testCenter', '#tc-refresh-templates', loadTemplates);
         $(document).off('change.testCenter', '#tc-tool-gateway').on('change.testCenter', '#tc-tool-gateway', function () { loadTools($(this).val()); });
+        $(document).off('change.testCenter', '#tc-agent-gateway').on('change.testCenter', '#tc-agent-gateway', function () { loadAgentAuthOptions($(this).val()); });
         $(document).off('change.testCenter', '#tc-tool-name').on('change.testCenter', '#tc-tool-name', function () { const tool = state.tools.find(item => item.name === $(this).val()); $('#tc-tool-desc').text(tool && tool.description ? tool.description : '这里只选择已有 Tool，不创建或修改绑定。'); setToolFields(tool); });
         $(document).off('input.testCenter', '#tc-param-search').on('input.testCenter', '#tc-param-search', renderGroups);
         $(document).off('click.testCenter', '.tc-filter').on('click.testCenter', '.tc-filter', function () { $('.tc-filter').removeClass('active'); $(this).addClass('active'); state.filter = $(this).data('filter'); renderGroups(); });
@@ -54,7 +55,7 @@
         $('#tc-template-config').toggleClass('tc-hidden', state.mode !== 'template'); $('#tc-tool-config').toggleClass('tc-hidden', state.mode !== 'tool'); $('#tc-agent-config').toggleClass('tc-hidden', state.mode !== 'agent'); $('#tc-schema-parameters').toggleClass('tc-hidden', state.mode === 'agent');
         $('#tc-tool-name').prop('disabled', true).html('<option value="">请先选择 Gateway</option>');
         if (state.mode === 'tool') $('#tc-tool-gateway').val('');
-        if (state.mode === 'agent') $('#tc-agent-gateway').val('');
+        if (state.mode === 'agent') { $('#tc-agent-gateway').val(''); resetAgentAuthOptions(); }
         $('#tc-param-groups').html('<div class="tc-help">等待加载参数定义。</div>'); $('#tc-param-count').text(state.mode === 'agent' ? 'Agent 不使用手动参数' : '等待加载参数定义'); $('#tc-param-ratio').text('0 / 0'); $('#tc-progress-bar').css('width', '0%'); $('#tc-raw-arguments').val('{}').addClass('tc-hidden'); $('#tc-param-groups,.tc-parameter-tools,.tc-progress').removeClass('tc-hidden'); $('#tc-toggle-json').text('切换到 JSON 编辑'); $('#tc-json-error').text(''); state.report = null; state.request = null; renderTrace([]); clearOutput();
         if (state.mode === 'template') {
             updateTemplateMeta(state.template);
@@ -70,9 +71,45 @@
 
     function loadGateways() {
         $.ajax({ url: API_ENDPOINTS.GET_GATEWAY_LIST, type: 'GET' }).done(function (response) {
-            state.gateways = response && response.code === '0000' && Array.isArray(response.data) ? response.data.filter(function (gateway) { return gateway.status === undefined || gateway.status === 1 || gateway.status === '1' || gateway.status === 'ENABLED'; }) : [];
-            ['#tc-tool-gateway', '#tc-agent-gateway'].forEach(function (selector) { const $select = $(selector); $select.html('<option value="">请选择 Gateway</option>'); state.gateways.forEach(function (gateway) { $select.append($('<option>').val(gateway.gatewayId).text(gateway.gatewayName ? gateway.gatewayName + ' · ' + gateway.gatewayId : gateway.gatewayId)); }); });
+            // Gateway status 表示认证校验模式（0-不校验，1-强校验），不是 Gateway 启停状态。
+            // Agent 测试需要展示所有可用 Gateway，不能因为 status=0 隐藏未开启认证校验的网关。
+            state.gateways = response && response.code === '0000' && Array.isArray(response.data)
+                ? response.data.filter(function (gateway) { return gateway && gateway.gatewayId; })
+                : [];
+            ['#tc-tool-gateway', '#tc-agent-gateway'].forEach(function (selector) { const $select = $(selector); $select.html('<option value="">请选择 Gateway</option>'); state.gateways.forEach(function (gateway) { const $option = $('<option>').val(gateway.gatewayId).text(gateway.gatewayName ? gateway.gatewayName + ' · ' + gateway.gatewayId : gateway.gatewayId).attr('data-auth', gateway.auth === 1 || gateway.auth === '1' ? '1' : '0'); $select.append($option); }); });
         }).fail(function () { $('#tc-tool-gateway,#tc-agent-gateway').html('<option value="">Gateway 加载失败</option>'); showToast('Gateway 列表加载失败，请检查管理接口', false); });
+    }
+
+    function resetAgentAuthOptions() {
+        $('#tc-agent-auth').prop('disabled', true).html('<option value="">先选择 Gateway</option>');
+        $('#tc-agent-auth-meta').text('先选择 Gateway');
+        $('#tc-agent-auth-help').text('未开启 Gateway 认证时无需选择 Key。');
+    }
+
+    function loadAgentAuthOptions(gatewayId) {
+        const $gateway = $('#tc-agent-gateway');
+        const $auth = $('#tc-agent-auth');
+        if (!gatewayId) { resetAgentAuthOptions(); return; }
+        const authRequired = String($gateway.find('option:selected').attr('data-auth')) === '1';
+        if (!authRequired) {
+            $auth.prop('disabled', false).html('<option value="">无需认证</option>').val('');
+            $('#tc-agent-auth-meta').text('optional');
+            $('#tc-agent-auth-help').text('当前 Gateway 未开启认证校验。');
+            return;
+        }
+        $auth.prop('disabled', true).html('<option value="">加载认证 Key 中…</option>');
+        $('#tc-agent-auth-meta').text('required');
+        $('#tc-agent-auth-help').text('当前 Gateway 已开启认证，请选择有效 Key。');
+        $.ajax({ url: API_ENDPOINTS.GET_GATEWAY_AUTH_LIST_BY_ID, type: 'GET', data: { gatewayId: gatewayId } }).done(function (response) {
+            const rows = response && response.code === '0000' && Array.isArray(response.data) ? response.data : [];
+            $auth.empty().append('<option value="">请选择认证 Key</option>');
+            rows.forEach(function (item) { if (item && item.apiKey) $auth.append($('<option>').val(item.apiKey).text(item.apiKey)); });
+            $auth.prop('disabled', !rows.length);
+            if (!rows.length) $('#tc-agent-auth-help').text('该 Gateway 没有有效认证 Key，请先在认证配置中创建。');
+        }).fail(function () {
+            $auth.prop('disabled', true).html('<option value="">认证 Key 加载失败</option>');
+            $('#tc-agent-auth-help').text('认证 Key 加载失败，请检查管理接口。');
+        });
     }
 
     function templateFields(template) {
@@ -185,7 +222,7 @@
             return { id: id, version: state.template.version || null, parameters: state.args };
         }
         if (state.mode === 'tool') { const gatewayId = $('#tc-tool-gateway').val(); const toolName = $('#tc-tool-name').val(); if (!gatewayId || !toolName) { showToast('请选择 Gateway 和 Tool', false); return null; } const invalid = state.fields.some(field => { validateField(field, valueAt(state.values, field.path)); return field.invalid; }); if (invalid && !state.raw) { renderGroups(); showToast('请先补齐必填参数', false); return null; } return { gatewayId: gatewayId, toolName: toolName, arguments: state.args }; }
-        const gatewayId = $('#tc-agent-gateway').val(); const message = $('#tc-agent-message').val().trim(); if (!gatewayId || !message) { showToast('请选择 Gateway 并填写自然语言请求', false); return null; } return { gatewayId: gatewayId, authApiKey: $('#tc-agent-auth').val() || null, timeout: Math.min(120000, Math.max(1000, Number($('#tc-agent-timeout').val()) || 30000)), message: message, reload: true, mcpType: $('#tc-transport button.active').data('value') || 'sse' };
+        const gatewayId = $('#tc-agent-gateway').val(); const message = $('#tc-agent-message').val().trim(); const authRequired = String($('#tc-agent-gateway option:selected').attr('data-auth')) === '1'; const authApiKey = $('#tc-agent-auth').val() || null; if (!gatewayId || !message) { showToast('请选择 Gateway 并填写自然语言请求', false); return null; } if (authRequired && !authApiKey) { showToast('当前 Gateway 已开启认证，请选择有效认证 Key', false); return null; } return { gatewayId: gatewayId, authApiKey: authApiKey, timeout: Math.min(120000, Math.max(1000, Number($('#tc-agent-timeout').val()) || 30000)), message: message, reload: true, mcpType: $('#tc-transport button.active').data('value') || 'sse' };
     }
 
     function defaultSteps() { if (state.mode === 'template') return ['PARAMETER_VALIDATION', 'TEMPLATE_RESOLUTION', 'SQL_BINDING', 'DATASOURCE_CONNECTION', 'SQL_EXECUTION', 'RESPONSE_ASSEMBLY']; if (state.mode === 'tool') return ['TOOLS_LIST', 'PARAMETER_VALIDATION', 'POLICY_VALIDATION', 'TOOL_EXECUTION', 'RESPONSE_ASSEMBLY']; return ['AGENT_REQUEST', 'TOOLS_LIST_RESPONSE', 'TOOL_CALL_REQUEST', 'TOOL_CALL_RESPONSE', 'AGENT_FINISHED']; }

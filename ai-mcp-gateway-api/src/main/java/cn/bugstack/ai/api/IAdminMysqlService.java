@@ -47,6 +47,8 @@ public interface IAdminMysqlService {
 
     Response<MysqlBindingDTO> saveMysqlBinding(MysqlBindingRequestDTO requestDTO);
 
+    Response<MysqlBindingDTO> saveMysqlDynamicBinding(MysqlDynamicBindingRequestDTO requestDTO);
+
     Response<MysqlBindingDTO> changeMysqlBindingStatus(Long id, Integer status);
 
     Response<MysqlBindingDTO> deleteMysqlBinding(Long id);

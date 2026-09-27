@@ -51,11 +51,22 @@ public class MysqlSqlSafetyChain implements ISqlSafetyPort {
 
     @Override
     public SqlSafetyDecision validate(String sql, Map<String, ?> parameters, MysqlQueryPolicy policy) {
+        return validateInternal(sql, parameters, policy, false);
+    }
+
+    @Override
+    public SqlSafetyDecision validateDynamic(String sql, Map<String, ?> parameters, MysqlQueryPolicy policy) {
+        return validateInternal(sql, parameters, policy, true);
+    }
+
+    private SqlSafetyDecision validateInternal(String sql, Map<String, ?> parameters,
+                                               MysqlQueryPolicy policy, boolean dynamic) {
         if (rules == null) init();
         MysqlSqlSafetyContext context = MysqlSqlSafetyContext.builder()
                 .sql(sql)
                 .parameters(parameters == null ? Map.of() : parameters)
                 .policy(policy)
+                .dynamic(dynamic)
                 .build();
         for (ISqlSafetyRule rule : rules) {
             SqlSafetyDecision decision = rule.check(context);
@@ -147,12 +158,15 @@ public class MysqlSqlSafetyChain implements ISqlSafetyPort {
     private SqlSafetyDecision checkParameters(MysqlSqlSafetyContext context) {
         MysqlSqlAnalysis analysis = context.getAnalysis();
         Map<String, ?> parameters = context.getParameters() == null ? Map.of() : context.getParameters();
+        if (context.isDynamic() && analysis.getPositionalParameterCount() > 0) {
+            return parameterDecision(context, "dynamic SQL only supports named parameters");
+        }
         if (analysis.getNamedParameterCount() > 0 && analysis.getPositionalParameterCount() > 0) {
-            return SqlSafetyDecision.rejected("named and positional parameters cannot be mixed");
+            return parameterDecision(context, "named and positional parameters cannot be mixed");
         }
         if (analysis.getPositionalParameterCount() > 0
                 && analysis.getPositionalParameterCount() != parameters.size()) {
-            return SqlSafetyDecision.rejected("positional parameter count does not match arguments");
+            return parameterDecision(context, "positional parameter count does not match arguments");
         }
         Set<String> used = new HashSet<>();
         for (MysqlSqlAnalysis.Token token : analysis.getTokens()) {
@@ -161,13 +175,19 @@ public class MysqlSqlSafetyChain implements ISqlSafetyPort {
                 continue;
             }
             String name = token.getText().substring(1);
-            if (!used.add(name)) return SqlSafetyDecision.rejected("duplicate template parameter");
-            if (!parameters.containsKey(name)) return SqlSafetyDecision.rejected("unbound template parameter");
+            if (!used.add(name)) return parameterDecision(context, "duplicate template parameter");
+            if (!parameters.containsKey(name)) return parameterDecision(context, "unbound template parameter");
         }
         if (used.size() != parameters.size()) {
-            return SqlSafetyDecision.rejected("undeclared template parameter");
+            return parameterDecision(context, "undeclared template parameter");
         }
         return SqlSafetyDecision.continueDecision();
+    }
+
+    private static SqlSafetyDecision parameterDecision(MysqlSqlSafetyContext context, String reason) {
+        return context.isDynamic()
+                ? new SqlSafetyDecision(SqlSafetyDecision.Status.REJECTED, "SQL_PARAMETER_ERROR", reason)
+                : SqlSafetyDecision.rejected(reason);
     }
 
     private SqlSafetyDecision checkResourcePolicy(MysqlSqlSafetyContext context) {

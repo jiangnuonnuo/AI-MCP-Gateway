@@ -65,6 +65,7 @@ const API_ENDPOINTS = {
     GET_MYSQL_BINDING_PAGE: `${API_BASE_URL}/admin/query_mysql_binding_page`,
     GET_MYSQL_BINDING_DETAIL: `${API_BASE_URL}/admin/query_mysql_binding_detail`,
     SAVE_MYSQL_BINDING: `${API_BASE_URL}/admin/save_mysql_binding`,
+    SAVE_MYSQL_DYNAMIC_BINDING: `${API_BASE_URL}/admin/save_mysql_dynamic_binding`,
     CHANGE_MYSQL_BINDING_STATUS: `${API_BASE_URL}/admin/change_mysql_binding_status`,
     DELETE_MYSQL_BINDING: `${API_BASE_URL}/admin/delete_mysql_binding`,
     GET_GATEWAY_OPTIONS: `${API_BASE_URL}/admin/query_gateway_config_list`

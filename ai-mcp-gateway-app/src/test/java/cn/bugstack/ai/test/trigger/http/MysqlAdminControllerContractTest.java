@@ -4,10 +4,13 @@ import cn.bugstack.ai.api.IAdminMysqlService;
 import cn.bugstack.ai.api.IAdminService;
 import cn.bugstack.ai.api.dto.MysqlAdminTestRequestDTO;
 import cn.bugstack.ai.api.dto.MysqlDataSourceQueryDTO;
+import cn.bugstack.ai.api.dto.MysqlDynamicBindingRequestDTO;
 import cn.bugstack.ai.api.response.Response;
 import cn.bugstack.ai.cases.admin.mysql.IAdminMysqlManageService;
 import cn.bugstack.ai.cases.admin.mysql.IAdminMysqlTemplateTestCase;
 import cn.bugstack.ai.domain.mysql.model.admin.MysqlDataSourceAdminView;
+import cn.bugstack.ai.domain.mysql.model.admin.MysqlBindingAdminView;
+import cn.bugstack.ai.domain.mysql.model.admin.MysqlDynamicBindingAdminCommand;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlTemplateTestReport;
 import cn.bugstack.ai.trigger.http.AdminMysqlController;
 import cn.bugstack.ai.trigger.http.AdminController;
@@ -94,6 +97,24 @@ class MysqlAdminControllerContractTest {
         assertEquals("0000", response.getCode());
         assertEquals("q-1", ((cn.bugstack.ai.api.dto.MysqlTemplateTestDTO) response.getData()).getQueryId());
         verify(testCase).execute(eq("900002"), eq("1.0.0"), eq(request.getParameters()));
+    }
+
+    @Test
+    void dynamicBindingEndpointDoesNotRequireTemplateId() {
+        IAdminMysqlManageService service = mock(IAdminMysqlManageService.class);
+        when(service.saveDynamicBinding(any())).thenReturn(new MysqlBindingAdminView(
+                9L, "gateway-1", 10L, "dynamicQuery", "function", "Dynamic query", "1.0.0",
+                11L, "mysql", 0, null, null, "DYNAMIC_READONLY", "warehouse", 100, 1024L, 16, 3000));
+        AdminMysqlController controller = controller(service);
+
+        Response<?> response = controller.saveMysqlDynamicBinding(MysqlDynamicBindingRequestDTO.builder()
+                .gatewayId("gateway-1").toolName("dynamicQuery").datasourceRef("warehouse")
+                .maxRows(100).maxResultBytes(1024L).maxColumns(16).timeoutMs(3000).build());
+
+        assertEquals("0000", response.getCode());
+        ArgumentCaptor<MysqlDynamicBindingAdminCommand> captor = ArgumentCaptor.forClass(MysqlDynamicBindingAdminCommand.class);
+        verify(service).saveDynamicBinding(captor.capture());
+        assertEquals("warehouse", captor.getValue().datasourceRef());
     }
 
     private static AdminMysqlController controller(IAdminMysqlManageService service) {

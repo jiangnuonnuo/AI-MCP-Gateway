@@ -27,7 +27,7 @@ public class MessageHandlerNode extends AbstractMcpStreamableMessageServiceSuppo
 
     @Override
     protected ResponseEntity<?> doApply(HandleMessageCommandEntity requestParameter, DefaultMcpStreamableMessageFactory.DynamicContext dynamicContext) throws Exception {
-        log.info("Streamable 消息处理 MessageHandlerNode:{}", requestParameter);
+        log.info("Streamable 消息处理 MessageHandlerNode gatewayId:{} sessionId:{}", requestParameter.getGatewayId(), requestParameter.getSessionId());
 
         McpSchemaVO.JSONRPCResponse jsonrpcResponse = serviceMessageService.processHandlerMessage(requestParameter);
 

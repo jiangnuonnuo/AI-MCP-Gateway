@@ -353,6 +353,55 @@
     *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
 
+/* Shared searchable select used by every admin view. The native control remains
+ * in the DOM for form serialization and existing change handlers; the shell is
+ * the visible interaction surface. */
+.admin-page .custom-select-shell { position: relative; z-index: 1; width: 100%; min-width: 0; }
+.admin-page .custom-select-shell.is-open { z-index: 1200; }
+.admin-page select.custom-select-native { position: absolute !important; width: 1px !important; height: 1px !important; margin: -1px !important; padding: 0 !important; overflow: hidden !important; clip: rect(0 0 0 0) !important; clip-path: inset(50%) !important; white-space: nowrap !important; border: 0 !important; opacity: 0 !important; pointer-events: none !important; }
+.admin-page .custom-select-trigger { display: flex; width: 100%; min-height: 38px; align-items: center; gap: 8px; padding: 8px 12px; overflow: hidden; color: #e8f1ff; border: 1px solid #2b507e; border-radius: 9px; outline: 0; background: #071a34; font-size: 11px; text-align: left; transition: border-color var(--transition), box-shadow var(--transition), background var(--transition); }
+.admin-page .custom-select-trigger:hover { border-color: #4f86be; background: #0a2141; }
+.admin-page .custom-select-shell.is-focused .custom-select-trigger, .admin-page .custom-select-shell.is-open .custom-select-trigger { border-color: #20cfff; box-shadow: 0 0 0 3px rgba(32, 207, 255, .13); }
+.admin-page .custom-select-shell.is-invalid .custom-select-trigger { border-color: var(--red); box-shadow: 0 0 0 3px rgba(255, 114, 134, .12); }
+.admin-page .custom-select-trigger:disabled { cursor: not-allowed; color: #617da5; border-color: rgba(43, 80, 126, .55); background: rgba(7, 26, 52, .55); opacity: .7; }
+.admin-page .custom-select-shell.is-disabled .custom-select-trigger { cursor: not-allowed; }
+.admin-page .custom-select-trigger-value { min-width: 0; overflow: hidden; color: inherit; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.admin-page .custom-select-trigger-meta { min-width: 0; overflow: hidden; color: #89a8d4; font: 10px "Fira Code", monospace; text-overflow: ellipsis; white-space: nowrap; }
+.admin-page .custom-select-trigger-icon { margin-left: auto; flex: 0 0 auto; color: #8db0db; font-size: 11px; transition: transform var(--transition), color var(--transition); }
+.admin-page .custom-select-shell.is-open .custom-select-trigger-icon { color: #20cfff; transform: rotate(180deg); }
+.admin-page .custom-select-menu { position: fixed; z-index: 1201; display: flex; max-height: min(360px, 48vh); flex-direction: column; overflow: hidden; padding: 8px; border: 1px solid #1c6fba; border-radius: 11px; background: linear-gradient(160deg, #0b2a52, #061a36 72%); box-shadow: 0 18px 40px rgba(0, 0, 0, .48), 0 0 0 1px rgba(32, 207, 255, .1); }
+.admin-page .custom-select-menu[hidden] { display: none; }
+.admin-page .custom-select-search-wrap { display: flex; min-height: 37px; align-items: center; gap: 9px; margin-bottom: 7px; padding: 0 10px; color: #9bb9df; border: 1px solid #28527d; border-radius: 8px; background: rgba(5, 22, 47, .82); }
+.admin-page .custom-select-search-wrap:focus-within { border-color: #20cfff; box-shadow: 0 0 0 2px rgba(32, 207, 255, .1); }
+.admin-page .custom-select-search-wrap i { flex: 0 0 auto; font-size: 14px; }
+.admin-page .custom-select-search { width: 100%; min-width: 0; height: 35px; padding: 0; color: #e8f1ff; border: 0; outline: 0; background: transparent; font-size: 11px; }
+.admin-page .custom-select-search::placeholder { color: #7493bb; }
+.admin-page .custom-select-options { min-height: 0; overflow: auto; scrollbar-color: #2b78b9 transparent; scrollbar-width: thin; }
+.admin-page .custom-select-option { display: flex; width: 100%; min-height: 42px; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; color: #dcecff; border: 0; border-bottom: 1px solid rgba(87, 137, 195, .16); background: transparent; text-align: left; transition: background var(--transition), color var(--transition); }
+.admin-page .custom-select-option:last-child { border-bottom: 0; }
+.admin-page .custom-select-option:hover, .admin-page .custom-select-option:focus-visible { color: #fff; outline: 0; background: rgba(42, 126, 214, .28); }
+.admin-page .custom-select-option.is-selected { color: #fff; border-radius: 8px; background: linear-gradient(90deg, rgba(31, 119, 213, .72), rgba(29, 91, 166, .64)); }
+.admin-page .custom-select-option:disabled { cursor: not-allowed; color: #637fa8; opacity: .72; }
+.admin-page .custom-select-option[hidden] { display: none; }
+.admin-page .custom-select-option-copy { min-width: 0; display: flex; flex: 1; flex-direction: column; gap: 4px; }
+.admin-page .custom-select-option-label { overflow: hidden; font-size: 12px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.admin-page .custom-select-option-meta { overflow: hidden; color: #89a8d4; font: 10px "Fira Code", monospace; text-overflow: ellipsis; white-space: nowrap; }
+.admin-page .custom-select-option.is-selected .custom-select-option-meta { color: #c1e4ff; }
+.admin-page .custom-select-option-check { flex: 0 0 auto; color: #21e4e4; font-size: 17px; opacity: 0; }
+.admin-page .custom-select-option.is-selected .custom-select-option-check { opacity: 1; }
+.admin-page .custom-select-empty { padding: 18px 8px; color: #7898bf; font-size: 11px; text-align: center; }
+.admin-page .custom-select-empty[hidden] { display: none; }
+.admin-page .field.invalid .custom-select-trigger { border-color: var(--red); }
+.admin-page .field.invalid .custom-select-search { border: 0; }
+.admin-page .filter-control:has(.custom-select-shell) { padding-right: 12px; }
+.admin-page .filter-control:has(.custom-select-shell)::after { display: none; }
+.admin-page .filter-control .custom-select-trigger { min-height: 34px; padding: 5px 0; border: 0; border-radius: 0; background: transparent; font-size: 10px; }
+.admin-page .filter-control .custom-select-trigger:hover, .admin-page .filter-control .custom-select-shell.is-open .custom-select-trigger { background: transparent; box-shadow: none; }
+.admin-page .tc-inline .custom-select-trigger, .admin-page .tc-field .custom-select-trigger { min-height: 42px; padding: 10px 12px; font-size: 13px; }
+.admin-page .tc-field .custom-select-menu { font-size: 13px; }
+.admin-page .modal .custom-select-trigger { min-height: 38px; color: #d4e2f4; background: #071a34; }
+
+
 /* Login experience */
 .login-page {
     --login-ink: #f4f7ff;

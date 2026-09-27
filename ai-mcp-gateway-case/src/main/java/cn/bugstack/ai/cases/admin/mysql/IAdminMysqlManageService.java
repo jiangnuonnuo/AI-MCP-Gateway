@@ -6,6 +6,7 @@ import cn.bugstack.ai.domain.mysql.model.admin.MysqlBindingAdminCommand;
 import cn.bugstack.ai.domain.mysql.model.admin.MysqlBindingAdminView;
 import cn.bugstack.ai.domain.mysql.model.admin.MysqlDataSourceAdminCommand;
 import cn.bugstack.ai.domain.mysql.model.admin.MysqlDataSourceAdminView;
+import cn.bugstack.ai.domain.mysql.model.admin.MysqlDynamicBindingAdminCommand;
 import cn.bugstack.ai.domain.mysql.model.admin.MysqlTemplateAdminCommand;
 import cn.bugstack.ai.domain.mysql.model.admin.MysqlTemplateAdminView;
 
@@ -25,6 +26,7 @@ public interface IAdminMysqlManageService {
     MysqlAdminPage<MysqlBindingAdminView> pageBindings(MysqlAdminQueries.Binding query);
     MysqlBindingAdminView findBinding(Long id);
     MysqlBindingAdminView saveBinding(MysqlBindingAdminCommand command);
+    MysqlBindingAdminView saveDynamicBinding(MysqlDynamicBindingAdminCommand command);
     MysqlBindingAdminView changeBindingStatus(Long id, int status);
     void deleteBinding(Long id);
 }

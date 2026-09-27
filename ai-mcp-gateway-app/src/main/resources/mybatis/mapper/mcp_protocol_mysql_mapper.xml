@@ -5,6 +5,7 @@
     <resultMap id="McpProtocolMysqlMap" type="cn.bugstack.ai.infrastructure.dao.po.McpProtocolMysqlPO">
         <id column="id" property="id"/>
         <result column="protocol_id" property="protocolId"/>
+        <result column="execution_mode" property="executionMode"/>
         <result column="datasource_id" property="datasourceId"/>
         <result column="sql_text" property="sqlText"/>
         <result column="max_rows" property="maxRows"/>
@@ -17,23 +18,24 @@
     </resultMap>
 
     <sql id="MysqlProtocolColumns">
-        id, protocol_id, datasource_id, sql_text, max_rows, max_result_bytes,
+        id, protocol_id, execution_mode, datasource_id, sql_text, max_rows, max_result_bytes,
         max_columns, timeout_ms, status, create_time, update_time
     </sql>
 
     <insert id="insert" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpProtocolMysqlPO"
             useGeneratedKeys="true" keyProperty="id">
         INSERT INTO mcp_protocol_mysql
-        (protocol_id, datasource_id, sql_text, max_rows, max_result_bytes,
+        (protocol_id, execution_mode, datasource_id, sql_text, max_rows, max_result_bytes,
          max_columns, timeout_ms, status)
         VALUES
-        (#{protocolId}, #{datasourceId}, #{sqlText}, #{maxRows}, #{maxResultBytes},
+        (#{protocolId}, COALESCE(#{executionMode}, 'TEMPLATE'), #{datasourceId}, #{sqlText}, #{maxRows}, #{maxResultBytes},
          #{maxColumns}, #{timeoutMs}, COALESCE(#{status}, 0))
     </insert>
 
     <update id="updateByProtocolId" parameterType="cn.bugstack.ai.infrastructure.dao.po.McpProtocolMysqlPO">
         UPDATE mcp_protocol_mysql
-        SET datasource_id = #{datasourceId},
+        SET execution_mode = COALESCE(#{executionMode}, 'TEMPLATE'),
+            datasource_id = #{datasourceId},
             sql_text = #{sqlText},
             max_rows = #{maxRows},
             max_result_bytes = #{maxResultBytes},

@@ -104,18 +104,26 @@ public class SessionRepository implements ISessionRepository {
             if (mysql == null) return null;
             McpDataSourcePO dataSource = mcpDataSourceDao.queryById(mysql.getDatasourceId());
             if (dataSource == null) return null;
+            // 迁移前的历史行没有 execution_mode；在会话读取边界按既有 MySQL 模板兼容处理。
+            ToolExecutionMode executionMode = mysql.getExecutionMode() == null
+                    || mysql.getExecutionMode().isBlank()
+                    ? ToolExecutionMode.MYSQL_TEMPLATE
+                    : ToolExecutionMode.from(mysql.getExecutionMode());
+            if (executionMode == ToolExecutionMode.UNKNOWN) return null;
             List<cn.bugstack.ai.domain.mysql.model.valobj.MysqlTemplateParameter> parameters = new ArrayList<>();
-            for (McpToolProtocolConfigVO.ProtocolMapping row : request) {
-                parameters.add(cn.bugstack.ai.domain.mysql.model.valobj.MysqlTemplateParameter.builder()
-                        .name(row.getFieldName()).type(mysqlType(row.getMcpType()))
-                        .required(Integer.valueOf(1).equals(row.getIsRequired())).description(row.getMcpDesc()).build());
+            if (executionMode == ToolExecutionMode.MYSQL_TEMPLATE) {
+                for (McpToolProtocolConfigVO.ProtocolMapping row : request) {
+                    parameters.add(cn.bugstack.ai.domain.mysql.model.valobj.MysqlTemplateParameter.builder()
+                            .name(row.getFieldName()).type(mysqlType(row.getMcpType()))
+                            .required(Integer.valueOf(1).equals(row.getIsRequired())).description(row.getMcpDesc()).build());
+                }
             }
             MysqlQueryPolicy policy = new MysqlQueryPolicy(64 * 1024,
                     positive(mysql.getMaxRows(), 1_000), positive(mysql.getMaxResultBytes(), 4 * 1024 * 1024L),
                     positive(mysql.getMaxColumns(), 128), positive(mysql.getTimeoutMs(), 30_000), true);
             return McpToolProtocolConfigVO.builder().protocolType("mysql").protocolId(tool.getProtocolId())
                     .status(effectiveStatus(tool.getStatus(), mysql.getStatus())).backendType(ToolBackendType.MYSQL)
-                    .executionMode(ToolExecutionMode.MYSQL_TEMPLATE).requestProtocolMappings(request)
+                    .executionMode(executionMode).requestProtocolMappings(request)
                     .responseProtocolMappings(response)
                     .mysqlTemplateConfig(McpToolProtocolConfigVO.MysqlTemplateConfig.builder()
                             .protocolId(tool.getProtocolId()).templateRef(String.valueOf(tool.getProtocolId()))

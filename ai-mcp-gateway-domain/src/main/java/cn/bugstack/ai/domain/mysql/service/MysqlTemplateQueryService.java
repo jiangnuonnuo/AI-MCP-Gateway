@@ -115,6 +115,36 @@ public class MysqlTemplateQueryService {
         return execute(template, arguments, requestedPolicy, queryId, null);
     }
 
+    /** 执行外部传入的动态只读 SQL；数据源和资源策略仍由已绑定 Tool 提供。 */
+    public MysqlQueryResult executeDynamic(String sql, String datasourceRef, Map<String, ?> arguments,
+                                           MysqlQueryPolicy requestedPolicy, String queryId) {
+        if (sql == null || sql.isBlank() || datasourceRef == null || datasourceRef.isBlank()) {
+            throw new MysqlDomainException("INVALID_ARGUMENT", "dynamic SQL request is invalid");
+        }
+        Map<String, Object> parameters = normalizeArguments(arguments);
+        validateDynamicParameters(parameters);
+        MysqlDataSourceRef dataSource = requireEnabledDataSource(datasourceRef);
+        MysqlQueryPolicy sourcePolicy = dataSource.getPolicy() == null
+                ? MysqlQueryPolicy.defaults() : dataSource.getPolicy();
+        MysqlQueryPolicy effectivePolicy = requestedPolicy == null
+                ? sourcePolicy : requestedPolicy.boundedBy(sourcePolicy);
+        effectivePolicy.validate();
+        SqlSafetyDecision decision = safetyPort.validateDynamic(sql, parameters, effectivePolicy);
+        if (decision == null || !decision.isAllowed()) {
+            throw new MysqlDomainException(decision == null ? "SQL_POLICY_REJECTED" : decision.getCode(),
+                    decision == null ? "SQL policy rejected" : decision.getReason());
+        }
+        MysqlQueryCommand command = MysqlQueryCommand.builder()
+                .sql(sql)
+                .datasourceRef(datasourceRef)
+                .parameters(parameters)
+                .requestedPolicy(effectivePolicy)
+                .queryId(queryId)
+                .build();
+        command.normalize();
+        return queryPort.execute(command);
+    }
+
     private MysqlQueryResult execute(MysqlTemplate template, Map<String, ?> arguments,
                                      MysqlQueryPolicy requestedPolicy, String queryId,
                                      MysqlExecutionTrace trace) {
@@ -292,5 +322,17 @@ public class MysqlTemplateQueryService {
             arguments.forEach(normalized::put);
         }
         return normalized;
+    }
+
+    private static void validateDynamicParameters(Map<String, Object> parameters) {
+        for (Map.Entry<String, Object> entry : parameters.entrySet()) {
+            if (entry.getKey() == null || entry.getKey().isBlank() || !isScalar(entry.getValue())) {
+                throw new MysqlDomainException("SQL_PARAMETER_ERROR", "dynamic SQL parameter is invalid");
+            }
+        }
+    }
+
+    private static boolean isScalar(Object value) {
+        return value == null || value instanceof CharSequence || value instanceof Number || value instanceof Boolean;
     }
 }

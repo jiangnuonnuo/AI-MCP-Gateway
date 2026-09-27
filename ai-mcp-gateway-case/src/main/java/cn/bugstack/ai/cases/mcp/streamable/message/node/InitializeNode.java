@@ -37,7 +37,7 @@ public class InitializeNode extends AbstractMcpStreamableMessageServiceSupport {
 
     @Override
     protected ResponseEntity<?> doApply(HandleMessageCommandEntity requestParameter, DefaultMcpStreamableMessageFactory.DynamicContext dynamicContext) throws Exception {
-        log.info("Streamable 消息处理 InitializeNode:{}", requestParameter);
+        log.info("Streamable 消息处理 InitializeNode gatewayId:{} sessionId:{}", requestParameter.getGatewayId(), requestParameter.getSessionId());
 
         boolean isCheckSuccess = authLicenseService.checkLicense(new LicenseCommandEntity(requestParameter.getGatewayId(), requestParameter.getApiKey()));
         if (!isCheckSuccess) {

@@ -31,6 +31,8 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Arrays;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 /**
  * 大模型服务
@@ -100,10 +102,7 @@ public class LLMService implements ILLMService {
     private static class SseToolCallbackBuilderStrategy implements ToolCallbackBuilderStrategy {
         @Override
         public ToolCallback[] build(McpConfigVO mcpConfigVO) {
-            String sseEndPoint = mcpConfigVO.getSseEndpoint();
-            if (StringUtils.isNotBlank(mcpConfigVO.getAuthApiKey())) {
-                sseEndPoint += "?api_key=" + mcpConfigVO.getAuthApiKey();
-            }
+            String sseEndPoint = withApiKey(mcpConfigVO.getSseEndpoint(), mcpConfigVO.getAuthApiKey());
             HttpClientSseClientTransport sseClientTransport = HttpClientSseClientTransport
                     .builder(mcpConfigVO.getBaseUri())
                     .sseEndpoint(sseEndPoint)
@@ -124,9 +123,10 @@ public class LLMService implements ILLMService {
     private static class StreamableToolCallbackBuilderStrategy implements ToolCallbackBuilderStrategy {
         @Override
         public ToolCallback[] build(McpConfigVO mcpConfigVO) {
+            String endpoint = withApiKey(mcpConfigVO.getSseEndpoint(), mcpConfigVO.getAuthApiKey());
             McpClientTransport mcpClientTransport = HttpClientStreamableHttpTransport
                     .builder(mcpConfigVO.getBaseUri())
-                    .endpoint(mcpConfigVO.getSseEndpoint())
+                    .endpoint(endpoint)
                     .build();
             McpSyncClient mcpSyncClient = McpClient.sync(mcpClientTransport)
                     .requestTimeout(Duration.ofMillis(mcpConfigVO.getTimeout())).build();
@@ -134,6 +134,16 @@ public class LLMService implements ILLMService {
             log.info("tool streamable mcp initialize {}", init_streamable);
             return SyncMcpToolCallbackProvider.builder().mcpClients(mcpSyncClient).build().getToolCallbacks();
         }
+    }
+
+    /**
+     * MCP 网关通过 api_key 查询参数完成认证。SSE 与 Streamable 必须使用同一认证约定，
+     * 并对 Key 做 URI 编码，避免特殊字符破坏 endpoint 查询串。
+     */
+    private static String withApiKey(String endpoint, String apiKey) {
+        if (StringUtils.isBlank(apiKey)) return endpoint;
+        String separator = endpoint.contains("?") ? "&" : "?";
+        return endpoint + separator + "api_key=" + URLEncoder.encode(apiKey, StandardCharsets.UTF_8);
     }
 
     /**

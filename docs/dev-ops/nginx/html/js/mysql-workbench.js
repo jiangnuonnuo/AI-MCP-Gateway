@@ -20,7 +20,7 @@
         binding: {
             title: 'Tool 绑定',
             kpis: [['09', '在线绑定', '● 0 个断链'], ['12', '模板', '↗ 可绑定'], ['16', 'Tool', '● 正常路由'], ['03', '网关', '全部在线']],
-            endpoints: { page: API_ENDPOINTS.GET_MYSQL_BINDING_PAGE, detail: API_ENDPOINTS.GET_MYSQL_BINDING_DETAIL, save: API_ENDPOINTS.SAVE_MYSQL_BINDING, status: API_ENDPOINTS.CHANGE_MYSQL_BINDING_STATUS, remove: API_ENDPOINTS.DELETE_MYSQL_BINDING },
+            endpoints: { page: API_ENDPOINTS.GET_MYSQL_BINDING_PAGE, detail: API_ENDPOINTS.GET_MYSQL_BINDING_DETAIL, save: API_ENDPOINTS.SAVE_MYSQL_BINDING, dynamicSave: API_ENDPOINTS.SAVE_MYSQL_DYNAMIC_BINDING, status: API_ENDPOINTS.CHANGE_MYSQL_BINDING_STATUS, remove: API_ENDPOINTS.DELETE_MYSQL_BINDING },
             countId: 'nav-binding-count'
         }
     };
@@ -57,6 +57,7 @@
             TOOL_NAME_CONFLICT: '同一 Gateway 下已存在同名 Tool，请更换工具名称。',
             TEMPLATE_IN_USE: '该模板仍被 Tool 绑定引用，请先解除绑定。',
             BINDING_RESOURCE_UNAVAILABLE: '模板或数据源未启用，无法发布该绑定。',
+            ENABLED_DYNAMIC_IMMUTABLE: '启用中的动态 SQL Tool 不可修改数据源或资源护栏，请先停用。',
             SQL_PARAMETER_ERROR: '参数缺失、未声明或类型不匹配，请检查左侧参数面板。',
             SQL_POLICY_REJECTED: '只读策略拒绝了本次执行，请检查模板治理规则。',
             PROTOCOL_UNAVAILABLE: '模板不存在、已停用或当前版本不可执行。',
@@ -146,8 +147,10 @@
             id: item.id || item.bindingId || item.toolId,
             protocolId: item.protocolId || item.templateId,
             templateId: item.protocolId || item.templateId,
-            templateName: item.templateName || item.protocolName || `protocol-${item.protocolId || item.templateId || '-'}`,
-            datasource: '由 SQL 模板继承',
+            executionMode: item.executionMode || 'TEMPLATE',
+            templateName: item.templateName || item.protocolName || (String(item.executionMode || '').toUpperCase() === 'DYNAMIC_READONLY' ? '动态 SQL Tool' : `protocol-${item.protocolId || item.templateId || '-'}`),
+            datasourceRef: item.datasourceRef || '',
+            datasource: String(item.executionMode || '').toUpperCase() === 'DYNAMIC_READONLY' ? (item.datasourceRef || '未绑定数据源') : '由 SQL 模板继承',
             gatewayId: item.gatewayId,
             gateway: item.gateway || item.gatewayName || item.gatewayId || '-',
             toolName: item.toolName || item.name,
@@ -155,7 +158,7 @@
             toolDescription: item.toolDescription || item.description || '',
             version: item.toolVersion || item.version || '1.0.0',
             toolVersion: item.toolVersion || item.version || '1.0.0',
-            protocol: item.protocol || `${item.protocolType || 'MYSQL'} · ${item.protocolId || '-'}`,
+            protocol: item.protocol || `${String(item.executionMode || 'TEMPLATE').toUpperCase() === 'DYNAMIC_READONLY' ? 'DYNAMIC_READONLY' : (item.protocolType || 'MYSQL')} · ${item.protocolId || '-'}`,
             protocolType: item.protocolType || 'mysql',
             status: normalizeStatus(item.status), statusLabel: item.statusLabel || item.statusText || ''
         }));
@@ -175,7 +178,7 @@
     function valueText(row, resource) {
         if (resource === 'datasource') return { name: row.name, sub: row.description, relation: `${row.host}:${row.port}/${row.database}`, tool: `${row.templateCount || 0} Templates` };
         if (resource === 'template') return { name: row.name, sub: row.description, relation: row.datasource, tool: `${row.toolCount || 0} Tool${row.toolCount === 1 ? '' : 's'}` };
-        return { name: row.templateName, sub: row.description, relation: `${row.gateway} · ${row.protocol}`, tool: row.toolName };
+        return { name: row.executionMode === 'DYNAMIC_READONLY' ? '动态 SQL Tool' : row.templateName, sub: row.description, relation: `${row.gateway} · ${row.protocol}`, tool: row.toolName };
     }
 
     function rowHtml(row, resource, selectedId) {
@@ -194,7 +197,7 @@
         let detail = '';
         if (resource === 'datasource') detail = `<div class="inspector-label"><span>连接摘要</span><strong>${row.readOnly !== false ? '只读保护' : '请检查策略'}</strong></div><div class="detail-grid"><div class="detail-item">主机<strong>${escapeHtml(row.host)}:${escapeHtml(row.port)}</strong></div><div class="detail-item">数据库<strong>${escapeHtml(row.database)}</strong></div><div class="detail-item">用户名<strong>${escapeHtml(row.username)}</strong></div><div class="detail-item">密码<strong>•••••••• · 不回显</strong></div></div><div class="inspector-note">连接测试只返回健康状态，不在页面或日志展示完整 JDBC 信息。</div>`;
         if (resource === 'template') detail = `<div class="inspector-label"><span>SQL 预览</span><strong>已校验</strong></div><pre class="code-preview">${highlightSql(row.sql || 'SELECT ...')}</pre><div class="inspector-label"><span>参数配置</span><strong>${(row.params || []).length} 个参数</strong></div><div class="detail-grid">${(row.params || []).slice(0, 6).map(param => `<div class="detail-item">${escapeHtml(param.name || param.key)}<strong>${escapeHtml(param.type || 'STRING')}</strong></div>`).join('') || '<div class="detail-item">无参数<strong>固定查询</strong></div>'}</div><div class="inspector-label"><span>执行护栏</span><strong>只读保护</strong></div><div class="inspector-note">${escapeHtml(row.guards || '保存时执行 SQL 安全责任链。')}</div>`;
-        if (resource === 'binding') detail = `<div class="inspector-label"><span>绑定关系</span><strong>可追踪</strong></div><div class="detail-grid"><div class="detail-item">Gateway<strong>${escapeHtml(row.gateway)}</strong></div><div class="detail-item">Tool 名称<strong>${escapeHtml(row.toolName)}</strong></div><div class="detail-item">SQL 模板<strong>${escapeHtml(row.templateName)} · ${escapeHtml(row.protocolId || '-')}</strong></div><div class="detail-item">数据源<strong>由 SQL 模板继承</strong></div><div class="detail-item">Tool 版本<strong>${escapeHtml(row.toolVersion)}</strong></div></div><div class="inspector-note">${escapeHtml(row.protocol)} · 数据源、SQL 与参数契约均由模板解析；停用后不会出现在 tools/list，也不能被 tools/call 调用。</div>`;
+        if (resource === 'binding') { const dynamic = row.executionMode === 'DYNAMIC_READONLY'; detail = `<div class="inspector-label"><span>绑定关系</span><strong>${dynamic ? '动态 SQL' : '可追踪'}</strong></div><div class="detail-grid"><div class="detail-item">Gateway<strong>${escapeHtml(row.gateway)}</strong></div><div class="detail-item">Tool 名称<strong>${escapeHtml(row.toolName)}</strong></div><div class="detail-item">执行模式<strong>${dynamic ? 'DYNAMIC_READONLY' : `SQL 模板 · ${escapeHtml(row.protocolId || '-')}`}</strong></div><div class="detail-item">数据源<strong>${escapeHtml(dynamic ? (row.datasourceRef || '—') : '由 SQL 模板继承')}</strong></div><div class="detail-item">Tool 版本<strong>${escapeHtml(row.toolVersion)}</strong></div></div><div class="inspector-note">${dynamic ? '调用方通过 tools/call 的 arguments.sql 与 arguments.parameters 传入查询；网关只允许固定数据源和只读资源上限。' : `${escapeHtml(row.protocol)} · 数据源、SQL 与参数契约均由模板解析。`} 停用后不会出现在 tools/list，也不能被 tools/call 调用。</div>`; }
         const primaryAction = resource === 'template' || resource === 'datasource' ? `<button type="button" class="button primary" data-inspector-action="test"><i class="bi bi-play" aria-hidden="true"></i>${resource === 'template' ? '测试运行' : '连接测试'}</button>` : '';
         return `<div class="inspector-head"><span class="tag ${statusClass(row.status)} inspector-status">● ${escapeHtml(statusLabel(row))}</span><div class="inspector-title">${escapeHtml(resource === 'binding' ? `${row.templateName} → ${row.toolName}` : text.name)}</div><div class="inspector-sub">${escapeHtml(text.sub || text.relation)} · 更新于 ${escapeHtml(row.updatedAt || '刚刚')}</div></div><div class="inspector-body"><div class="inspector-tabs" role="tablist"><button type="button" class="inspector-tab active" role="tab">概览</button><button type="button" class="inspector-tab" role="tab">关联</button><button type="button" class="inspector-tab" role="tab">变更记录</button></div>${detail}</div><div class="inspector-actions">${primaryAction}<button type="button" class="button" data-inspector-action="edit"><i class="bi bi-pencil" aria-hidden="true"></i>编辑</button><button type="button" class="button" data-inspector-action="toggle"><i class="bi bi-power" aria-hidden="true"></i>${row.status === 'enabled' ? '停用' : '启用'}</button><button type="button" class="button danger" data-inspector-action="delete" aria-label="删除资源"><i class="bi bi-trash" aria-hidden="true"></i></button></div>`;
     }
@@ -217,6 +220,14 @@
         root.find('#binding-datasource-summary').text(option.data('datasource') || '选择模板后自动带出');
     }
 
+    function syncBindingMode(root) {
+        const dynamic = root.find('#binding-execution-mode').val() === 'DYNAMIC_READONLY';
+        root.find('.binding-template-field').toggle(!dynamic);
+        root.find('.binding-dynamic-field').toggle(dynamic);
+        root.find('#binding-template').prop('disabled', dynamic).prop('required', !dynamic);
+        root.find('#binding-datasource').prop('disabled', !dynamic).prop('required', dynamic);
+    }
+
     function initOptions(root, resource) {
         if (resource === 'template') {
             root.find('#template-datasource, #template-datasource-filter').prop('disabled', true);
@@ -229,7 +240,7 @@
             });
         }
         if (resource === 'binding') {
-            root.find('#binding-template, #binding-gateway, #binding-gateway-filter').prop('disabled', true);
+            root.find('#binding-template, #binding-datasource, #binding-gateway, #binding-gateway-filter').prop('disabled', true);
             request(API_ENDPOINTS.GET_MYSQL_TEMPLATE_PAGE, 'GET', { page: 1, rows: 200, status: 1 }, function (response) {
                 const page = normalizePage(response, 'template');
                 const available = page.list.filter(row => row.status === 'enabled');
@@ -239,10 +250,18 @@
                 syncBindingTemplateMeta(root);
                 const pending = root.find('#binding-template').data('selectedProtocolId');
                 if (pending) { root.find('#binding-template').val(String(pending)); syncBindingTemplateMeta(root); }
+                syncBindingMode(root);
             }, function () {
                 appendOptions(root.find('#binding-template'), '', '模板加载失败');
                 syncBindingTemplateMeta(root);
             });
+            request(API_ENDPOINTS.GET_MYSQL_DATASOURCE_PAGE, 'GET', { page: 1, rows: 200, status: 1 }, function (response) {
+                const page = normalizePage(response, 'datasource');
+                const options = page.list.map(row => `<option value="${escapeHtml(row.datasourceRef || row.id)}">${escapeHtml(row.name || row.datasourceRef || row.id)}</option>`).join('');
+                appendOptions(root.find('#binding-datasource'), options, page.list.length ? '选择已启用数据源' : '暂无可用数据源');
+                root.find('#binding-datasource').prop('disabled', false);
+                syncBindingMode(root);
+            }, function () { appendOptions(root.find('#binding-datasource'), '', '数据源加载失败'); });
             request(API_ENDPOINTS.GET_GATEWAY_OPTIONS, 'GET', {}, function (response) {
                 const raw = response && response.data;
                 const rows = Array.isArray(raw) ? raw : raw && (raw.list || raw.records || raw.rows || raw.data) || [];
@@ -256,6 +275,7 @@
             }, function () {
                 appendOptions(root.find('#binding-gateway, #binding-gateway-filter'), '', 'Gateway 加载失败');
             });
+            syncBindingMode(root);
         }
     }
 
@@ -265,17 +285,21 @@
         $(form).serializeArray().forEach(item => { raw[item.name] = item.value; });
         if (resource === 'datasource') { raw.port = Number(raw.port); raw.readOnly = raw.readOnly === 'true'; raw.status = Number(raw.status); if (!raw.password) delete raw.password; }
         if (resource === 'template') { raw.maxRows = Number(raw.maxRows); raw.timeoutMs = Number(raw.timeoutMs); raw.maxBytes = Number(raw.maxBytes); raw.status = Number(raw.status); try { raw.params = raw.params ? JSON.parse(raw.params) : []; } catch (e) { raw.__paramsInvalid = true; } }
-        if (resource === 'binding') raw.status = Number(raw.status);
+        if (resource === 'binding') { raw.status = Number(raw.status); raw.maxRows = raw.maxRows ? Number(raw.maxRows) : undefined; raw.maxResultBytes = raw.maxResultBytes ? Number(raw.maxResultBytes) : undefined; raw.maxColumns = raw.maxColumns ? Number(raw.maxColumns) : undefined; raw.timeoutMs = raw.timeoutMs ? Number(raw.timeoutMs) : undefined; }
         return raw;
     }
 
     function validateForm(root, resource, data) {
         let valid = true;
         root.find('.field').removeClass('invalid');
-        const required = resource === 'datasource' ? ['name', 'database', 'host', 'port', 'username'] : resource === 'template' ? ['name', 'datasourceId', 'sql'] : ['gatewayId', 'toolName', 'protocolId'];
+        const required = resource === 'datasource' ? ['name', 'database', 'host', 'port', 'username'] : resource === 'template' ? ['name', 'datasourceId', 'sql'] : ['gatewayId', 'toolName'];
+        if (resource === 'binding') required.push(data.executionMode === 'DYNAMIC_READONLY' ? 'datasourceRef' : 'protocolId');
         required.forEach(name => { const input = root.find(`[name="${name}"]`); const field = input.closest('.field'); if (!input.prop('disabled') && !data[name]) { field.addClass('invalid'); valid = false; } });
         if (resource === 'datasource' && !data.id && !data.password) { root.find('[name="password"]').closest('.field').addClass('invalid'); valid = false; }
         if (resource === 'template' && data.__paramsInvalid) { root.find('[name="params"]').closest('.field').addClass('invalid'); valid = false; }
+        if (resource === 'binding' && data.executionMode === 'DYNAMIC_READONLY') {
+            ['maxRows', 'maxResultBytes', 'maxColumns', 'timeoutMs'].forEach(name => { if (!data[name] || data[name] <= 0) { root.find(`[name="${name}"]`).closest('.field').addClass('invalid'); valid = false; } });
+        }
         return valid;
     }
 
@@ -317,6 +341,7 @@
             };
         }
         if (resource === 'binding') {
+            const dynamic = clean.executionMode === 'DYNAMIC_READONLY';
             return {
                 id: clean.id ? Number(clean.id) : undefined,
                 gatewayId: String(clean.gatewayId || '').trim(),
@@ -324,7 +349,13 @@
                 toolType: 'function',
                 toolDescription: String(clean.toolDescription || '').trim(),
                 toolVersion: String(clean.toolVersion || '1.0.0').trim(),
-                protocolId: clean.protocolId ? Number(clean.protocolId) : undefined,
+                protocolId: dynamic ? undefined : (clean.protocolId ? Number(clean.protocolId) : undefined),
+                datasourceRef: dynamic ? String(clean.datasourceRef || '').trim() : undefined,
+                maxRows: dynamic ? Number(clean.maxRows) : undefined,
+                maxResultBytes: dynamic ? Number(clean.maxResultBytes) : undefined,
+                maxColumns: dynamic ? Number(clean.maxColumns) : undefined,
+                timeoutMs: dynamic ? Number(clean.timeoutMs) : undefined,
+                executionMode: dynamic ? 'DYNAMIC_READONLY' : 'TEMPLATE',
                 protocolType: 'mysql',
                 status: Number(clean.status)
             };
@@ -415,7 +446,7 @@
             form[0].reset();
             root.find('#binding-template').removeData('selectedProtocolId');
             root.find('#binding-gateway').removeData('selectedGatewayId');
-            if (resource === 'binding') syncBindingTemplateMeta(root);
+            if (resource === 'binding') { syncBindingTemplateMeta(root); syncBindingMode(root); }
             form.find('[name="id"]').val(row ? row.id : '');
             root.find('.drawer-alert').removeClass('show').text('');
             root.find('.field').removeClass('invalid');
@@ -429,16 +460,24 @@
                 }
                 if (resource === 'datasource') form.find('[name="readOnly"]').val(String(row.readOnly !== false));
                 if (resource === 'binding') {
+                    form.find('[name="executionMode"]').val(row.executionMode || 'TEMPLATE');
                     form.find('[name="protocolId"]').val(row.protocolId || row.templateId);
                     form.find('[name="gatewayId"]').val(row.gatewayId);
+                    form.find('[name="datasourceRef"]').val(row.datasourceRef || '');
+                    form.find('[name="maxRows"]').val(row.maxRows || 1000);
+                    form.find('[name="maxResultBytes"]').val(row.maxResultBytes || 4194304);
+                    form.find('[name="maxColumns"]').val(row.maxColumns || 128);
+                    form.find('[name="timeoutMs"]').val(row.timeoutMs || 30000);
                     root.find('#binding-template').data('selectedProtocolId', row.protocolId || row.templateId);
                     root.find('#binding-gateway').data('selectedGatewayId', row.gatewayId);
                     syncBindingTemplateMeta(root);
+                    syncBindingMode(root);
                 }
                 form.find('[name="status"]').val(row.status === 'enabled' ? '1' : '0');
             }
             if (resource === 'template' && row && row.status === 'enabled') { drawer.addClass('immutable'); form.find('[name="sql"], [name="datasourceId"], [name="params"]').prop('disabled', true); }
             else { drawer.removeClass('immutable'); form.find('[name="sql"], [name="datasourceId"], [name="params"]').prop('disabled', false); }
+            if (resource === 'binding') syncBindingMode(root);
             drawer.addClass('open');
             setTimeout(() => drawer.find('input:not([type="hidden"]), select, textarea').first().trigger('focus'), 30);
         }
@@ -456,7 +495,8 @@
                 if (duplicate) { root.find('.drawer-alert').addClass('show').text('同一 Gateway 下已存在同名 Tool，请更换工具名称。'); showToast('工具名称已存在', false); return; }
             }
             submit.prop('disabled', true).addClass('loading').text('保存中...');
-            request(config.endpoints.save, 'POST', serializeRequest(resource, data), function (response) {
+            const endpoint = resource === 'binding' && data.executionMode === 'DYNAMIC_READONLY' ? config.endpoints.dynamicSave : config.endpoints.save;
+            request(endpoint, 'POST', serializeRequest(resource, data), function (response) {
                 if (response && (response.code === '0000' || response.success === true)) { showToast(`${config.title}保存成功`); closeDrawer(); loadRows(); }
                 else { root.find('.drawer-alert').addClass('show').text(apiError(response, '保存失败')); }
             }, function (response) { root.find('.drawer-alert').addClass('show').text(apiError(response, '保存失败，请检查管理 API')); }, function () {
@@ -647,6 +687,7 @@
         root.on('change.mysql-workbench', `#${resource}-sort`, function () { state.sort = this.value; render(); });
         root.on('change.mysql-workbench', '#template-datasource-filter, #binding-gateway-filter', function () { state.gatewayFilter = this.value; state.datasourceFilter = this.value; state.page = 1; render(); loadRows(); });
         root.on('change.mysql-workbench', '#binding-template', function () { syncBindingTemplateMeta(root); });
+        root.on('change.mysql-workbench', '#binding-execution-mode', function () { syncBindingMode(root); });
         root.on('click.mysql-workbench', `#${resource}-create`, function () { openDrawer(null); });
         root.on('click.mysql-workbench', '[data-close-drawer]', closeDrawer);
         root.on('submit.mysql-workbench', 'form', saveForm);

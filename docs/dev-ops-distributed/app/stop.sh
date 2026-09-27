@@ -1,1 +1,0 @@
-docker stop ai-mcp-gateway

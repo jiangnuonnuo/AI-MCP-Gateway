@@ -4,6 +4,7 @@ import cn.bugstack.ai.domain.mysql.model.admin.MysqlAdminPage;
 import cn.bugstack.ai.domain.mysql.model.admin.MysqlAdminQueries;
 import cn.bugstack.ai.domain.mysql.model.admin.MysqlBindingAdminCommand;
 import cn.bugstack.ai.domain.mysql.model.admin.MysqlBindingAdminView;
+import cn.bugstack.ai.domain.mysql.model.admin.MysqlDynamicBindingAdminCommand;
 import cn.bugstack.ai.domain.mysql.model.admin.MysqlDataSourceAdminCommand;
 import cn.bugstack.ai.domain.mysql.model.admin.MysqlDataSourceAdminView;
 import cn.bugstack.ai.domain.mysql.model.admin.MysqlTemplateAdminCommand;
@@ -30,6 +31,7 @@ public interface IMysqlAdminRepository {
     MysqlAdminPage<MysqlBindingAdminView> pageBindings(MysqlAdminQueries.Binding query);
     Optional<MysqlBindingAdminView> findBinding(Long id);
     Long saveBinding(MysqlBindingAdminCommand command);
+    Long saveDynamicBinding(MysqlDynamicBindingAdminCommand command);
     void changeBindingStatus(Long id, int status);
     void deleteBinding(Long id);
     boolean bindingNameExists(String gatewayId, String toolName, Long excludingId);

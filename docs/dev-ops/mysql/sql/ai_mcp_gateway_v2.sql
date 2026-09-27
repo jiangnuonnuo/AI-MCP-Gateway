@@ -302,8 +302,9 @@ CREATE TABLE `mcp_datasource` (
 CREATE TABLE `mcp_protocol_mysql` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `protocol_id` bigint unsigned NOT NULL,
+  `execution_mode` varchar(32) NOT NULL DEFAULT 'TEMPLATE',
   `datasource_id` bigint unsigned NOT NULL,
-  `sql_text` mediumtext NOT NULL,
+  `sql_text` mediumtext DEFAULT NULL,
   `max_rows` int unsigned NOT NULL DEFAULT '1000',
   `max_result_bytes` bigint unsigned NOT NULL DEFAULT '4194304',
   `max_columns` smallint unsigned NOT NULL DEFAULT '128',
@@ -315,5 +316,7 @@ CREATE TABLE `mcp_protocol_mysql` (
   UNIQUE KEY `uq_mysql_protocol_id` (`protocol_id`),
   KEY `idx_mysql_protocol_status` (`status`),
   CONSTRAINT `chk_mysql_protocol_status` CHECK (`status` IN (0, 1)),
+  CONSTRAINT `chk_mysql_protocol_execution_mode` CHECK (`execution_mode` IN ('TEMPLATE', 'DYNAMIC_READONLY')),
+  CONSTRAINT `chk_mysql_protocol_sql_mode` CHECK ((`execution_mode` = 'TEMPLATE' AND `sql_text` IS NOT NULL) OR (`execution_mode` = 'DYNAMIC_READONLY' AND `sql_text` IS NULL)),
   CONSTRAINT `fk_mysql_protocol_datasource` FOREIGN KEY (`datasource_id`) REFERENCES `mcp_datasource` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='MySQL 只读协议与 SQL 模板';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='MySQL 只读协议配置';

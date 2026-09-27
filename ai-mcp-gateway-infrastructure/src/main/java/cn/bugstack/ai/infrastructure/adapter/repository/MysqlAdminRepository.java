@@ -7,10 +7,12 @@ import cn.bugstack.ai.domain.mysql.model.admin.MysqlBindingAdminCommand;
 import cn.bugstack.ai.domain.mysql.model.admin.MysqlBindingAdminView;
 import cn.bugstack.ai.domain.mysql.model.admin.MysqlDataSourceAdminCommand;
 import cn.bugstack.ai.domain.mysql.model.admin.MysqlDataSourceAdminView;
+import cn.bugstack.ai.domain.mysql.model.admin.MysqlDynamicBindingAdminCommand;
 import cn.bugstack.ai.domain.mysql.model.admin.MysqlTemplateAdminCommand;
 import cn.bugstack.ai.domain.mysql.model.admin.MysqlTemplateAdminView;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlParameterType;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlTemplateParameter;
+import cn.bugstack.ai.domain.tool.model.valobj.ToolExecutionMode;
 import cn.bugstack.ai.infrastructure.dao.IMcpDataSourceDao;
 import cn.bugstack.ai.infrastructure.dao.IMcpGatewayDao;
 import cn.bugstack.ai.infrastructure.dao.IMcpGatewayToolDao;
@@ -151,7 +153,9 @@ public class MysqlAdminRepository implements IMysqlAdminRepository {
     @Override
     public MysqlAdminPage<MysqlTemplateAdminView> pageTemplates(MysqlAdminQueries.Template query) {
         try {
-            List<MysqlTemplateAdminView> views = protocolDao.queryAll().stream().map(this::toTemplateView)
+            List<MysqlTemplateAdminView> views = protocolDao.queryAll().stream()
+                    .filter(MysqlAdminRepository::isTemplateMode)
+                    .map(this::toTemplateView)
                     .filter(view -> (query.protocolId() == null || Objects.equals(view.protocolId(), query.protocolId()))
                             && contains(view.name(), query.name()) && contains(view.datasourceRef(), query.datasourceRef())
                             && (query.status() == null || Objects.equals(view.status(), query.status())))
@@ -165,7 +169,7 @@ public class MysqlAdminRepository implements IMysqlAdminRepository {
     public Optional<MysqlTemplateAdminView> findTemplate(Long protocolId, String version) {
         try {
             McpProtocolMysqlPO po = protocolDao.queryByProtocolId(protocolId);
-            return Optional.ofNullable(po).map(this::toTemplateView);
+            return Optional.ofNullable(po).filter(MysqlAdminRepository::isTemplateMode).map(this::toTemplateView);
         } catch (DataAccessException e) { throw persistence("PROTOCOL_PERSISTENCE_ERROR", "MySQL template is unavailable", e); }
     }
 
@@ -177,8 +181,13 @@ public class MysqlAdminRepository implements IMysqlAdminRepository {
             McpDataSourcePO source = dataSourceDao.queryByDatasourceRef(command.datasourceRef());
             if (source == null) throw new MysqlDomainException("DATASOURCE_NOT_FOUND", "data source is not found");
             McpProtocolMysqlPO current = protocolDao.queryByProtocolId(protocolId);
+            if (current != null && !isTemplateMode(current)) {
+                throw new MysqlDomainException("PROTOCOL_MODE_MISMATCH",
+                        "Dynamic MySQL protocol must be managed as a dynamic Tool binding");
+            }
             McpProtocolMysqlPO po = current == null ? new McpProtocolMysqlPO() : current;
             po.setProtocolId(protocolId);
+            po.setExecutionMode("TEMPLATE");
             po.setDatasourceId(source.getId());
             po.setSqlText(command.sql());
             po.setMaxRows(command.maxRows());
@@ -271,14 +280,69 @@ public class MysqlAdminRepository implements IMysqlAdminRepository {
 
     @Override
     @Transactional
+    public Long saveDynamicBinding(MysqlDynamicBindingAdminCommand command) {
+        try {
+            McpDataSourcePO source = dataSourceDao.queryByDatasourceRef(command.datasourceRef());
+            if (source == null) throw new MysqlDomainException("DATASOURCE_NOT_FOUND", "data source is not found");
+            McpGatewayToolPO currentTool = command.id() == null ? null : toolDao.queryAll().stream()
+                    .filter(t -> Objects.equals(t.getId(), command.id())).findFirst().orElse(null);
+            Long protocolId = currentTool == null ? nextProtocolId() : currentTool.getProtocolId();
+            McpProtocolMysqlPO currentProtocol = protocolDao.queryByProtocolId(protocolId);
+            if (currentProtocol != null && !isDynamicMode(currentProtocol)) {
+                throw new MysqlDomainException("PROTOCOL_MODE_MISMATCH", "Template MySQL protocol cannot be used by a dynamic binding");
+            }
+            McpProtocolMysqlPO protocol = currentProtocol == null ? new McpProtocolMysqlPO() : currentProtocol;
+            protocol.setProtocolId(protocolId);
+            protocol.setExecutionMode("DYNAMIC_READONLY");
+            protocol.setDatasourceId(source.getId());
+            protocol.setSqlText(null);
+            protocol.setMaxRows(command.maxRows());
+            protocol.setMaxResultBytes(command.maxResultBytes());
+            protocol.setMaxColumns(command.maxColumns());
+            protocol.setTimeoutMs(command.timeoutMs());
+            protocol.setStatus(command.status() == null ? 0 : command.status());
+            if (currentProtocol == null) protocolDao.insert(protocol); else protocolDao.updateByProtocolId(protocol);
+            mappingDao.deleteByProtocolKey(McpProtocolMappingPO.builder().protocolType("mysql").protocolId(protocolId).build());
+
+            Long toolId = command.toolId() != null ? command.toolId() : currentTool != null ? currentTool.getToolId() : nextToolId();
+            McpGatewayToolPO tool = McpGatewayToolPO.builder().id(currentTool == null ? null : currentTool.getId())
+                    .gatewayId(command.gatewayId()).toolId(toolId).toolName(command.toolName()).toolType(command.toolType())
+                    .toolDescription(command.toolDescription() == null ? "" : command.toolDescription())
+                    .toolVersion(command.toolVersion()).protocolId(protocolId).protocolType("mysql")
+                    .status(command.status() == null ? 0 : command.status()).build();
+            toolDao.insert(tool);
+            return toolDao.queryAll().stream().filter(t -> Objects.equals(t.getGatewayId(), command.gatewayId())
+                    && Objects.equals(t.getToolId(), toolId)).map(McpGatewayToolPO::getId).findFirst().orElse(tool.getId());
+        } catch (MysqlDomainException e) { throw e;
+        } catch (DataAccessException e) { throw persistence("BINDING_PERSISTENCE_ERROR", "dynamic binding could not be saved", e); }
+    }
+
+    @Override
+    @Transactional
     public void changeBindingStatus(Long id, int status) {
-        try { toolDao.updateStatusById(McpGatewayToolPO.builder().id(id).status(status).build()); }
+        try {
+            McpGatewayToolPO current = toolDao.queryAll().stream().filter(t -> Objects.equals(t.getId(), id)).findFirst().orElse(null);
+            if (current == null || toolDao.updateStatusById(McpGatewayToolPO.builder().id(id).status(status).build()) == 0) {
+                throw new MysqlDomainException("BINDING_NOT_FOUND", "binding is not found");
+            }
+            if (isDynamicMode(protocolDao.queryByProtocolId(current.getProtocolId()))) {
+                protocolDao.updateStatusByProtocolId(current.getProtocolId(), status);
+            }
+        } catch (MysqlDomainException e) { throw e; }
         catch (DataAccessException e) { throw persistence("BINDING_PERSISTENCE_ERROR", "binding status could not be changed", e); }
     }
 
     @Override
     public void deleteBinding(Long id) {
-        try { toolDao.deleteById(id); }
+        try {
+            McpGatewayToolPO current = toolDao.queryAll().stream().filter(t -> Objects.equals(t.getId(), id)).findFirst().orElse(null);
+            toolDao.deleteById(id);
+            if (current != null && isDynamicMode(protocolDao.queryByProtocolId(current.getProtocolId()))
+                    && toolDao.queryAll().stream().noneMatch(t -> Objects.equals(t.getProtocolId(), current.getProtocolId()))) {
+                protocolDao.deleteByProtocolId(current.getProtocolId());
+                mappingDao.deleteByProtocolKey(McpProtocolMappingPO.builder().protocolType("mysql").protocolId(current.getProtocolId()).build());
+            }
+        }
         catch (DataAccessException e) { throw persistence("BINDING_PERSISTENCE_ERROR", "binding could not be deleted", e); }
     }
 
@@ -296,19 +360,19 @@ public class MysqlAdminRepository implements IMysqlAdminRepository {
     }
 
     @Override public boolean templateExists(Long protocolId) {
-        try { return protocolDao.queryByProtocolId(protocolId) != null; }
+        try { return isTemplateMode(protocolDao.queryByProtocolId(protocolId)); }
         catch (DataAccessException e) { throw persistence("PROTOCOL_PERSISTENCE_ERROR", "template is unavailable", e); }
     }
 
     @Override public boolean templateEnabled(Long protocolId) {
-        try { McpProtocolMysqlPO po = protocolDao.queryEnabledByProtocolId(protocolId); return po != null; }
+        try { McpProtocolMysqlPO po = protocolDao.queryEnabledByProtocolId(protocolId); return isTemplateMode(po); }
         catch (DataAccessException e) { throw persistence("PROTOCOL_PERSISTENCE_ERROR", "template status is unavailable", e); }
     }
 
     @Override public boolean templateDatasourceEnabled(Long protocolId) {
         try {
             McpProtocolMysqlPO template = protocolDao.queryByProtocolId(protocolId);
-            if (template == null) return false;
+            if (!isTemplateMode(template)) return false;
             McpDataSourcePO source = dataSourceDao.queryById(template.getDatasourceId());
             return source != null && Integer.valueOf(1).equals(source.getStatus());
         } catch (DataAccessException e) { throw persistence("DATASOURCE_PERSISTENCE_ERROR", "template data source status is unavailable", e); }
@@ -343,9 +407,14 @@ public class MysqlAdminRepository implements IMysqlAdminRepository {
     }
 
     private MysqlBindingAdminView toBindingView(McpGatewayToolPO po) {
+        McpProtocolMysqlPO protocol = protocolDao.queryByProtocolId(po.getProtocolId());
+        McpDataSourcePO source = protocol == null ? null : dataSourceDao.queryById(protocol.getDatasourceId());
         return new MysqlBindingAdminView(po.getId(), po.getGatewayId(), po.getToolId(), po.getToolName(), po.getToolType(),
                 po.getToolDescription(), po.getToolVersion(), po.getProtocolId(), po.getProtocolType(), po.getStatus(),
-                po.getCreateTime(), po.getUpdateTime());
+                po.getCreateTime(), po.getUpdateTime(), protocol == null ? "UNKNOWN" : protocol.getExecutionMode(),
+                source == null ? null : source.getDatasourceRef(), protocol == null ? null : protocol.getMaxRows(),
+                protocol == null ? null : protocol.getMaxResultBytes(), protocol == null ? null : protocol.getMaxColumns(),
+                protocol == null ? null : protocol.getTimeoutMs());
     }
 
     private static <T> MysqlAdminPage<T> page(List<T> values, int page, int rows) {
@@ -370,6 +439,10 @@ public class MysqlAdminRepository implements IMysqlAdminRepository {
                 .max(Long::compareTo).orElse(0L) + 1;
     }
 
+    private static boolean isDynamicMode(McpProtocolMysqlPO po) {
+        return po != null && "DYNAMIC_READONLY".equalsIgnoreCase(po.getExecutionMode());
+    }
+
     private static String mappingType(MysqlParameterType type) {
         if (type == null) return "string";
         return switch (type) {
@@ -378,6 +451,13 @@ public class MysqlAdminRepository implements IMysqlAdminRepository {
             case BOOLEAN -> "boolean";
             default -> "string";
         };
+    }
+
+    private static boolean isTemplateMode(McpProtocolMysqlPO protocol) {
+        if (protocol == null) return false;
+        String executionMode = protocol.getExecutionMode();
+        return executionMode == null || executionMode.isBlank()
+                || ToolExecutionMode.from(executionMode) == ToolExecutionMode.MYSQL_TEMPLATE;
     }
 
     private static MysqlParameterType parameterType(String type) {

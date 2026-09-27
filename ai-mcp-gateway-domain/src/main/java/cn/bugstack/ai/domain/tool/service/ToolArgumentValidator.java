@@ -14,6 +14,23 @@ import java.util.Map;
 @Component
 public class ToolArgumentValidator {
 
+    /** 动态 SQL Tool 的顶层契约校验；SQL 语义由 MySQL 治理责任链继续校验。 */
+    public boolean isDynamicValid(Map<String, ?> arguments) {
+        if (arguments == null || !arguments.containsKey("sql") || !arguments.containsKey("parameters")) return false;
+        if (arguments.size() != 2 || !(arguments.get("sql") instanceof CharSequence)
+                || !(arguments.get("parameters") instanceof Map<?, ?>)) return false;
+        Map<?, ?> parameters = (Map<?, ?>) arguments.get("parameters");
+        for (Map.Entry<?, ?> entry : parameters.entrySet()) {
+            if (entry.getKey() == null || String.valueOf(entry.getKey()).isBlank()
+                    || !isScalar(entry.getValue())) return false;
+        }
+        return !String.valueOf(arguments.get("sql")).isBlank();
+    }
+
+    private boolean isScalar(Object value) {
+        return value == null || value instanceof CharSequence || value instanceof Number || value instanceof Boolean;
+    }
+
     public boolean isValid(Map<String, ?> arguments,
                            List<McpToolProtocolConfigVO.ProtocolMapping> mappings) {
         Map<String, Object> values = arguments == null ? Map.of() : new HashMap<>(arguments);

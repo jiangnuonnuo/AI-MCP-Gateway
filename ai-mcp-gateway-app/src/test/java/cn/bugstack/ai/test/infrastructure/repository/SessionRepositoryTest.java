@@ -2,6 +2,7 @@ package cn.bugstack.ai.test.infrastructure.repository;
 
 import cn.bugstack.ai.domain.session.model.valobj.gateway.McpToolConfigVO;
 import cn.bugstack.ai.domain.tool.model.valobj.ToolBackendType;
+import cn.bugstack.ai.domain.tool.model.valobj.ToolExecutionMode;
 import cn.bugstack.ai.infrastructure.adapter.repository.SessionRepository;
 import cn.bugstack.ai.infrastructure.dao.IMcpDataSourceDao;
 import cn.bugstack.ai.infrastructure.dao.IMcpGatewayDao;
@@ -67,6 +68,41 @@ class SessionRepositoryTest {
                 .id(41L).datasourceRef("data-warehouse").status(0).build());
 
         assertEquals(List.of(), fixture.repository.queryMcpGatewayToolConfigListByGatewayId("gateway-a"));
+    }
+
+    @Test
+    void failsClosedForUnknownMysqlExecutionMode() {
+        Fixture fixture = fixture();
+        when(fixture.toolDao.queryEnabledByGatewayId("gateway-a"))
+                .thenReturn(List.of(tool(2L, "mysqlTool", "mysql", 77L)));
+        when(fixture.mappingDao.queryByProtocolKey(any())).thenReturn(List.of());
+        when(fixture.mysqlDao.queryByProtocolId(77L)).thenReturn(McpProtocolMysqlPO.builder()
+                .protocolId(77L).executionMode("UNSUPPORTED_MODE").datasourceId(41L).status(1).build());
+        when(fixture.dataSourceDao.queryById(41L)).thenReturn(McpDataSourcePO.builder()
+                .id(41L).datasourceRef("data-warehouse").status(1).build());
+
+        assertEquals(List.of(), fixture.repository.queryMcpGatewayToolConfigListByGatewayId("gateway-a"));
+    }
+
+    @Test
+    void resolvesDynamicMysqlModeWithoutTemplateMappings() {
+        Fixture fixture = fixture();
+        when(fixture.toolDao.queryEnabledByGatewayId("gateway-a"))
+                .thenReturn(List.of(tool(2L, "dynamicMysqlTool", "mysql", 77L)));
+        when(fixture.mappingDao.queryByProtocolKey(any())).thenReturn(List.of(
+                McpProtocolMappingPO.builder().protocolType("mysql").protocolId(77L)
+                        .mappingType("request").fieldName("ignoredTemplateField").mcpPath("ignoredTemplateField")
+                        .mcpType("string").isRequired(1).sortOrder(1).build()));
+        when(fixture.mysqlDao.queryByProtocolId(77L)).thenReturn(McpProtocolMysqlPO.builder()
+                .protocolId(77L).executionMode("DYNAMIC_READONLY").datasourceId(41L).status(1).build());
+        when(fixture.dataSourceDao.queryById(41L)).thenReturn(McpDataSourcePO.builder()
+                .id(41L).datasourceRef("data-warehouse").status(1).build());
+
+        McpToolConfigVO config = fixture.repository.queryMcpGatewayToolConfigListByGatewayId("gateway-a").get(0);
+
+        assertEquals(ToolExecutionMode.MYSQL_DYNAMIC_READONLY,
+                config.getMcpToolProtocolConfigVO().getExecutionMode());
+        assertEquals(List.of(), config.getMcpToolProtocolConfigVO().getMysqlTemplateConfig().getParameters());
     }
 
     private static Fixture fixture() {

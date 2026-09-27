@@ -24,6 +24,12 @@ public class MysqlBindingDTO implements Serializable {
     private Long protocolId;
     private String protocolType;
     private Integer status;
+    private String executionMode;
+    private String datasourceRef;
+    private Integer maxRows;
+    private Long maxResultBytes;
+    private Integer maxColumns;
+    private Integer timeoutMs;
     private Date createTime;
     private Date updateTime;
 }

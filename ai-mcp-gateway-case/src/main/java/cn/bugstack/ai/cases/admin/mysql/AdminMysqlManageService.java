@@ -6,6 +6,7 @@ import cn.bugstack.ai.domain.mysql.model.admin.MysqlBindingAdminCommand;
 import cn.bugstack.ai.domain.mysql.model.admin.MysqlBindingAdminView;
 import cn.bugstack.ai.domain.mysql.model.admin.MysqlDataSourceAdminCommand;
 import cn.bugstack.ai.domain.mysql.model.admin.MysqlDataSourceAdminView;
+import cn.bugstack.ai.domain.mysql.model.admin.MysqlDynamicBindingAdminCommand;
 import cn.bugstack.ai.domain.mysql.model.admin.MysqlTemplateAdminCommand;
 import cn.bugstack.ai.domain.mysql.model.admin.MysqlTemplateAdminView;
 import cn.bugstack.ai.domain.mysql.service.MysqlAdminManagementService;
@@ -32,6 +33,7 @@ public class AdminMysqlManageService implements IAdminMysqlManageService {
     @Override public MysqlAdminPage<MysqlBindingAdminView> pageBindings(MysqlAdminQueries.Binding query) { return managementService.pageBindings(query); }
     @Override public MysqlBindingAdminView findBinding(Long id) { return managementService.findBinding(id); }
     @Override public MysqlBindingAdminView saveBinding(MysqlBindingAdminCommand command) { return managementService.saveBinding(command); }
+    @Override public MysqlBindingAdminView saveDynamicBinding(MysqlDynamicBindingAdminCommand command) { return managementService.saveDynamicBinding(command); }
     @Override public MysqlBindingAdminView changeBindingStatus(Long id, int status) { return managementService.changeBindingStatus(id, status); }
     @Override public void deleteBinding(Long id) { managementService.deleteBinding(id); }
 }

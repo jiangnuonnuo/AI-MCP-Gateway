@@ -25,10 +25,13 @@ public class McpProtocolMysqlPO {
     /** 多协议 Tool 绑定使用的逻辑协议 ID。 */
     private Long protocolId;
 
+    /** MySQL 执行模式：TEMPLATE 或 DYNAMIC_READONLY。 */
+    private String executionMode;
+
     /** 关联 mcp_datasource 的物理外键。 */
     private Long datasourceId;
 
-    /** 经 Domain 安全责任链校验的只读 SQL。 */
+    /** 模板模式保存的只读 SQL；动态模式为空。 */
     private String sqlText;
 
     /** 单次查询最大返回行数。 */

@@ -66,8 +66,9 @@ public class MysqlJdbcGateway implements IMysqlQueryPort, IMysqlDataSourceHealth
         try {
             if (command != null) command.normalize();
             MysqlTemplate template = command == null ? null : command.getTemplate();
-            if (template == null) throw new MysqlQueryException("INVALID_ARGUMENT", "template is required");
-            MysqlConnectionSettings dataSource = connectionSettingsRegistry.findSettings(template.getDatasourceRef())
+            if (command == null) throw new MysqlQueryException("INVALID_ARGUMENT", "query command is required");
+            String datasourceRef = template == null ? command.getDatasourceRef() : template.getDatasourceRef();
+            MysqlConnectionSettings dataSource = connectionSettingsRegistry.findSettings(datasourceRef)
                     .orElseThrow(() -> new MysqlQueryException("DATASOURCE_UNAVAILABLE", "data source is unavailable"));
             MysqlQueryPolicy effectivePolicy = command.getRequestedPolicy();
             if (effectivePolicy == null) {
@@ -77,7 +78,9 @@ public class MysqlJdbcGateway implements IMysqlQueryPort, IMysqlDataSourceHealth
             MysqlQueryPolicy technicalPolicy = new MysqlQueryPolicy(dataSource.getMaxSqlLength(), dataSource.getMaxRows(),
                     dataSource.getMaxResultBytes(), dataSource.getMaxColumns(), dataSource.getMaxQueryTimeoutMs(), true);
             effectivePolicy = effectivePolicy.boundedBy(technicalPolicy);
-            MysqlTemplateParameterBinder.BoundSql bound = parameterBinder.bind(template, command.getParameters());
+            MysqlTemplateParameterBinder.BoundSql bound = template == null
+                    ? parameterBinder.bind(command.getSql(), command.getParameters())
+                    : parameterBinder.bind(template, command.getParameters());
 
             PoolHolder holder = poolFor(dataSource);
             boolean acquired = false;

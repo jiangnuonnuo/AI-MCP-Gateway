@@ -9,6 +9,7 @@ import cn.bugstack.ai.domain.mysql.model.admin.MysqlBindingAdminCommand;
 import cn.bugstack.ai.domain.mysql.model.admin.MysqlBindingAdminView;
 import cn.bugstack.ai.domain.mysql.model.admin.MysqlDataSourceAdminCommand;
 import cn.bugstack.ai.domain.mysql.model.admin.MysqlDataSourceAdminView;
+import cn.bugstack.ai.domain.mysql.model.admin.MysqlDynamicBindingAdminCommand;
 import cn.bugstack.ai.domain.mysql.model.admin.MysqlTemplateAdminCommand;
 import cn.bugstack.ai.domain.mysql.model.admin.MysqlTemplateAdminView;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlQueryPolicy;
@@ -196,12 +197,49 @@ public class MysqlAdminManagementService {
         return findBinding(bindingId);
     }
 
+    /**
+     * 动态 SQL 绑定不依赖模板；网关只保存固定数据源和资源护栏，调用时再由 Tool 参数提供 SQL。
+     */
+    public MysqlBindingAdminView saveDynamicBinding(MysqlDynamicBindingAdminCommand command) {
+        if (command == null || command.gatewayId() == null || command.gatewayId().isBlank()
+                || command.toolName() == null || command.toolName().isBlank()
+                || command.datasourceRef() == null || command.datasourceRef().isBlank()) {
+            throw error("BINDING_INVALID", "dynamic binding is invalid");
+        }
+        if (!repository.gatewayExists(command.gatewayId())) throw error("GATEWAY_NOT_FOUND", "gateway is not found");
+        if (repository.bindingNameExists(command.gatewayId(), command.toolName(), command.id())) {
+            throw error("TOOL_NAME_CONFLICT", "tool name already exists in gateway");
+        }
+        MysqlBindingAdminView current = command.id() == null ? null : findBinding(command.id());
+        if (current != null && !"DYNAMIC_READONLY".equalsIgnoreCase(current.executionMode())) {
+            throw error("PROTOCOL_MODE_MISMATCH", "template binding must be edited from the template binding path");
+        }
+        MysqlQueryPolicy policy = dynamicPolicy(command);
+        if (current != null && Integer.valueOf(1).equals(current.status()) && dynamicCoreChanged(current, command, policy)) {
+            throw error("ENABLED_DYNAMIC_IMMUTABLE", "enabled dynamic binding execution fields are immutable");
+        }
+        int status = normalizeStatus(command.status(), current == null || current.status() == null ? 0 : current.status(),
+                "BINDING_STATUS_INVALID");
+        if (status == 1 && !repository.datasourceEnabled(command.datasourceRef())) {
+            throw error("DATASOURCE_UNAVAILABLE", "data source must be enabled before dynamic binding activation");
+        }
+        Long bindingId = repository.saveDynamicBinding(new MysqlDynamicBindingAdminCommand(command.id(), command.gatewayId(), command.toolId(),
+                command.toolName(), command.toolType(), command.toolDescription(), command.toolVersion(), command.datasourceRef(),
+                policy.getMaxRows(), policy.getMaxResultBytes(), policy.getMaxColumns(), Math.toIntExact(policy.getTimeoutMs()), status));
+        return findBinding(bindingId);
+    }
+
     public MysqlBindingAdminView changeBindingStatus(Long id, int status) {
         int normalized = normalizeStatus(status, 0, "BINDING_STATUS_INVALID");
         MysqlBindingAdminView binding = findBinding(id);
-        if (normalized == 1 && (!repository.templateEnabled(binding.protocolId())
-                || !repository.templateDatasourceEnabled(binding.protocolId()))) {
-            throw error("BINDING_RESOURCE_UNAVAILABLE", "enabled binding requires an enabled template");
+        if (normalized == 1) {
+            if ("DYNAMIC_READONLY".equalsIgnoreCase(binding.executionMode())) {
+                if (binding.datasourceRef() == null || !repository.datasourceEnabled(binding.datasourceRef())) {
+                    throw error("BINDING_RESOURCE_UNAVAILABLE", "enabled dynamic binding requires an enabled data source");
+                }
+            } else if (!repository.templateEnabled(binding.protocolId()) || !repository.templateDatasourceEnabled(binding.protocolId())) {
+                throw error("BINDING_RESOURCE_UNAVAILABLE", "enabled binding requires an enabled template");
+            }
         }
         repository.changeBindingStatus(id, normalized);
         return findBinding(id);
@@ -243,6 +281,26 @@ public class MysqlAdminManagementService {
                 command.maxResultBytes() == null ? defaults.getMaxResultBytes() : command.maxResultBytes(),
                 command.maxColumns() == null ? defaults.getMaxColumns() : command.maxColumns(),
                 command.timeoutMs() == null ? defaults.getTimeoutMs() : command.timeoutMs(), true);
+    }
+
+    private static MysqlQueryPolicy dynamicPolicy(MysqlDynamicBindingAdminCommand command) {
+        MysqlQueryPolicy defaults = MysqlQueryPolicy.defaults();
+        MysqlQueryPolicy policy = new MysqlQueryPolicy(defaults.getMaxSqlLength(),
+                command.maxRows() == null ? defaults.getMaxRows() : command.maxRows(),
+                command.maxResultBytes() == null ? defaults.getMaxResultBytes() : command.maxResultBytes(),
+                command.maxColumns() == null ? defaults.getMaxColumns() : command.maxColumns(),
+                command.timeoutMs() == null ? defaults.getTimeoutMs() : command.timeoutMs(), true);
+        try { policy.validate(); } catch (IllegalArgumentException e) { throw error("BINDING_INVALID", "dynamic query policy is invalid"); }
+        return policy;
+    }
+
+    private static boolean dynamicCoreChanged(MysqlBindingAdminView current, MysqlDynamicBindingAdminCommand command,
+                                               MysqlQueryPolicy policy) {
+        return !java.util.Objects.equals(current.datasourceRef(), command.datasourceRef())
+                || !java.util.Objects.equals(current.maxRows(), policy.getMaxRows())
+                || !java.util.Objects.equals(current.maxResultBytes(), policy.getMaxResultBytes())
+                || !java.util.Objects.equals(current.maxColumns(), policy.getMaxColumns())
+                || !java.util.Objects.equals(current.timeoutMs(), Math.toIntExact(policy.getTimeoutMs()));
     }
 
     private static int normalizeStatus(Integer value, int fallback, String code) {

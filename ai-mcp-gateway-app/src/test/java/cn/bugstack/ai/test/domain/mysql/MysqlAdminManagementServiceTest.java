@@ -61,6 +61,21 @@ class MysqlAdminManagementServiceTest {
     }
 
     @Test
+    void dynamicBindingRequiresDatasourceButDoesNotRequireTemplate() {
+        FakeRepository repository = new FakeRepository();
+        repository.gatewayExists = true;
+        MysqlAdminManagementService service = service(repository, (sql, params, policy) -> SqlSafetyDecision.allowed());
+
+        MysqlBindingAdminView created = service.saveDynamicBinding(new MysqlDynamicBindingAdminCommand(
+                null, "gateway-1", null, "dynamicQuery", "function", "Dynamic query", "1.0.0",
+                "warehouse", 100, 1024L, 16, 3000, 1));
+
+        assertEquals("DYNAMIC_READONLY", created.executionMode());
+        assertEquals("warehouse", created.datasourceRef());
+        assertFalse(repository.templateExists);
+    }
+
+    @Test
     void datasourceConnectionTestUsesHealthPortAndReturnsStableFailure() {
         FakeRepository repository = new FakeRepository();
         repository.dataSource = new MysqlDataSourceAdminView(1L, "warehouse", "Warehouse", "mysql",
@@ -117,6 +132,13 @@ class MysqlAdminManagementServiceTest {
         @Override public MysqlAdminPage<MysqlBindingAdminView> pageBindings(MysqlAdminQueries.Binding query) { return new MysqlAdminPage<>(List.of(), 0, 1, 20); }
         @Override public Optional<MysqlBindingAdminView> findBinding(Long id) { return Optional.ofNullable(binding); }
         @Override public Long saveBinding(MysqlBindingAdminCommand command) { return 1L; }
+        @Override public Long saveDynamicBinding(MysqlDynamicBindingAdminCommand command) {
+            binding = new MysqlBindingAdminView(1L, command.gatewayId(), 1L, command.toolName(), command.toolType(),
+                    command.toolDescription(), command.toolVersion(), 88L, "mysql", command.status(), null, null,
+                    "DYNAMIC_READONLY", command.datasourceRef(), command.maxRows(), command.maxResultBytes(),
+                    command.maxColumns(), command.timeoutMs());
+            return 1L;
+        }
         @Override public void changeBindingStatus(Long id, int status) { }
         @Override public void deleteBinding(Long id) { binding = null; }
         @Override public boolean bindingNameExists(String gatewayId, String toolName, Long excludingId) { return bindingNameExists; }

@@ -77,10 +77,10 @@ public class McpToolProtocolConfigVO {
         /** 绑定数据源状态：1 表示 ENABLED，0 表示 DISABLED。 */
         private Integer datasourceStatus;
 
-        /** 服务端持久化的只读 SQL；不会进入 MCP discovery 响应。 */
+        /** 模板模式的服务端只读 SQL；动态模式为空，调用 SQL 只来自本次请求且不会进入 discovery。 */
         private String sql;
 
-        /** 由 request mapping 转换的扁平参数契约。 */
+        /** 模板模式由 request mapping 转换的扁平参数契约；动态模式为空。 */
         private List<MysqlTemplateParameter> parameters;
 
         /** 协议级查询上限。 */

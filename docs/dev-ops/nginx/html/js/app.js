@@ -38,6 +38,8 @@ $(document).ready(function() {
                 $viewRegion.html(`<div class="alert alert-danger m-4">页面加载失败：${xhr.status} ${xhr.statusText}</div>`);
                 return;
             }
+
+            if (window.initCustomSelects) window.initCustomSelects($viewRegion[0]);
             
             // 页面加载后的初始化逻辑
             initViewLogic(targetId);
@@ -491,22 +493,99 @@ $(document).ready(function() {
         setTimeout(loadGatewayList, 300);
     });
 
-    // 2. 保存网关工具配置
-    handleFormSubmitDelegated('form-gateway-tool', API_ENDPOINTS.SAVE_GATEWAY_TOOL_CONFIG, function(data) {
-        return {
-            gatewayId: data.gatewayId,
-            toolId: data.toolId,
-            toolName: data.toolName,
-            toolType: data.toolType,
-            toolDescription: data.toolDescription,
-            toolVersion: data.toolVersion,
-            protocolId: data.protocolId ? parseInt(data.protocolId) : null,
-            protocolType: data.protocolType
-        };
-    }, function() {
-        $('#gatewayToolModal').modal('hide');
-        // 由于模态框关闭动画有延迟，稍微延时刷新列表避免遮罩问题
-        setTimeout(loadGatewayToolList, 300);
+    // 2. 保存网关工具配置；HTTP 继续使用旧协议接口，MySQL 走统一绑定管理接口。
+    $(document).off('submit', '#form-gateway-tool').on('submit', '#form-gateway-tool', function(e) {
+        e.preventDefault();
+        const $form = $(this);
+        const $btn = $form.find('button[type="submit"]');
+        const originalHtml = $btn.html();
+        const formData = {};
+        $.each($form.serializeArray(), function(_, item) { formData[item.name] = item.value; });
+        const protocolType = String(formData.protocolType || 'http').toLowerCase();
+        const isMysql = protocolType === 'mysql';
+        const executionMode = String(formData.executionMode || 'TEMPLATE').toUpperCase();
+        const originalMode = String(formData.bindingOriginalMode || '').toUpperCase();
+
+        if (isMysql && formData.bindingId && originalMode && originalMode !== executionMode) {
+            showToast('MySQL Tool 绑定的执行模式不可切换，请按原模式编辑或新建绑定', false);
+            return;
+        }
+
+        const requiredFields = isMysql
+            ? ['gatewayId', 'toolName', executionMode === 'DYNAMIC_READONLY' ? 'datasourceRef' : 'mysqlProtocolId']
+            : ['gatewayId', 'toolName', 'protocolId'];
+        const invalid = requiredFields.find(name => !String(formData[name] || '').trim());
+        if (invalid) {
+            showToast('请填写网关工具的必填项', false);
+            $form.find(`[name="${invalid}"]`).trigger('focus');
+            return;
+        }
+        if (isMysql && executionMode === 'DYNAMIC_READONLY') {
+            const invalidLimit = ['maxRows', 'maxResultBytes', 'maxColumns', 'timeoutMs'].find(name => Number(formData[name]) <= 0);
+            if (invalidLimit) {
+                showToast('动态 SQL Tool 的资源上限必须大于 0', false);
+                $form.find(`[name="${invalidLimit}"]`).trigger('focus');
+                return;
+            }
+        }
+
+        let endpoint = API_ENDPOINTS.SAVE_GATEWAY_TOOL_CONFIG;
+        let requestData;
+        if (isMysql) {
+            const dynamic = executionMode === 'DYNAMIC_READONLY';
+            endpoint = dynamic ? API_ENDPOINTS.SAVE_MYSQL_DYNAMIC_BINDING : API_ENDPOINTS.SAVE_MYSQL_BINDING;
+            requestData = {
+                id: formData.bindingId ? parseInt(formData.bindingId, 10) : undefined,
+                gatewayId: formData.gatewayId,
+                toolId: formData.toolId ? parseInt(formData.toolId, 10) : undefined,
+                toolName: formData.toolName,
+                toolType: formData.toolType || 'function',
+                toolDescription: formData.toolDescription || '',
+                toolVersion: formData.toolVersion || '1.0.0',
+                protocolId: dynamic ? undefined : parseInt(formData.mysqlProtocolId, 10),
+                protocolType: dynamic ? undefined : 'mysql',
+                datasourceRef: dynamic ? formData.datasourceRef : undefined,
+                maxRows: dynamic ? parseInt(formData.maxRows, 10) : undefined,
+                maxResultBytes: dynamic ? parseInt(formData.maxResultBytes, 10) : undefined,
+                maxColumns: dynamic ? parseInt(formData.maxColumns, 10) : undefined,
+                timeoutMs: dynamic ? parseInt(formData.timeoutMs, 10) : undefined,
+                status: formData.status ? parseInt(formData.status, 10) : 0
+            };
+        } else {
+            requestData = {
+                gatewayId: formData.gatewayId,
+                toolId: formData.toolId ? parseInt(formData.toolId, 10) : null,
+                toolName: formData.toolName,
+                toolType: formData.toolType,
+                toolDescription: formData.toolDescription,
+                toolVersion: formData.toolVersion,
+                protocolId: formData.protocolId ? parseInt(formData.protocolId, 10) : null,
+                protocolType: protocolType
+            };
+        }
+
+        $btn.html('<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>保存中...').prop('disabled', true);
+        $.ajax({
+            url: endpoint,
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(requestData),
+            success: function(response) {
+                if (response && (response.code === '0000' || response.success === true)) {
+                    showToast('网关工具配置保存成功！');
+                    $('#gatewayToolModal').modal('hide');
+                    setTimeout(loadGatewayToolList, 300);
+                } else {
+                    showToast('保存失败：' + ((response && response.info) || '未知错误'), false);
+                }
+            },
+            error: function(xhr) {
+                let response = {};
+                try { response = JSON.parse(xhr.responseText || '{}'); } catch (error) { /* 使用统一错误提示 */ }
+                showToast('保存失败：' + (response.info || '请检查管理接口'), false);
+            },
+            complete: function() { $btn.html(originalHtml).prop('disabled', false); }
+        });
     });
 
     // 3. 保存网关协议配置
@@ -1035,6 +1114,8 @@ $(document).ready(function() {
 
     $(document).on('click', '#addGatewayToolBtn', function() {
         $('#form-gateway-tool')[0].reset();
+        $('#tool-bindingId').val('');
+        $('#tool-bindingOriginalMode').val('');
         
         // 自动生成8位数字工具ID
         const generatedToolId = Math.floor(10000000 + Math.random() * 90000000);
@@ -1046,6 +1127,9 @@ $(document).ready(function() {
         
         loadGatewayOptions();
         loadProtocolOptions();
+        loadMysqlToolOptions();
+        $('#tool-protocolType').val('http');
+        syncGatewayToolMysqlMode();
     });
 
     // 事件委托 - 修改工具
@@ -1055,18 +1139,25 @@ $(document).ready(function() {
             const item = JSON.parse(itemDataStr);
             
             // 填充表单
+            $('#form-gateway-tool')[0].reset();
             $('#tool-toolId').val(item.toolId).prop('readonly', true);
             $('#tool-toolName').val(item.toolName);
             $('#tool-toolType').val(item.toolType);
             $('#tool-toolDescription').val(item.toolDescription);
             $('#tool-toolVersion').val(item.toolVersion);
-            $('#tool-protocolType').val(item.protocolType);
+            $('#tool-protocolType').val(item.protocolType || 'http');
+            $('#tool-bindingId').val('');
+            $('#tool-bindingOriginalMode').val('');
+            $('#tool-status').val('0');
             
             $('#gatewayToolModalLabel').html('<i class="bi bi-pencil-square me-2"></i>修改网关工具配置');
+            syncGatewayToolMysqlMode();
             
             // 加载下拉框选项并设置选中值
             loadGatewayOptions(item.gatewayId);
             loadProtocolOptions(item.protocolId);
+            if (String(item.protocolType || '').toLowerCase() === 'mysql') loadMysqlBindingForEdit(item);
+            else syncGatewayToolMysqlMode();
             
             $('#gatewayToolModal').modal('show');
         } catch (e) {
@@ -1121,6 +1212,111 @@ $(document).ready(function() {
             $('#tool-gatewayId-help').text('网关ID: -');
         }
     });
+
+    function syncGatewayToolMysqlMode() {
+        const isMysql = String($('#tool-protocolType').val() || '').toLowerCase() === 'mysql';
+        const isDynamic = String($('#tool-mysql-execution-mode').val() || 'TEMPLATE').toUpperCase() === 'DYNAMIC_READONLY';
+        $('#tool-mysql-fields').toggleClass('d-none', !isMysql);
+        $('.gateway-tool-http-field').toggleClass('d-none', isMysql);
+        $('#tool-protocolId').prop('disabled', isMysql).prop('required', !isMysql);
+        $('#tool-mysql-execution-mode, #tool-mysql-template, #tool-mysql-datasource, #tool-mysql-max-rows, #tool-mysql-max-bytes, #tool-mysql-max-columns, #tool-mysql-timeout-ms')
+            .prop('disabled', !isMysql);
+        $('.gateway-tool-mysql-template-field').toggleClass('d-none', !isMysql || isDynamic);
+        $('.gateway-tool-mysql-dynamic-field').toggleClass('d-none', !isMysql || !isDynamic);
+        $('#tool-mysql-template').prop('required', isMysql && !isDynamic).prop('disabled', !isMysql || isDynamic);
+        $('#tool-mysql-datasource').prop('required', isMysql && isDynamic).prop('disabled', !isMysql || !isDynamic);
+        if (isMysql && isDynamic) {
+            $('#tool-mysql-max-rows, #tool-mysql-max-bytes, #tool-mysql-max-columns, #tool-mysql-timeout-ms').prop('required', true);
+        } else {
+            $('#tool-mysql-max-rows, #tool-mysql-max-bytes, #tool-mysql-max-columns, #tool-mysql-timeout-ms').prop('required', false);
+        }
+    }
+
+    function loadMysqlToolOptions(selectedProtocolId = null, selectedDatasourceRef = null) {
+        const $template = $('#tool-mysql-template');
+        const $datasource = $('#tool-mysql-datasource');
+        $template.html('<option value="">加载已发布 SQL 模板...</option>');
+        $datasource.html('<option value="">加载已启用数据源...</option>');
+
+        $.ajax({
+            url: API_ENDPOINTS.GET_MYSQL_TEMPLATE_PAGE,
+            type: 'GET',
+            data: { page: 1, rows: 200, status: 1 },
+            success: function(response) {
+                const list = response && Array.isArray(response.data) ? response.data : [];
+                let options = '<option value="">请选择已发布 SQL 模板...</option>';
+                list.forEach(function(item) {
+                    const id = item.protocolId || item.id;
+                    const selected = selectedProtocolId != null && String(selectedProtocolId) === String(id) ? ' selected' : '';
+                    options += `<option value="${id}" data-version="${item.version || '1.0.0'}" data-datasource="${item.datasourceRef || '-'}"${selected}>${item.name || `protocol-${id}`} · ${id} · v${item.version || '1.0.0'}</option>`;
+                });
+                $template.html(options);
+                syncMysqlTemplateHelp();
+            },
+            error: function() { $template.html('<option value="">模板加载失败，请重试</option>'); syncMysqlTemplateHelp(); }
+        });
+        $.ajax({
+            url: API_ENDPOINTS.GET_MYSQL_DATASOURCE_PAGE,
+            type: 'GET',
+            data: { page: 1, rows: 200, status: 1 },
+            success: function(response) {
+                const list = response && Array.isArray(response.data) ? response.data : [];
+                let options = '<option value="">请选择已启用数据源...</option>';
+                list.forEach(function(item) {
+                    const ref = item.datasourceRef || item.id;
+                    const selected = selectedDatasourceRef != null && String(selectedDatasourceRef) === String(ref) ? ' selected' : '';
+                    options += `<option value="${ref}"${selected}>${item.datasourceName || item.name || ref}</option>`;
+                });
+                $datasource.html(options);
+            },
+            error: function() { $datasource.html('<option value="">数据源加载失败，请重试</option>'); }
+        });
+        syncGatewayToolMysqlMode();
+    }
+
+    function syncMysqlTemplateHelp() {
+        const $option = $('#tool-mysql-template option:selected');
+        if (!$option.val()) {
+            $('#tool-mysql-template-help').text('协议ID: - · 版本: - · 数据源: -');
+            return;
+        }
+        $('#tool-mysql-template-help').text(`协议ID: ${$option.val()} · 版本: ${$option.data('version') || '-'} · 数据源: ${$option.data('datasource') || '-'}`);
+    }
+
+    function loadMysqlBindingForEdit(item) {
+        if (!item || String(item.protocolType || '').toLowerCase() !== 'mysql') return;
+        $.ajax({
+            url: API_ENDPOINTS.GET_MYSQL_BINDING_PAGE,
+            type: 'GET',
+            data: { gatewayId: item.gatewayId, toolName: item.toolName, page: 1, rows: 200 },
+            success: function(response) {
+                const list = response && Array.isArray(response.data) ? response.data : [];
+                const record = list.find(row => String(row.toolName) === String(item.toolName) && String(row.gatewayId) === String(item.gatewayId));
+                if (!record) return;
+                $('#tool-bindingId').val(record.id || '');
+                $('#tool-mysql-execution-mode').val(record.executionMode || 'TEMPLATE');
+                $('#tool-bindingOriginalMode').val(record.executionMode || 'TEMPLATE');
+                $('#tool-mysql-template').val(record.protocolId || '');
+                $('#tool-mysql-datasource').val(record.datasourceRef || '');
+                $('#tool-mysql-max-rows').val(record.maxRows || 1000);
+                $('#tool-mysql-max-bytes').val(record.maxResultBytes || 4194304);
+                $('#tool-mysql-max-columns').val(record.maxColumns || 128);
+                $('#tool-mysql-timeout-ms').val(record.timeoutMs || 30000);
+                $('#tool-status').val(record.status === 1 || record.status === 'enabled' ? '1' : '0');
+                loadMysqlToolOptions(record.protocolId, record.datasourceRef);
+                syncMysqlTemplateHelp();
+                syncGatewayToolMysqlMode();
+            }
+        });
+    }
+
+    $(document).on('change', '#tool-protocolType', function() {
+        const isMysql = String($(this).val() || '').toLowerCase() === 'mysql';
+        if (isMysql) loadMysqlToolOptions();
+        syncGatewayToolMysqlMode();
+    });
+    $(document).on('change', '#tool-mysql-execution-mode', syncGatewayToolMysqlMode);
+    $(document).on('change', '#tool-mysql-template', syncMysqlTemplateHelp);
 
     // 动态加载关联协议选项
     function loadProtocolOptions(selectedProtocolId = null) {

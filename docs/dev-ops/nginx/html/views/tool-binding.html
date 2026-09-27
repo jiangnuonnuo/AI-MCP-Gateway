@@ -1,7 +1,7 @@
 <section class="workbench-page" data-resource="binding" aria-labelledby="workbench-title">
     <section class="workbench-stage">
         <h1 id="workbench-title">Tool 绑定</h1>
-        <p>把已发布 SQL 模板与 Gateway Tool 连接成可发现、可追踪的调用链；数据源由模板统一继承。</p>
+        <p>把模板 Tool 或动态 SQL Tool 连接到 Gateway；动态 SQL 不需要预先创建模板，调用时由 Agent 传入 SQL。</p>
         <div class="stage-points" aria-label="Tool 绑定能力"><span class="stage-point"><i aria-hidden="true">✓</i>按 Gateway 管理路由</span><span class="stage-point"><i aria-hidden="true">✓</i>关联关系可预览</span><span class="stage-point"><i aria-hidden="true">✓</i>停用立即关闭运行时可见性</span></div>
         <img class="hero-art" src="assets/network-hero.png" alt="" aria-hidden="true" onerror="this.hidden=true">
         <span class="hero-label hero-agent" aria-hidden="true">AI Agent</span><span class="hero-label hero-gateway" aria-hidden="true">MCP<br>Gateway</span><span class="hero-label hero-db-one" aria-hidden="true">MySQL</span><span class="hero-label hero-db-two" aria-hidden="true">PostgreSQL</span><span class="hero-label hero-db-three" aria-hidden="true">ClickHouse</span><span class="connect-note" aria-hidden="true">Connect<br>More<br>Possibilities<i></i></span>
@@ -11,7 +11,7 @@
         <div class="registry-panel">
             <div class="tabs" role="tablist" aria-label="Tool 绑定筛选"><button type="button" class="tab-button active" data-status-filter="all" role="tab" aria-selected="true">全部绑定</button><button type="button" class="tab-button" data-status-filter="enabled" role="tab" aria-selected="false">已启用</button><button type="button" class="tab-button" data-status-filter="draft" role="tab" aria-selected="false">待发布</button><button type="button" class="tab-button" data-status-filter="attention" role="tab" aria-selected="false">异常</button></div>
             <div class="filter-bar"><label class="filter-control search-control"><i class="bi bi-search" aria-hidden="true"></i><input id="binding-search" type="search" placeholder="搜索 Tool 名称、模板或 Gateway" aria-label="搜索 Tool 绑定"></label><label class="filter-control"><select id="binding-gateway-filter" aria-label="按 Gateway 筛选"><option value="">全部 Gateway</option></select></label><button type="button" class="button primary" id="binding-create"><i class="bi bi-plus-lg" aria-hidden="true"></i>新建绑定</button></div>
-            <div class="registry-scroll"><div class="registry-head"><span></span><span>模板 / 描述</span><span>Gateway / 协议</span><span>Tool</span><span>状态</span><span>操作</span></div><div id="binding-rows" aria-live="polite"></div></div>
+            <div class="registry-scroll"><div class="registry-head"><span></span><span>执行模式 / 描述</span><span>Gateway / 协议</span><span>Tool</span><span>状态</span><span>操作</span></div><div id="binding-rows" aria-live="polite"></div></div>
             <div class="pagination-bar"><span id="binding-page-info">显示 0 到 0 条，共 0 条</span><div class="pagination-actions" id="binding-pagination"></div></div>
         </div>
         <aside class="inspector-panel" id="binding-inspector" aria-label="Tool 绑定详情检查器"></aside>
@@ -24,9 +24,15 @@
             <div class="form-grid">
                 <div class="field"><label for="binding-gateway">Gateway <span class="required">*</span></label><select id="binding-gateway" name="gatewayId" required><option value="">选择 Gateway</option></select><span class="field-error">请选择 Gateway</span></div>
                 <div class="field"><label for="binding-tool-name">工具名称 <span class="required">*</span></label><input id="binding-tool-name" name="toolName" required maxlength="96" placeholder="order_channel_summary"><span class="field-error">请输入工具名称</span></div>
-                <div class="field"><label for="binding-template">SQL 模板 <span class="required">*</span></label><select id="binding-template" name="protocolId" required><option value="">选择已发布 SQL 模板</option></select><span class="field-error">请选择 SQL 模板</span></div>
-                <div class="field"><label for="binding-datasource-summary">继承数据源</label><output class="field-readonly" id="binding-datasource-summary" aria-live="polite">选择模板后自动带出</output><span class="field-help">绑定不重复保存数据源；运行时沿 SQL 模板的 datasourceRef 解析。</span></div>
-                <div class="field"><label for="binding-template-version">SQL 模板版本</label><output class="field-readonly" id="binding-template-version" aria-live="polite">—</output><span class="field-help">版本由已发布模板提供，绑定表单不可单独修改。</span></div>
+                <div class="field"><label for="binding-execution-mode">执行模式 <span class="required">*</span></label><select id="binding-execution-mode" name="executionMode"><option value="TEMPLATE">SQL 模板</option><option value="DYNAMIC_READONLY">动态 SQL（调用时传入）</option></select><span class="field-help">动态 SQL Tool 不绑定模板，只绑定固定数据源和只读资源护栏。</span></div>
+                <div class="field binding-template-field"><label for="binding-template">SQL 模板 <span class="required">*</span></label><select id="binding-template" name="protocolId"><option value="">选择已发布 SQL 模板</option></select><span class="field-error">请选择 SQL 模板</span></div>
+                <div class="field binding-template-field"><label for="binding-template-version">SQL 模板版本</label><output class="field-readonly" id="binding-template-version" aria-live="polite">—</output><span class="field-help">版本由已发布模板提供，绑定表单不可单独修改。</span></div>
+                <div class="field binding-dynamic-field"><label for="binding-datasource">固定数据源 <span class="required">*</span></label><select id="binding-datasource" name="datasourceRef"><option value="">选择已启用数据源</option></select><span class="field-error">请选择数据源</span></div>
+                <div class="field binding-dynamic-field"><label for="binding-max-rows">最大返回行数</label><input id="binding-max-rows" name="maxRows" type="number" min="1" value="1000"><span class="field-help">调用方只能进一步缩小该上限。</span></div>
+                <div class="field binding-dynamic-field"><label for="binding-max-bytes">最大结果字节数</label><input id="binding-max-bytes" name="maxResultBytes" type="number" min="1" value="4194304"></div>
+                <div class="field binding-dynamic-field"><label for="binding-max-columns">最大返回列数</label><input id="binding-max-columns" name="maxColumns" type="number" min="1" value="128"></div>
+                <div class="field binding-dynamic-field"><label for="binding-timeout-ms">查询超时（毫秒）</label><input id="binding-timeout-ms" name="timeoutMs" type="number" min="1" value="30000"></div>
+                <div class="field binding-template-field"><label for="binding-datasource-summary">继承数据源</label><output class="field-readonly" id="binding-datasource-summary" aria-live="polite">选择模板后自动带出</output><span class="field-help">模板绑定沿 SQL 模板的 datasourceRef 解析。</span></div>
                 <div class="field"><label for="binding-version">Tool 版本</label><input id="binding-version" name="toolVersion" value="1.0.0" maxlength="24"><span class="field-help">用于 MCP Tool 发现与变更追踪，不是 SQL 模板版本。</span></div>
                 <input type="hidden" name="toolType" value="function"><input type="hidden" name="protocolType" value="mysql">
                 <div class="field full"><label for="binding-description">工具描述</label><textarea id="binding-description" name="toolDescription" maxlength="300" placeholder="说明该 Tool 可以安全查询什么数据"></textarea><span class="field-help">描述会展示在 tools/list 中，不要包含密码、Token 或连接信息。</span></div>

@@ -27,6 +27,9 @@ public class MysqlSqlSafetyContext {
     /** 已合并的查询治理策略。 */
     private MysqlQueryPolicy policy;
 
+    /** 是否为 Tool 动态 SQL；动态模式只允许命名参数。 */
+    private boolean dynamic;
+
     /** Parser 提供的逻辑分析结果。 */
     private MysqlSqlAnalysis analysis;
 }

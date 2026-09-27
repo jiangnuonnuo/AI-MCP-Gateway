@@ -6,6 +6,7 @@ import cn.bugstack.ai.domain.mysql.model.valobj.MysqlQueryPolicy;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlTemplate;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlTemplateParameter;
 import cn.bugstack.ai.domain.mysql.model.valobj.MysqlTemplateStatus;
+import cn.bugstack.ai.domain.tool.model.valobj.ToolExecutionMode;
 import cn.bugstack.ai.infrastructure.dao.IMcpDataSourceDao;
 import cn.bugstack.ai.infrastructure.dao.IMcpProtocolMappingDao;
 import cn.bugstack.ai.infrastructure.dao.IMcpProtocolMysqlDao;
@@ -42,6 +43,12 @@ public class MysqlProtocolRepository implements IMysqlProtocolRepository {
         try {
             McpProtocolMysqlPO protocol = protocolDao.queryByProtocolId(protocolId);
             if (protocol == null) return Optional.empty();
+            // 该仓储只负责固定模板协议；动态 SQL 通过 SessionRepository 进入 Tool 执行链。
+            String executionMode = protocol.getExecutionMode();
+            if (executionMode != null && !executionMode.isBlank()
+                    && ToolExecutionMode.from(executionMode) != ToolExecutionMode.MYSQL_TEMPLATE) {
+                return Optional.empty();
+            }
             McpDataSourcePO source = dataSourceDao.queryById(protocol.getDatasourceId());
             if (source == null) return Optional.empty();
             return Optional.of(toDomain(protocol, source, version));
@@ -72,6 +79,11 @@ public class MysqlProtocolRepository implements IMysqlProtocolRepository {
                 protocolDao.insert(created);
                 replaceMappings(protocolId, template.getParameters());
                 return;
+            }
+            if (current.getExecutionMode() != null && !current.getExecutionMode().isBlank()
+                    && ToolExecutionMode.from(current.getExecutionMode()) != ToolExecutionMode.MYSQL_TEMPLATE) {
+                throw new MysqlDomainException("PROTOCOL_MODE_MISMATCH",
+                        "Dynamic MySQL protocol must be managed as a dynamic Tool binding");
             }
             if (Integer.valueOf(1).equals(current.getStatus())
                     && (contentChanged(current, source.getId(), template, policy)
@@ -138,6 +150,7 @@ public class MysqlProtocolRepository implements IMysqlProtocolRepository {
         McpProtocolMysqlPO po = McpProtocolMysqlPO.builder()
                 .protocolId(protocolId)
                 .datasourceId(datasourceId)
+                .executionMode("TEMPLATE")
                 .sqlText(template.getSql())
                 .build();
         applyPolicy(po, policy);

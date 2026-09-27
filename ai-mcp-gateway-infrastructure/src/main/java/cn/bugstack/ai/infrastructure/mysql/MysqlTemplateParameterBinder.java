@@ -23,15 +23,25 @@ public class MysqlTemplateParameterBinder {
     }
 
     public BoundSql bind(MysqlTemplate template, Map<String, ?> arguments) {
-        Map<String, ?> params = arguments == null ? Map.of() : arguments;
         Set<String> declared = new HashSet<>();
         template.getParameters().forEach(parameter -> {
             if (!declared.add(parameter.getName())) {
                 throw new MysqlParameterException("SQL_PARAMETER_ERROR", "duplicate template definition");
             }
         });
+        return bind(template.getSql(), arguments, declared);
+    }
 
-        String sql = template.getSql();
+    /** 将动态 SQL 的命名参数绑定为 JDBC 位置参数。 */
+    public BoundSql bind(String sql, Map<String, ?> arguments) {
+        if (sql == null || sql.isBlank()) {
+            throw new MysqlParameterException("SQL_PARAMETER_ERROR", "sql is required");
+        }
+        return bind(sql, arguments, Set.of());
+    }
+
+    private BoundSql bind(String sql, Map<String, ?> arguments, Set<String> declared) {
+        Map<String, ?> params = arguments == null ? Map.of() : arguments;
         StringBuilder bound = new StringBuilder(sql.length());
         List<Object> values = new ArrayList<>();
         Set<String> used = new HashSet<>();
@@ -81,7 +91,8 @@ public class MysqlTemplateParameterBinder {
                 i++;
                 while (i < sql.length() && Character.isJavaIdentifierPart(sql.charAt(i))) i++;
                 String name = sql.substring(start, i);
-                if (!used.add(name) || !declared.contains(name)) {
+                if (!used.add(name) || !params.containsKey(name)
+                        || (!declared.isEmpty() && !declared.contains(name))) {
                     throw new MysqlParameterException("SQL_PARAMETER_ERROR", "invalid or repeated template parameter");
                 }
                 bound.append('?');

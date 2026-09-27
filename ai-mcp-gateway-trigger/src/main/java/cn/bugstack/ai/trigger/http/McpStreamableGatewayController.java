@@ -4,6 +4,7 @@ import cn.bugstack.ai.api.IMcpStreamableService;
 import cn.bugstack.ai.cases.mcp.IMcpMessageService;
 import cn.bugstack.ai.cases.mcp.IMcpSessionService;
 import cn.bugstack.ai.domain.session.model.entity.HandleMessageCommandEntity;
+import cn.bugstack.ai.types.exception.AppException;
 import com.alibaba.fastjson.JSON;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -48,6 +49,16 @@ public class McpStreamableGatewayController implements IMcpStreamableService {
         return context;
     }
 
+    /**
+     * 将业务异常转换成稳定的非空提示，避免 Map.of 因异常消息为空再次抛出 NPE。
+     */
+    private String errorMessage(Exception exception) {
+        if (exception instanceof AppException appException && StringUtils.isNotBlank(appException.getInfo())) {
+            return appException.getInfo();
+        }
+        return "MCP request failed";
+    }
+
     @Override
     @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> handleGet(@PathVariable("gatewayId") String gatewayId,
@@ -57,7 +68,7 @@ public class McpStreamableGatewayController implements IMcpStreamableService {
                                                     @RequestHeader HttpHeaders headers) {
         String sessionId = StringUtils.isNotBlank(headerSessionId) ? headerSessionId : paramSessionId;
         Map<String, String> transportContext = extractContext(headers);
-        log.info("MCP Streamable GET 监听连接，gatewayId:{} sessionId:{} context:{}", gatewayId, sessionId, transportContext);
+        log.info("MCP Streamable GET 监听连接，gatewayId:{} sessionId:{}", gatewayId, sessionId);
 
         if (StringUtils.isBlank(gatewayId) || StringUtils.isBlank(sessionId)) {
             log.warn("MCP Streamable GET 参数非法，gatewayId:{} sessionId:{}", gatewayId, sessionId);
@@ -76,7 +87,7 @@ public class McpStreamableGatewayController implements IMcpStreamableService {
             return Flux.just(ServerSentEvent.<String>builder()
                     .id(UUID.randomUUID().toString())
                     .event("error")
-                    .data(JSON.toJSONString(Map.of("error", e.getMessage())))
+                    .data(JSON.toJSONString(Map.of("error", errorMessage(e))))
                     .build());
         }
     }
@@ -106,7 +117,7 @@ public class McpStreamableGatewayController implements IMcpStreamableService {
                     .contextWrite(ctx -> ctx.put("MCP_TRANSPORT_CONTEXT", transportContext));
         } catch (Exception e) {
             log.error("MCP Streamable POST 处理消息失败，gatewayId:{} sessionId:{}", gatewayId, sessionId, e);
-            return Mono.just(ResponseEntity.internalServerError().body(JSON.toJSONString(Map.of("error", e.getMessage()))));
+            return Mono.just(ResponseEntity.internalServerError().body(JSON.toJSONString(Map.of("error", errorMessage(e)))));
         }
     }
 
@@ -118,7 +129,7 @@ public class McpStreamableGatewayController implements IMcpStreamableService {
                                                    @RequestHeader HttpHeaders headers) {
         String sessionId = StringUtils.isNotBlank(headerSessionId) ? headerSessionId : paramSessionId;
         Map<String, String> transportContext = extractContext(headers);
-        log.info("MCP Streamable DELETE 关闭会话，gatewayId:{} sessionId:{} context:{}", gatewayId, sessionId, transportContext);
+        log.info("MCP Streamable DELETE 关闭会话，gatewayId:{} sessionId:{}", gatewayId, sessionId);
 
         if (StringUtils.isBlank(gatewayId) || StringUtils.isBlank(sessionId)) {
             log.warn("MCP Streamable DELETE 参数非法，gatewayId:{} sessionId:{}", gatewayId, sessionId);

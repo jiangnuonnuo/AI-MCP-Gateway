@@ -8,11 +8,13 @@ import cn.bugstack.ai.domain.tool.adapter.port.IToolExecutionPort;
 import cn.bugstack.ai.domain.tool.model.valobj.ToolExecutionContext;
 import cn.bugstack.ai.domain.tool.model.valobj.ToolExecutionErrorCode;
 import cn.bugstack.ai.domain.tool.model.valobj.ToolExecutionResult;
+import cn.bugstack.ai.domain.tool.model.valobj.ToolExecutionMode;
 import cn.bugstack.ai.types.exception.AppException;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -76,9 +78,12 @@ public class ToolInvocationService {
                 return ToolExecutionResult.failure(effectiveRequestId, ToolExecutionErrorCode.INVALID_ARGUMENT,
                         "Tool arguments must be an object");
             }
-            if (argumentValidator != null && !argumentValidator.isValid(
-                    arguments instanceof java.util.Map<?, ?> map ? toStringKeyMap(map) : null,
-                    protocol.getRequestProtocolMappings())) {
+            Map<String, Object> argumentMap = arguments instanceof java.util.Map<?, ?> map ? toStringKeyMap(map) : null;
+            boolean argumentsValid = protocol.getExecutionMode() == ToolExecutionMode.MYSQL_DYNAMIC_READONLY
+                    ? argumentValidator != null && argumentValidator.isDynamicValid(argumentMap)
+                    : argumentValidator != null && argumentValidator.isValid(argumentMap,
+                    protocol.getRequestProtocolMappings());
+            if (!argumentsValid) {
                 return ToolExecutionResult.failure(effectiveRequestId, ToolExecutionErrorCode.INVALID_ARGUMENT,
                         "Tool arguments do not match the input schema");
             }

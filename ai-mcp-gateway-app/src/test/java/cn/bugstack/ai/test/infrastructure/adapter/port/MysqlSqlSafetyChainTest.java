@@ -25,13 +25,17 @@ class MysqlSqlSafetyChainTest {
 
     @Test
     void acceptsSelectCteJoinAggregateAndParameters() {
-        SqlSafetyDecision decision = chain.validate("WITH recent AS (SELECT channel_id, pay_amount FROM fact_order "
+        String sql = "WITH recent AS (SELECT channel_id, pay_amount FROM fact_order "
                 + "WHERE order_time >= :fromTime AND order_time < :toTime) "
                 + "SELECT c.channel_name, COUNT(*) AS order_count, SUM(r.pay_amount) AS total_amount "
                 + "FROM recent r JOIN dim_channel c ON c.channel_id = r.channel_id "
-                + "GROUP BY c.channel_name", Map.of("fromTime", "2024-01-01", "toTime", "2025-01-01"), policy);
+                + "GROUP BY c.channel_name";
+        SqlSafetyDecision decision = chain.validate(sql,
+                Map.of("fromTime", "2024-01-01", "toTime", "2025-01-01"), policy);
 
         assertTrue(decision.isAllowed(), decision.getReason());
+        assertTrue(chain.validateDynamic(sql,
+                Map.of("fromTime", "2024-01-01", "toTime", "2025-01-01"), policy).isAllowed());
     }
 
     @Test
@@ -58,5 +62,18 @@ class MysqlSqlSafetyChainTest {
                 chain.validate("SELECT * FROM t WHERE id = :id", Map.of(), policy).getStatus());
         assertEquals(SqlSafetyDecision.Status.POLICY_NOT_CONFIGURED,
                 chain.validate("SELECT 1", Map.of(), null).getStatus());
+    }
+
+    @Test
+    void dynamicModeRejectsPositionalAndRepeatedParameters() {
+        SqlSafetyDecision positional = chain.validateDynamic("SELECT * FROM fact_order WHERE order_id = ?",
+                Map.of("orderId", 7), policy);
+        assertEquals(SqlSafetyDecision.Status.REJECTED, positional.getStatus());
+        assertEquals("SQL_PARAMETER_ERROR", positional.getCode());
+        assertEquals(SqlSafetyDecision.Status.REJECTED,
+                chain.validateDynamic("SELECT * FROM fact_order WHERE order_id = :orderId OR parent_id = :orderId",
+                        Map.of("orderId", 7), policy).getStatus());
+        assertTrue(chain.validateDynamic("SELECT * FROM fact_order WHERE order_id = :orderId",
+                Map.of("orderId", 7), policy).isAllowed());
     }
 }

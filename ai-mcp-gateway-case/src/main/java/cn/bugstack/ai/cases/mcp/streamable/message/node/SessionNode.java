@@ -26,7 +26,7 @@ public class SessionNode extends AbstractMcpStreamableMessageServiceSupport {
 
     @Override
     protected ResponseEntity<?> doApply(HandleMessageCommandEntity requestParameter, DefaultMcpStreamableMessageFactory.DynamicContext dynamicContext) throws Exception {
-        log.info("Streamable 消息处理 SessionNode:{}", requestParameter);
+        log.info("Streamable 消息处理 SessionNode gatewayId:{} sessionId:{}", requestParameter.getGatewayId(), requestParameter.getSessionId());
 
         SessionConfigVO sessionConfigVO = sessionManagementService.getSession(requestParameter.getSessionId());
         if (null == sessionConfigVO) {

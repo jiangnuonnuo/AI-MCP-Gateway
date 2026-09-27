@@ -3,6 +3,7 @@ package cn.bugstack.ai.domain.session.service.message;
 import cn.bugstack.ai.domain.session.model.valobj.McpSchemaVO;
 import cn.bugstack.ai.domain.session.model.valobj.gateway.McpToolConfigVO;
 import cn.bugstack.ai.domain.session.model.valobj.gateway.McpToolProtocolConfigVO;
+import cn.bugstack.ai.domain.tool.model.valobj.ToolExecutionMode;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -29,6 +30,10 @@ public final class ToolSchemaBuilder {
         for (McpToolConfigVO toolConfig : toolConfigs) {
             if (toolConfig == null || !toolConfig.isEnabled() || !hasEnabledProtocol(toolConfig)) continue;
             McpToolProtocolConfigVO protocol = toolConfig.getMcpToolProtocolConfigVO();
+            if (protocol != null && protocol.getExecutionMode() == ToolExecutionMode.MYSQL_DYNAMIC_READONLY) {
+                tools.add(dynamicMysqlTool(toolConfig));
+                continue;
+            }
             List<McpToolProtocolConfigVO.ProtocolMapping> mappings = protocol == null
                     || protocol.getRequestProtocolMappings() == null
                     ? new ArrayList<>() : new ArrayList<>(protocol.getRequestProtocolMappings());
@@ -55,6 +60,17 @@ public final class ToolSchemaBuilder {
             tools.add(new McpSchemaVO.Tool(toolConfig.getToolName(), toolConfig.getToolDescription(), schema));
         }
         return tools;
+    }
+
+    private static McpSchemaVO.Tool dynamicMysqlTool(McpToolConfigVO toolConfig) {
+        Map<String, Object> parameters = new LinkedHashMap<>();
+        parameters.put("sql", Map.of("type", "string",
+                "description", "单条只读 SELECT/WITH SQL，命名参数使用 :name"));
+        parameters.put("parameters", Map.of("type", "object",
+                "description", "命名参数值；无参数时传空对象", "additionalProperties", true));
+        McpSchemaVO.JsonSchema schema = new McpSchemaVO.JsonSchema("object", parameters,
+                List.of("sql", "parameters"), false, null, null);
+        return new McpSchemaVO.Tool(toolConfig.getToolName(), toolConfig.getToolDescription(), schema);
     }
 
     private static boolean hasEnabledProtocol(McpToolConfigVO toolConfig) {

@@ -297,6 +297,21 @@ public class AdminMysqlController implements IAdminMysqlService {
         }
     }
 
+    @RequestMapping(value = "save_mysql_dynamic_binding", method = RequestMethod.POST)
+    @Override
+    public Response<MysqlBindingDTO> saveMysqlDynamicBinding(@RequestBody MysqlDynamicBindingRequestDTO requestDTO) {
+        try {
+            MysqlBindingAdminView view = adminMysqlManageService.saveDynamicBinding(new MysqlDynamicBindingAdminCommand(
+                    requestDTO.getId(), requestDTO.getGatewayId(), requestDTO.getToolId(), requestDTO.getToolName(),
+                    requestDTO.getToolType(), requestDTO.getToolDescription(), requestDTO.getToolVersion(),
+                    requestDTO.getDatasourceRef(), requestDTO.getMaxRows(), requestDTO.getMaxResultBytes(),
+                    requestDTO.getMaxColumns(), requestDTO.getTimeoutMs(), requestDTO.getStatus()));
+            return mysqlSuccess(toDTO(view));
+        } catch (Exception e) {
+            return mysqlError(e);
+        }
+    }
+
     @RequestMapping(value = "change_mysql_binding_status", method = RequestMethod.POST)
     @Override
     public Response<MysqlBindingDTO> changeMysqlBindingStatus(@RequestParam Long id, @RequestParam Integer status) {
@@ -369,6 +384,12 @@ public class AdminMysqlController implements IAdminMysqlService {
                 .protocolId(value.protocolId())
                 .protocolType(value.protocolType())
                 .status(value.status())
+                .executionMode(value.executionMode())
+                .datasourceRef(value.datasourceRef())
+                .maxRows(value.maxRows())
+                .maxResultBytes(value.maxResultBytes())
+                .maxColumns(value.maxColumns())
+                .timeoutMs(value.timeoutMs())
                 .createTime(value.createTime())
                 .updateTime(value.updateTime())
                 .build();
