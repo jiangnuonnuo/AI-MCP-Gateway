@@ -1,16 +1,35 @@
 // js/app.js
 $(document).ready(function() {
-    // 检查登录状态
-    if(localStorage.getItem('mcp_admin_logged_in') !== 'true') {
+    // 会话由后端签发，页面刷新时校验当前令牌。
+    const token = localStorage.getItem('mcp_admin_token');
+    if (!token) {
         window.location.href = 'index.html';
         return;
     }
+    $.ajax({
+        url: CONSOLE_AUTH_ENDPOINTS.SESSION,
+        type: 'GET',
+        headers: {'Authorization': `Bearer ${token}`},
+        error: function () {
+            localStorage.removeItem('mcp_admin_token');
+            localStorage.removeItem('mcp_admin_logged_in');
+            window.location.href = 'index.html';
+        }
+    });
 
     // 退出登录
     $('#logoutBtn').on('click', function(e) {
         e.preventDefault();
-        localStorage.removeItem('mcp_admin_logged_in');
-        window.location.href = 'index.html';
+        const currentToken = localStorage.getItem('mcp_admin_token');
+        $.ajax({
+            url: CONSOLE_AUTH_ENDPOINTS.LOGOUT,
+            type: 'POST',
+            headers: currentToken ? {'Authorization': `Bearer ${currentToken}`} : {}
+        }).always(function () {
+            localStorage.removeItem('mcp_admin_token');
+            localStorage.removeItem('mcp_admin_logged_in');
+            window.location.href = 'index.html';
+        });
     });
 
     // 侧边栏导航切换和动态加载页面

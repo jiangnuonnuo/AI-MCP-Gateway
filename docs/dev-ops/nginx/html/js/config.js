@@ -1,6 +1,7 @@
 // js/config.js
 
-const API_BASE_URL = "http://127.0.0.1:8779/api-gateway"; // 替换为实际的服务端IP和端口
+// 生产环境通过同源反向代理访问 API；本地打开静态文件时允许显式覆盖。
+const API_BASE_URL = window.MCP_GATEWAY_API_BASE_URL || `${window.location.origin}/api-gateway`;
 const MYSQL_DATASOURCE_KEY_REF = "env:MCP_MYSQL_DATASOURCE_KEY";
 
 const API_ENDPOINTS = {
@@ -70,8 +71,8 @@ const API_ENDPOINTS = {
     GET_GATEWAY_OPTIONS: `${API_BASE_URL}/admin/query_gateway_config_list`
 };
 
-// 模拟登录账号
-const MOCK_ACCOUNT = {
-    username: "root",
-    password: "123456"
+const CONSOLE_AUTH_ENDPOINTS = {
+    LOGIN: `${API_BASE_URL}/console/auth/login`,
+    SESSION: `${API_BASE_URL}/console/auth/session`,
+    LOGOUT: `${API_BASE_URL}/console/auth/logout`
 };

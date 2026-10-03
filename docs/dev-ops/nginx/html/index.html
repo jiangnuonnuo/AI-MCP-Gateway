@@ -184,9 +184,6 @@
             const toggle = document.getElementById('togglePassword');
             const card = document.querySelector('.login-card');
 
-            username.value = MOCK_ACCOUNT.username;
-            password.value = MOCK_ACCOUNT.password;
-
             document.querySelectorAll('.language-button').forEach(function (button) {
                 button.addEventListener('click', function () { applyLanguage(button.dataset.lang); });
             });
@@ -225,13 +222,23 @@
                 submit.classList.add('is-loading');
                 submit.querySelector('span').textContent = copy[language].loading;
 
-                window.setTimeout(function () {
-                    if (username.value === MOCK_ACCOUNT.username && password.value === MOCK_ACCOUNT.password) {
+                fetch(CONSOLE_AUTH_ENDPOINTS.LOGIN, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username: username.value.trim(), password: password.value})
+                }).then(function (response) {
+                    return response.json().then(function (body) { return {ok: response.ok, body: body}; });
+                }).then(function (result) {
+                    const body = result.body || {};
+                    if (result.ok && body.code === '0000' && body.data && body.data.token) {
+                        localStorage.setItem('mcp_admin_token', body.data.token);
                         localStorage.setItem('mcp_admin_logged_in', 'true');
                         if (document.getElementById('remember').checked) localStorage.setItem('mcp_admin_remembered', 'true');
                         window.location.href = 'admin.html';
                         return;
                     }
+                    throw new Error('login-failed');
+                }).catch(function () {
                     showHint(copy[language].loginError, true);
                     submit.disabled = false;
                     submit.classList.remove('is-loading');
@@ -239,7 +246,7 @@
                     card.classList.remove('login-shake');
                     void card.offsetWidth;
                     card.classList.add('login-shake');
-                }, 520);
+                });
             });
 
             applyLanguage('zh');

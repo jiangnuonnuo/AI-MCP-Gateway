@@ -46,3 +46,6 @@ build/
 /ai-mcp-gateway-app/.local-config
 /.codegraph-cache/
 /docs/openspec/
+/docs/dev-ops/.env.gateway
+/docs/dev-ops/.gateway-state/
+/docs/dev-ops/.full-stack-state/
